@@ -101,7 +101,7 @@ export default function AppLayout() {
       <Toast />
 
       {/* ── MAIN CONTENT ── */}
-      <main className="mx-auto max-w-7xl px-4 py-6 pb-24 md:pb-8 md:px-8">
+      <main className={`mx-auto max-w-7xl px-4 py-6 md:px-8 md:pb-8 ${totalItems > 0 ? "pb-40" : "pb-28"}`}>
         <Outlet />
       </main>
 
