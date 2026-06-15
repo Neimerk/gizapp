@@ -18,7 +18,7 @@ import { categoryIcons } from "../data/categoryIcons";
 import { categories as masterCategories } from "../data/categories";
 import { formatBRL } from "../utils/format";
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 8;
 
 function parseCategorySlugs(raw: string): string[] {
   return raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -101,9 +101,16 @@ export default function StorePage() {
   }, [products, activeSlug, search]);
 
   const { page, setPage, totalPages, pageItems } = usePagination(filtered, PAGE_SIZE);
+  const productsRef = useRef<HTMLElement>(null);
 
   // Reset page when tab or search changes
   useEffect(() => { setPage(1); }, [activeSlug, search, setPage]);
+
+  // Scroll to products section on page change
+  useEffect(() => {
+    if (page === 1) return;
+    productsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [page]);
 
   if (loading) {
     return (
@@ -238,7 +245,7 @@ export default function StorePage() {
       </div>
 
       {/* ── PRODUCTS ── */}
-      <section>
+      <section ref={productsRef}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-black text-[#0f172a]">
             {search.trim()
