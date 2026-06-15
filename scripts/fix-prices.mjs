@@ -2,9 +2,9 @@
 // fix-prices.mjs — corrige preços zerados em store products
 // Usa preços do catálogo base quando disponível; fallback por categoria.
 
-const API = "http://localhost:5003";
-const ADMIN_EMAIL = "seed-admin@gizapp.com";
-const ADMIN_PASSWORD = "Admin@seed2026!";
+const API = process.env.API_URL || "http://localhost:5003";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "seed-admin@gizapp.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@seed2026!";
 
 // Preços médios por categoria (fallback quando base product também é 0)
 const CATEGORY_PRICE = {

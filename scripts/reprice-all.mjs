@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // reprice-all.mjs — preços realistas para todos os store products
 
-const API = "http://localhost:5003";
-const ADMIN_EMAIL = "seed-admin@gizapp.com";
-const ADMIN_PASSWORD = "Admin@seed2026!";
+const API = process.env.API_URL || "http://localhost:5003";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "seed-admin@gizapp.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@seed2026!";
 
 // ─── Preços corretos por nome exato (nossos 332 produtos do seed) ─────────────
 // [price, promoPrice|null]

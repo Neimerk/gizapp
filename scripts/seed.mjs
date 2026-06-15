@@ -2,9 +2,9 @@
 // seed.mjs — GizApp full marketplace seed
 // Usage: node scripts/seed.mjs
 
-const API = "http://localhost:5003";
-const ADMIN_EMAIL = "seed-admin@gizapp.com";
-const ADMIN_PASSWORD = "Admin@seed2026!";
+const API = process.env.API_URL || "http://localhost:5003";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "seed-admin@gizapp.com";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Admin@seed2026!";
 
 // ─── API helpers ────────────────────────────────────────────────────────────
 
