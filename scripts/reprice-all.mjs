@@ -1,0 +1,616 @@
+#!/usr/bin/env node
+// reprice-all.mjs — preços realistas para todos os store products
+
+const API = "http://localhost:5003";
+const ADMIN_EMAIL = "seed-admin@gizapp.com";
+const ADMIN_PASSWORD = "Admin@seed2026!";
+
+// ─── Preços corretos por nome exato (nossos 332 produtos do seed) ─────────────
+// [price, promoPrice|null]
+const EXACT = {
+  // RESTAURANTES
+  "Frango Grelhado com Arroz e Salada": [30.9, null],
+  "Filé à Parmegiana": [44.9, null],
+  "Strogonoff de Carne": [35.9, null],
+  "Feijoada Completa": [44.9, 39.9],
+  "Salmão ao Molho Maracujá": [58.9, null],
+  "Macarrão à Bolonhesa": [28.9, null],
+  "Picanha na Brasa": [72.9, null],
+  "Frango ao Curry": [36.9, null],
+  "Prato Vegetariano do Dia": [24.9, null],
+  "Sobremesa — Petit Gâteau": [16.9, null],
+  // MERCEARIA
+  "Arroz Branco Tipo 1 — 5kg": [23.9, null],
+  "Feijão Carioca — 1kg": [8.9, null],
+  "Óleo de Soja — 900ml": [7.5, null],
+  "Macarrão Espaguete — 500g": [4.5, null],
+  "Açúcar Cristal — 1kg": [4.9, null],
+  "Sal Refinado Iodado — 1kg": [2.5, null],
+  "Farinha de Trigo — 1kg": [5.5, null],
+  "Leite Integral — 1L": [6.5, null],
+  "Manteiga com Sal — 200g": [10.9, null],
+  "Ovos Brancos — Dúzia": [12.9, null],
+  "Café Torrado Moído — 500g": [19.9, 17.9],
+  "Molho de Tomate — 340g": [3.9, null],
+  // CERVEJAS
+  "Heineken Garrafa — 600ml": [11.9, null],
+  "Skol Pilsen — 600ml": [8.5, null],
+  "Brahma Duplo Malte — 600ml": [9.9, null],
+  "Corona Extra — 330ml": [9.9, null],
+  "Stella Artois — 550ml": [10.5, null],
+  "IPA Artesanal Nacional — 500ml": [17.9, 15.9],
+  "Weiss Artesanal — 500ml": [16.9, null],
+  "Stout Imperial — 500ml": [19.9, null],
+  "Pack Heineken — 12 Latas 350ml": [65.9, 59.9],
+  "Chopp Artesanal — Growler 1L": [32.9, null],
+  // DESTILADOS E VINHOS
+  "Whisky Jack Daniel's Old No. 7 — 750ml": [104.9, null],
+  "Vodka Absolut Original — 750ml": [72.9, null],
+  "Gin Gordon's London Dry — 750ml": [62.9, null],
+  "Vinho Tinto Seco Cabernet — 750ml": [38.9, 34.9],
+  "Vinho Branco Chardonnay — 750ml": [42.9, null],
+  "Espumante Brut Nacional — 750ml": [68.9, null],
+  "Cachaça Artesanal Envelhecida — 700ml": [69.9, null],
+  "Rum Bacardí Superior — 750ml": [64.9, null],
+  "Tequila Jose Cuervo Silver — 750ml": [79.9, null],
+  "Kit Degustação — 3 Miniaturas 50ml": [69.9, 62.9],
+  // NÃO ALCOÓLICOS
+  "Coca-Cola Original — 2L": [10.9, null],
+  "Guaraná Antarctica — 2L": [8.9, null],
+  "Suco Del Valle Laranja — 1L": [7.9, null],
+  "Água de Coco — 330ml": [5.9, null],
+  "Red Bull Energy Drink — 250ml": [12.9, null],
+  "Monster Energy Green — 473ml": [10.9, null],
+  "Água Mineral com Gás — 500ml": [4.9, null],
+  "Chá Gelado Ice Tea Pêssego — 1L": [7.9, null],
+  "Isotônico Gatorade — 500ml": [7.9, null],
+  "Kombucha Original — 300ml": [13.9, 11.9],
+  // FARMÁCIA
+  "Dipirona Sódica 500mg — 20 comprimidos": [5.9, null],
+  "Vitamina C 1000mg — 30 comprimidos": [22.9, null],
+  "Omeprazol 20mg — 28 cápsulas": [14.9, null],
+  "Ibuprofeno 600mg — 20 comprimidos": [14.9, null],
+  "Loratadina 10mg — 12 comprimidos": [12.9, null],
+  "Protetor Solar FPS 50+ — 60g": [35.9, 31.9],
+  "Pomada Bepantol Derma — 30g": [16.9, null],
+  "Vitamina D3 2000UI — 60 cápsulas": [28.9, null],
+  "Termômetro Digital Infravermelho": [52.9, null],
+  "Máscara Cirúrgica Tripla — 50 unidades": [18.9, null],
+  // LANCHES
+  "X-Burguer Clássico": [22.9, null],
+  "X-Tudo Especial": [32.9, null],
+  "Hot Dog Gourmet": [18.9, null],
+  "Batata Frita Crocante — P": [10.9, null],
+  "Batata Frita Crocante — G": [16.9, null],
+  "Nuggets de Frango — 10 un": [15.9, 13.9],
+  "Onion Rings — 8 unidades": [13.9, null],
+  "Misto Quente Artesanal": [10.9, null],
+  "Coxinha de Frango — 4 un": [14.9, null],
+  "Empada de Frango — 4 un": [12.9, null],
+  // PIZZARIAS
+  "Pizza Mussarela — Grande": [52.9, null],
+  "Pizza Pepperoni — Grande": [62.9, null],
+  "Pizza Quatro Queijos — Grande": [64.9, null],
+  "Pizza Margherita — Grande": [52.9, null],
+  "Pizza Calabresa — Grande": [55.9, null],
+  "Pizza Portuguesa — Grande": [57.9, 52.9],
+  "Pizza Frango Catupiry — Grande": [59.9, null],
+  "Pizza Vegetariana — Grande": [55.9, null],
+  "Pizza Nutella & Morango": [52.9, null],
+  "Borda Recheada com Catupiry": [8.9, null],
+  // AÇAÍ E SORVETES
+  "Açaí Puro — 300ml": [14.9, null],
+  "Açaí Puro — 500ml": [21.9, null],
+  "Açaí Power na Tigela": [26.9, 22.9],
+  "Sorvete 2 Bolas": [12.9, null],
+  "Sorvete 3 Bolas": [16.9, null],
+  "Milkshake Chocolate": [17.9, null],
+  "Milkshake Morango": [17.9, null],
+  "Picolé Artesanal — 3 un": [14.9, null],
+  "Sundae Caramelo & Castanha": [16.9, null],
+  "Sorvete Pote — 500ml": [24.9, null],
+  // CAFETERIAS
+  "Espresso Simples — 50ml": [6.9, null],
+  "Cappuccino Tradicional": [12.9, null],
+  "Latte Macchiato": [13.9, null],
+  "Café com Leite — 300ml": [8.9, null],
+  "Frappuccino Caramelo": [16.9, null],
+  "Croissant Amanteigado": [9.9, 8.9],
+  "Bolo de Cenoura com Cobertura": [11.9, null],
+  "Cookie Double Chocolate": [8.9, null],
+  "Sanduíche Integral": [16.9, null],
+  "Brownie Gourmet": [10.9, null],
+  // PADARIA
+  "Pão Francês — 100g": [0.9, null],
+  "Baguete Tradicional": [7.9, null],
+  "Pão de Forma Integral — 500g": [9.9, 8.5],
+  "Pão Doce Recheado — 2 un": [7.9, null],
+  "Bolo de Fubá — Fatia": [5.9, null],
+  "Cuca de Banana": [16.9, null],
+  "Pão Ciabatta — 200g": [8.9, null],
+  "Sonho de Creme — 2 un": [7.9, null],
+  "Rosca de Coco": [16.9, null],
+  // DOCES
+  "Brigadeiro Gourmet — 6 un": [27.9, null],
+  "Trufa de Chocolate Belga — 6": [35.9, 31.9],
+  "Macaron Francês — 6 un": [32.9, null],
+  "Bolo de Chocolate — Fatia": [14.9, null],
+  "Torta de Limão Siciliano": [48.9, null],
+  "Brownie Gourmet — 4 un": [22.9, null],
+  "Kit Ferrero Rocher — 16 un": [62.9, null],
+  "Chocolate Lindt Lindor — 100g": [22.9, null],
+  "Mousse de Maracujá — 200ml": [11.9, null],
+  "Pave de Chocolate — 300g": [17.9, null],
+  // CONVENIÊNCIA
+  "Água Mineral — 500ml": [2.9, null],
+  "Bala Sortida — 100g": [3.9, null],
+  "Biscoito Recheado — 150g": [5.5, null],
+  "Barrinha de Cereal — 2 un": [5.9, null],
+  "Pilha Alcalina AA — 4 un": [13.9, null],
+  "Carregador USB Veicular": [22.9, null],
+  "Chiclete — 5 un": [2.9, null],
+  "Copo Descartável 200ml — 50": [7.9, null],
+  "Fio Dental — 25m": [3.9, null],
+  "Creme Dental Viagem — 50g": [6.9, null],
+  // HORTIFRUTI
+  "Maçã Fuji — kg": [9.9, null],
+  "Banana Prata — kg": [5.5, null],
+  "Tomate Salada — kg": [7.9, null],
+  "Alface Crespa — maço": [3.9, null],
+  "Cenoura — kg": [4.9, null],
+  "Limão Tahiti — kg": [6.9, null],
+  "Morango — bandeja 300g": [11.9, 9.9],
+  "Espinafre — maço": [3.9, null],
+  "Abacate — unidade": [6.9, null],
+  "Pimentão Tricolor — 3 un": [9.9, null],
+  // CARNES
+  "Picanha Bovina — kg": [74.9, null],
+  "Fraldinha — kg": [48.9, null],
+  "Costelinha Suína — kg": [36.9, null],
+  "Frango Inteiro Temperado": [24.9, null],
+  "Linguiça Toscana — kg": [29.9, null],
+  "Alcatra — kg": [52.9, 48.9],
+  "Filé Mignon — kg": [114.9, null],
+  "Contrafilé — kg": [58.9, null],
+  "Bacon Defumado — 200g": [13.9, null],
+  "Carne Moída Patinho — kg": [27.9, null],
+  // PET SHOP
+  "Ração Golden Cães Adulto — 3kg": [68.9, null],
+  "Ração Whiskas Gatos — 500g": [16.9, null],
+  "Petisco Ossinho Natural — 6 un": [16.9, null],
+  "Shampoo Pet Neutro — 500ml": [19.9, null],
+  "Antipulgas Coleira — Porte G": [94.9, null],
+  "Brinquedo Mordedor Latex": [24.9, null],
+  "Cama Pet Pelúcia — Tamanho M": [69.9, 59.9],
+  "Areia Sanitária Gel — 4kg": [29.9, null],
+  "Coleira Ajustável Nylon — M": [15.9, null],
+  "Sachê Royal Canin — 85g": [5.9, null],
+  // BELEZA
+  "Shampoo Hidratação — 400ml": [19.9, null],
+  "Condicionador Nutritivo — 325ml": [14.9, null],
+  "Creme Hidratante Corporal — 400ml": [24.9, null],
+  "Protetor Solar FPS 70 — 60ml": [42.9, 37.9],
+  "Batom Matte Cremoso": [89.9, null],
+  "Máscara para Cílios — Volumão": [28.9, null],
+  "Desodorante Aerosol — 150ml": [12.9, null],
+  "Óleo Capilar de Argan — 30ml": [36.9, null],
+  "Esmalte Gel Perolado": [34.9, null],
+  "Perfume Feminino — 50ml EDP": [119.9, 99.9],
+  // MODA
+  "Camiseta Básica Premium — M": [49.9, null],
+  "Camiseta Estampada Exclusiva": [64.9, 55.9],
+  "Calça Jeans Slim Masculina": [119.9, null],
+  "Short Casual Feminino": [54.9, null],
+  "Vestido Midi Floral": [109.9, null],
+  "Moletom com Capuz Unissex": [129.9, 109.9],
+  "Meias Cano Curto — Kit 3 pares": [22.9, null],
+  "Cinto Couro Legítimo": [69.9, null],
+  "Boné Aba Reta Premium": [49.9, null],
+  "Carteira Slim Couro": [74.9, null],
+  // FITNESS
+  "Whey Protein Concentrado — 1kg": [119.9, 104.9],
+  "Creatina Monohidratada — 300g": [54.9, null],
+  "BCAA 2:1:1 — 200 cápsulas": [64.9, null],
+  "Pré-Treino Reign — 473ml": [11.9, null],
+  "Barra de Proteína — 12 un": [89.9, 79.9],
+  "Ômega 3 — 120 cápsulas": [38.9, null],
+  "Colágeno Hidrolisado — 300g": [44.9, null],
+  "Vitamina B12 Sublingual — 60un": [28.9, null],
+  "Luva de Academia — Par": [39.9, null],
+  "Coqueteleira 600ml — BrasUX": [27.9, null],
+  // BEBÊS
+  "Fralda Pampers Premium — M 50un": [62.9, null],
+  "Lenços Umedecidos — 100 un": [18.9, null],
+  "Creme Antifralda — 45g": [13.9, null],
+  "Shampoo Baby Suave — 200ml": [14.9, null],
+  "Chupeta Ortodôntica — 2 un": [22.9, null],
+  "Mamadeira Anti-Cólica — 270ml": [44.9, null],
+  "Manta de Microfibra 80x80cm": [32.9, null],
+  "Pomada Calmante de Ervas — 30g": [11.9, null],
+  "Brinquedo Chocalho — 3 peças": [27.9, null],
+  "Fantoche de Pelúcia — Ursinho": [32.9, 27.9],
+  // CASA E COZINHA
+  "Panela Antiaderente 24cm": [82.9, null],
+  "Jogo de Pratos — 6 peças": [99.9, 84.9],
+  "Tábua de Corte Bambu — G": [39.9, null],
+  "Jogo de Facas — 5 peças": [109.9, null],
+  "Pano de Prato — Kit 3 un": [19.9, null],
+  "Abridor de Vinho Elétrico": [64.9, 54.9],
+  "Espátula Silicone Alta Temperatura": [19.9, null],
+  "Jarra Filtrante — 2.4L": [79.9, null],
+  "Porta-Temperos Giratório — 8 un": [54.9, null],
+  "Vela Aromática — Madeira & Baunilha": [42.9, null],
+  // UTILIDADES
+  "Detergente Neutro — 500ml": [3.9, null],
+  "Sabão em Pó — 1kg": [11.9, null],
+  "Amaciante de Roupas — 2L": [12.9, null],
+  "Desinfetante Lavanda — 750ml": [7.9, null],
+  "Esponja de Aço — 8 un": [4.9, null],
+  "Rodo Mágico com Cabo — 120cm": [24.9, null],
+  "Luva Doméstica — Par M": [7.9, null],
+  "Saco de Lixo 30L — 50 un": [11.9, null],
+  "Pano Multiuso — 3 un": [13.9, null],
+  "Álcool 70% Gel — 500ml": [7.9, null],
+  // FERRAMENTAS
+  "Furadeira de Impacto 550W": [164.9, 149.9],
+  "Kit Chaves Combinadas — 8 peças": [64.9, null],
+  "Martelo Cabo Borracha — 20mm": [32.9, null],
+  "Trena Profissional — 5m": [24.9, null],
+  "Alicate Universal — 8 polegadas": [28.9, null],
+  "Nível a Bolha — 60cm": [32.9, null],
+  "Serra Manual — 24 dentes": [24.9, null],
+  "Fita Isolante Antichama — 10m": [4.9, null],
+  "Parafusos Surtidos — 200 un": [19.9, null],
+  "Chave de Fenda/Philips — Kit": [16.9, null],
+  // CONSTRUÇÃO
+  "Cimento CP-II 32 — 50kg": [42.9, null],
+  "Tinta Acrílica Branca — 3.6L": [72.9, null],
+  "Rejunte Cinza — 1kg": [10.9, null],
+  "Cola para Azulejo — 20kg": [34.9, null],
+  "Impermeabilizante — 18L": [139.9, null],
+  "Rolo de Pintura — Kit Completo": [24.9, null],
+  "Lixa Para Massa — 220": [2.9, null],
+  "Fita Crepe — 48mm x 50m": [6.9, null],
+  "Manta Asfáltica — rolo 10m": [199.9, 184.9],
+  "Silicone Neutro — 280ml": [12.9, null],
+  // ELETRÔNICOS
+  "Fone JBL Tune 510BT Bluetooth": [179.9, 159.9],
+  "Carregador Turbo 65W GaN": [84.9, null],
+  "Cabo USB-C para USB-C — 2m": [22.9, null],
+  "Mouse Sem Fio Ergonômico": [69.9, null],
+  "Hub USB-C — 7 em 1": [84.9, 74.9],
+  "Película de Vidro 9H — iPhone": [14.9, null],
+  "Power Bank 10.000mAh": [74.9, null],
+  "Suporte Articulado para Monitor": [129.9, 112.9],
+  "Webcam HD 1080p": [109.9, null],
+  "SSD Externo 500GB Portátil": [229.9, null],
+  // PAPELARIA
+  "Caderno Universitário 96 fls": [16.9, null],
+  "Caneta BIC 0.7 — Caixa 50 un": [22.9, null],
+  "Lápis Preto HB — 12 un": [8.9, null],
+  "Marca-texto 4 Cores": [10.9, null],
+  "Bloco de Notas A5 — 100 fls": [8.9, null],
+  "Tesoura Escolar 17cm": [9.9, null],
+  "Cola Branca 90g": [3.9, null],
+  "Post-It Original — 100 fls": [17.9, null],
+  "Grampeador de Mesa": [21.9, null],
+  "Pasta Catálogo A4 — 40 fls": [13.9, null],
+  // BRINQUEDOS
+  "LEGO Classic — 300 peças": [134.9, 119.9],
+  "Boneca Articulada — 30cm": [59.9, null],
+  "Carrinho Die-Cast Colecionável": [12.9, null],
+  "Jogo Uno Classic": [24.9, null],
+  "Quebra-Cabeça 500 peças": [32.9, null],
+  "Kit Massinha 6 Potes": [24.9, null],
+  "Bola de Futebol Campo — N5": [52.9, null],
+  "Pelúcia Ursinho Teddy — 30cm": [42.9, null],
+  "Slime Kit Glitter — 3 potes": [18.9, null],
+  "Dominó Infantil — 28 peças": [15.9, 13.9],
+  // PRESENTES
+  "Cesta Café da Manhã Premium": [109.9, 94.9],
+  "Kit Vinho & Taças": [129.9, null],
+  "Caneca Personalizada 350ml": [32.9, null],
+  "Quadro Decorativo 30x40cm": [64.9, null],
+  "Kit Skincare Presente": [139.9, 119.9],
+  "Vela Aromática Presente": [49.9, null],
+  "Agenda Moleskine 2026": [74.9, null],
+  "Kit Chá & Relax": [52.9, null],
+  "Porta-Retrato Madeira — 3 em 1": [39.9, null],
+  "Almofada Personalizada — 40x40": [44.9, null],
+  // AUTOMOTIVO
+  "Óleo Motor 5W30 Sintético — 1L": [39.9, null],
+  "Filtro de Óleo Universal": [21.9, null],
+  "Palheta Limpador Para-brisa": [34.9, null],
+  "Lâmpada H7 Super White — Par": [24.9, null],
+  "Cera Líquida Premium — 500ml": [24.9, null],
+  "Suporte Veicular para Celular": [22.9, null],
+  "Aspirador Veicular 12V": [64.9, 54.9],
+  "Câmara de Borracha Aro 14": [19.9, null],
+  "Perfume Automotivo — Novo Carro": [12.9, null],
+  "Extintor Veicular 1kg ABC": [64.9, 54.9],
+  // SERVIÇOS
+  "Serviço de Encanamento — 1h": [130, null],
+  "Serviço Elétrico — 1h": [150, null],
+  "Pintura de Parede — m²": [28, null],
+  "Faxina Completa — até 80m²": [220, 190],
+  "Montagem de Móveis": [100, null],
+  "Instalação de Suporte de TV": [70, null],
+  "Jardinagem — 1h": [75, null],
+  "Limpeza de Ar-condicionado": [150, 130],
+  "Motoboy Express — por corrida": [18, null],
+  "Consultoria em TI — 1h": [180, null],
+  // CURSOS
+  "Programação Python do Zero": [147, 97],
+  "UX Design Completo": [197, 157],
+  "Inglês Conversação — 12 aulas": [267, null],
+  "Excel Avançado & Power BI": [127, 97],
+  "Marketing Digital Completo": [167, 127],
+  "Programação Web Full-Stack": [347, 267],
+  "Gestão de Projetos — PMI": [247, null],
+  "Curso de Violão do Zero": [97, 77],
+  "Copywriting para Vendas": [147, 117],
+  "Design Gráfico com Photoshop": [147, 117],
+  // ASSISTÊNCIA TÉCNICA
+  "Troca de Tela iPhone 13/14": [429.9, 399.9],
+  "Troca de Bateria Samsung": [159.9, null],
+  "Formatação Notebook": [120, null],
+  "Manutenção Preventiva PC": [100, null],
+  "Troca de Tela Notebook": [299.9, null],
+  "Reparo de Conector de Carga": [129.9, null],
+  "Desbloqueio de Celular": [69.9, null],
+  "Remoção de Vírus e Malware": [74.9, null],
+  "Instalação de SSD em Notebook": [169.9, 149.9],
+  "Suporte Remoto — 1h": [65, null],
+  // OUTROS
+  "Caixa Surpresa Premium": [54.9, 44.9],
+  "Kit Eco Sustentável": [29.9, null],
+  "Mini-kit de Viagem": [39.9, null],
+  "Pack Bem-Estar": [62.9, null],
+  "Cesta Econômica Surtida": [69.9, 59.9],
+  "Kit Office em Casa": [47.9, null],
+  "Voucher Presente — R$ 50": [50, null],
+  "Voucher Presente — R$ 100": [100, null],
+  "Kit Fika & Relaxa": [44.9, null],
+  "Produto Especial Edição Limitada": [79.9, 64.9],
+};
+
+// ─── Keyword → preço fixo (para produtos antigos das lojas legadas) ──────────
+const KW = [
+  // cervejas/bebidas
+  [/heineken.*600|600.*heineken/i, [10.9, 13.9]],
+  [/heineken.*330|lata.*heineken|heineken.*lata/i, [5.5, 6.9]],
+  [/heineken.*269/i, [4.5, 5.9]],
+  [/skol.*600|600.*skol/i, [7.9, 10.9]],
+  [/skol.*350|lata.*skol/i, [3.9, 5.5]],
+  [/brahma.*600|600.*brahma/i, [8.9, 11.9]],
+  [/brahma.*350|lata.*brahma/i, [3.9, 5.9]],
+  [/budweiser/i, [5.9, 10.9]],
+  [/corona/i, [8.9, 12.9]],
+  [/stella/i, [8.9, 13.9]],
+  [/itaipava/i, [5.9, 8.9]],
+  [/crystal|amstel/i, [5.9, 9.9]],
+  [/eisenbahn|colorado|wäls/i, [11.9, 19.9]],
+  [/cerveja.*artesanal|artesanal.*cerveja|ipa|stout|porter|pilsner.*artesanal/i, [14.9, 24.9]],
+  [/cerveja/i, [4.9, 12.9]],
+  [/chopp/i, [24.9, 42.9]],
+  // destilados
+  [/jack daniel/i, [99.9, 114.9]],
+  [/johnnie walker.*red/i, [89.9, 109.9]],
+  [/johnnie walker.*black/i, [129.9, 159.9]],
+  [/johnnie walker/i, [89.9, 149.9]],
+  [/ballantine/i, [72.9, 92.9]],
+  [/jim beam/i, [72.9, 92.9]],
+  [/chivas/i, [104.9, 149.9]],
+  [/whisky|whiskey/i, [72.9, 149.9]],
+  [/absolut/i, [64.9, 79.9]],
+  [/smirnoff/i, [44.9, 62.9]],
+  [/vodka/i, [44.9, 85.9]],
+  [/gordon|tanqueray|beefeater/i, [59.9, 89.9]],
+  [/gin/i, [54.9, 99.9]],
+  [/bacardi|havana/i, [59.9, 79.9]],
+  [/rum/i, [44.9, 79.9]],
+  [/tequila.*jose|jose.*cuervo/i, [74.9, 94.9]],
+  [/tequila/i, [64.9, 99.9]],
+  [/espumante|prosecco|chandon/i, [45.9, 89.9]],
+  [/champagne/i, [99.9, 249.9]],
+  [/vinho.*tinto|tinto.*vinho/i, [22.9, 52.9]],
+  [/vinho.*branco|branco.*vinho/i, [22.9, 49.9]],
+  [/vinho.*rose|rosé/i, [24.9, 48.9]],
+  [/vinho/i, [22.9, 55.9]],
+  [/cachaça/i, [18.9, 79.9]],
+  // mercado / não alcoólicos
+  [/achocolatado|nescau|toddy|ovomaltine/i, [6.9, 12.9]],
+  [/leite.*condensado/i, [5.5, 8.9]],
+  [/creme de leite/i, [3.9, 6.9]],
+  [/leite.*integral|leite.*desnatado|leite.*uht/i, [5.5, 7.9]],
+  [/coca.cola.*2l|pepsi.*2l|guaraná.*2l/i, [8.9, 12.9]],
+  [/coca.cola|pepsi/i, [4.5, 12.9]],
+  [/guaraná/i, [4.5, 10.9]],
+  [/agua mineral|água mineral/i, [1.9, 4.9]],
+  [/red bull/i, [11.9, 14.9]],
+  [/monster energy/i, [9.9, 13.9]],
+  [/gatorade|powerade/i, [6.9, 9.9]],
+  [/suco.*del valle|del valle/i, [6.9, 9.9]],
+  [/suco/i, [4.9, 10.9]],
+  [/agua de coco|água de coco/i, [4.9, 7.9]],
+  [/kombucha/i, [11.9, 17.9]],
+  [/arroz.*5kg/i, [21.9, 27.9]],
+  [/arroz.*2kg/i, [13.9, 18.9]],
+  [/arroz.*1kg/i, [7.9, 11.9]],
+  [/arroz/i, [7.9, 27.9]],
+  [/feijão.*carioca|feijão.*preto/i, [6.9, 11.9]],
+  [/feijão/i, [6.9, 12.9]],
+  [/óleo de soja|oleo de soja/i, [6.5, 9.9]],
+  [/azeite/i, [14.9, 44.9]],
+  [/macarrão/i, [3.5, 7.9]],
+  [/açúcar|acucar/i, [3.9, 6.9]],
+  [/farinha de trigo/i, [4.5, 6.9]],
+  [/manteiga/i, [9.9, 16.9]],
+  [/margarina/i, [6.9, 12.9]],
+  [/café.*torrado|café.*moído|café.*solúvel/i, [8.9, 29.9]],
+  [/molho de tomate/i, [3.5, 5.9]],
+  [/extrato de tomate/i, [2.9, 4.9]],
+  [/biscoito.*recheado|bolacha.*recheada/i, [3.9, 7.9]],
+  [/biscoito.*cream|cream cracker/i, [3.9, 6.9]],
+  [/biscoito|bolacha/i, [3.5, 7.9]],
+  [/chips|salgadinho/i, [3.9, 8.9]],
+  [/ketchup/i, [5.9, 10.9]],
+  [/maionese/i, [5.9, 12.9]],
+  [/mel/i, [14.9, 34.9]],
+  [/geleia/i, [7.9, 16.9]],
+  // carnes
+  [/picanha/i, [65.9, 109.9]],
+  [/filé mignon/i, [95.9, 149.9]],
+  [/alcatra/i, [45.9, 72.9]],
+  [/fraldinha/i, [38.9, 68.9]],
+  [/contrafilé/i, [48.9, 74.9]],
+  [/carne moída/i, [22.9, 36.9]],
+  [/frango inteiro/i, [20.9, 29.9]],
+  [/peito de frango/i, [20.9, 34.9]],
+  [/linguiça/i, [20.9, 36.9]],
+  [/costelinha/i, [27.9, 44.9]],
+  [/bacon/i, [11.9, 19.9]],
+  // hortifruti
+  [/banana/i, [3.9, 7.9]],
+  [/maçã|maca/i, [7.9, 12.9]],
+  [/laranja/i, [3.9, 7.9]],
+  [/limão|limao/i, [4.9, 8.9]],
+  [/abacate/i, [4.9, 8.9]],
+  [/morango/i, [9.9, 15.9]],
+  [/tomate/i, [5.9, 10.9]],
+  [/cenoura/i, [3.9, 6.9]],
+  [/batata/i, [3.9, 7.9]],
+  [/cebola/i, [3.9, 7.9]],
+  [/alface/i, [2.9, 4.9]],
+  [/pimentão/i, [4.9, 10.9]],
+  // farmácia
+  [/dipirona/i, [3.9, 7.9]],
+  [/paracetamol/i, [3.9, 7.9]],
+  [/ibuprofeno/i, [11.9, 21.9]],
+  [/omeprazol/i, [9.9, 17.9]],
+  [/loratadina/i, [8.9, 16.9]],
+  [/vitamina c/i, [15.9, 29.9]],
+  [/vitamina d/i, [19.9, 38.9]],
+  [/protetor solar/i, [24.9, 64.9]],
+  [/termômetro/i, [39.9, 84.9]],
+  [/máscara cirúrgica/i, [11.9, 22.9]],
+  // pet
+  [/ração golden/i, [44.9, 84.9]],
+  [/royal canin/i, [48.9, 179.9]],
+  [/ração pedigree/i, [35.9, 79.9]],
+  [/ração whiskas|whiskas/i, [12.9, 21.9]],
+  [/ração/i, [12.9, 84.9]],
+  // restaurante / delivery
+  [/hamburguer|hamburger|burguer|burger/i, [20.9, 38.9]],
+  [/hot dog|hotdog/i, [14.9, 22.9]],
+  [/pizza/i, [38.9, 72.9]],
+  [/açaí.*300|acai.*300/i, [13.9, 18.9]],
+  [/açaí.*500|acai.*500/i, [19.9, 25.9]],
+  [/açaí|acai/i, [13.9, 34.9]],
+  [/sorvete/i, [9.9, 28.9]],
+  [/milkshake/i, [14.9, 22.9]],
+  [/cappuccino/i, [9.9, 14.9]],
+  [/espresso|expresso/i, [5.9, 8.9]],
+  [/pao frances|pão francês/i, [0.8, 1.4]],
+];
+
+// ─── Ranges por categoria (fallback) ─────────────────────────────────────────
+const CAT_RANGE = {
+  "restaurantes":        [18, 58],
+  "mercearia":           [2, 22],
+  "cervejas":            [4, 22],
+  "destilados-e-vinhos": [22, 120],
+  "nao-alcoolicos":      [3, 15],
+  "farmacia":            [4, 55],
+  "lanches":             [8, 35],
+  "pizzarias":           [35, 72],
+  "acai-sorvetes":       [9, 35],
+  "cafeterias":          [5, 20],
+  "padaria":             [1, 20],
+  "doces":               [8, 65],
+  "conveniencia":        [2, 25],
+  "hortifruti":          [2, 15],
+  "carnes":              [12, 115],
+  "petshop":             [5, 95],
+  "beleza":              [10, 120],
+  "moda":                [20, 160],
+  "fitness":             [10, 165],
+  "bebes":               [10, 65],
+  "casa-cozinha":        [15, 130],
+  "utilidades":          [2, 30],
+  "ferramentas":         [4, 180],
+  "construcao":          [3, 210],
+  "eletronicos":         [12, 240],
+  "papelaria":           [2, 25],
+  "brinquedos":          [10, 150],
+  "presentes":           [25, 150],
+  "automotivo":          [10, 95],
+  "servicos":            [15, 220],
+  "cursos-online":       [70, 360],
+  "assistencia-tecnica": [50, 450],
+  "outros":              [18, 110],
+};
+
+function snap(v) {
+  const base = Math.floor(v);
+  return parseFloat((base + 0.9).toFixed(2));
+}
+
+function priceFor(name, category) {
+  if (EXACT[name]) return EXACT[name];
+  const n = name.toLowerCase();
+  for (const [re, range] of KW) {
+    if (re.test(name)) {
+      const [lo, hi] = range;
+      return [snap(lo + Math.random() * (hi - lo)), null];
+    }
+  }
+  const cat = (category ?? "outros").toLowerCase().replace(/\s+/g, "-");
+  const [lo, hi] = CAT_RANGE[cat] ?? [10, 60];
+  return [snap(lo + Math.random() * (hi - lo)), null];
+}
+
+// ─── API helpers ─────────────────────────────────────────────────────────────
+async function req(method, path, body, token) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const text = await res.text();
+  try { return { ok: res.ok, data: JSON.parse(text) }; } catch { return { ok: res.ok, data: text }; }
+}
+
+async function main() {
+  console.log("💰 Reprice-All — preços realistas\n");
+  const lr = await req("POST", "/api/auth/login", { email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
+  if (!lr.ok) throw new Error("Login falhou");
+  const token = lr.data.token;
+
+  const sr = await req("GET", "/api/stores?pageSize=300", null, token);
+  const stores = sr.data?.items ?? sr.data ?? [];
+  console.log(`📦 ${stores.length} lojas\n`);
+
+  let fixed = 0, errors = 0;
+
+  for (const store of stores) {
+    const spr = await req("GET", `/api/storeproducts/${store.id}`, null, token);
+    if (!spr.ok) continue;
+    const items = spr.data ?? [];
+    if (items.length === 0) continue;
+
+    const cat = (store.category ?? "outros").toLowerCase().replace(/\s+/g, "-");
+    process.stdout.write(`🏪 ${store.name} (${items.length})… `);
+
+    for (const sp of items) {
+      const [price, promo] = priceFor(sp.name, sp.category ?? cat);
+      const r = await req("PATCH", `/api/storeproducts/${sp.id}`,
+        { price, promotionalPrice: promo, stock: sp.stock > 0 ? sp.stock : 100, available: true },
+        token);
+      if (r.ok) fixed++; else errors++;
+    }
+    console.log("✓");
+  }
+
+  console.log(`\n✅ Pronto — ${fixed} atualizados, ${errors} erros`);
+}
+
+main().catch(e => { console.error("💥", e); process.exit(1); });
