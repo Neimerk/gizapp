@@ -108,28 +108,25 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f7] pb-32">
-      {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[#e8eaf0] px-4 py-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
-              GizApp
-            </p>
-            <h1 className="text-xl font-black text-[#0f172a]">Minha conta</h1>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
+        >
+          <ArrowLeft size={18} className="text-white" />
+        </button>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
+            GizApp
+          </p>
+          <h1 className="text-xl font-black text-[#0f172a]">Minha conta</h1>
         </div>
-      </header>
+      </div>
 
       {/* PROFILE BANNER */}
       <div
-        className="relative mx-4 mt-4 overflow-hidden rounded-3xl p-5"
+        className="relative overflow-hidden rounded-3xl p-5"
         style={{
           background:
             "radial-gradient(circle at 80% 20%, rgba(124,58,237,0.4), transparent 50%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
@@ -164,7 +161,7 @@ export default function AccountPage() {
         )}
       </div>
 
-      <div className="px-4 pt-4 space-y-3">
+      <div className="space-y-3">
         {/* DADOS PESSOAIS */}
         <SectionCard icon={<User size={16} className="text-[#7c3aed]" />} title="Dados pessoais">
           <Field label="Nome completo">

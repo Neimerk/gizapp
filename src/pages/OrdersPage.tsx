@@ -121,38 +121,35 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f7] pb-28">
-      {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[#e8eaf0] px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
-            >
-              <ArrowLeft size={18} className="text-white" />
-            </button>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
-                GizApp
-              </p>
-              <h1 className="text-xl font-black text-[#0f172a]">Meus pedidos</h1>
-            </div>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => loadOrders(true)}
-            disabled={refreshing}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white"
+            onClick={() => navigate(-1)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
           >
-            <RefreshCw
-              size={16}
-              className={`text-[#64748b] ${refreshing ? "animate-spin" : ""}`}
-            />
+            <ArrowLeft size={18} className="text-white" />
           </button>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
+              GizApp
+            </p>
+            <h1 className="text-xl font-black text-[#0f172a]">Meus pedidos</h1>
+          </div>
         </div>
-      </header>
+        <button
+          onClick={() => loadOrders(true)}
+          disabled={refreshing}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white"
+        >
+          <RefreshCw
+            size={16}
+            className={`text-[#64748b] ${refreshing ? "animate-spin" : ""}`}
+          />
+        </button>
+      </div>
 
-      <div className="px-4 pt-4">
+      <div>
         {loading ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (

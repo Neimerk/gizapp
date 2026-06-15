@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useDebounce } from "../hooks/useDebounce";
 import { ChevronLeft, ChevronRight, Search, Store as StoreIcon, ArrowRight } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -29,33 +28,48 @@ export default function SearchPage() {
 
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [filter, setFilter] = useState("");
-  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [allProducts, setAllProducts] = useState<StoreProduct[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const debouncedSearch = useDebounce(search, 400);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
 
-    Promise.all([getStoreProducts({ search: debouncedSearch }), getStores()])
-      .then(([prods, strs]) => {
+    getStores()
+      .then(async (storeList) => {
+        const activeStores = storeList.filter((s) => s.active);
+        const productArrays = await Promise.all(
+          activeStores.map((store) =>
+            getStoreProducts({ storeId: store.id }).catch(() => [] as StoreProduct[])
+          )
+        );
         if (!cancelled) {
-          setProducts(prods);
-          setStores(strs.filter((s) => s.active));
+          setStores(activeStores);
+          setAllProducts(productArrays.flat());
         }
       })
       .catch(console.error)
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [debouncedSearch]);
+  }, []);
 
   const filteredProducts = useMemo(() => {
-    if (!filter) return products;
-    return products.filter((p) => matchesCategory(p.category ?? "", filter));
-  }, [products, filter]);
+    let result = allProducts;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          (p.brand?.toLowerCase() ?? "").includes(q) ||
+          (p.description?.toLowerCase() ?? "").includes(q)
+      );
+    }
+    if (filter) result = result.filter((p) => matchesCategory(p.category ?? "", filter));
+    return result;
+  }, [allProducts, search, filter]);
 
   const filteredStores = useMemo(() => {
     if (!search.trim()) return [];
@@ -67,7 +81,7 @@ export default function SearchPage() {
 
   const { page, setPage, totalPages, pageItems } = usePagination(filteredProducts, PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [filter, debouncedSearch, setPage]);
+  useEffect(() => { setPage(1); }, [filter, search, setPage]);
 
   return (
     <div className="space-y-6">

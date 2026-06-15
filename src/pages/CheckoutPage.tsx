@@ -201,7 +201,7 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#f0f2f7] px-4 text-center">
+      <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
         <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#7c3aed]/10">
           <ShoppingBag size={40} className="text-[#7c3aed]" />
         </div>
@@ -220,26 +220,23 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f7] pb-32">
-      {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[#e8eaf0] px-4 py-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
-              GizApp
-            </p>
-            <h1 className="text-xl font-black text-[#0f172a]">Checkout</h1>
-          </div>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
+        >
+          <ArrowLeft size={18} className="text-white" />
+        </button>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
+            GizApp
+          </p>
+          <h1 className="text-xl font-black text-[#0f172a]">Checkout</h1>
         </div>
-      </header>
+      </div>
 
-      <div className="px-4 pt-4 space-y-3">
+      <div className="space-y-3">
         {/* ENDEREÇO */}
         <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
