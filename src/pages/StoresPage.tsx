@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Bike, Clock3, Search, Star, ArrowRight } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { getStores, getProductImageUrl, type Store } from "../services/gizApi";
+import { getStores, type Store } from "../services/gizApi";
 import { formatBRL } from "../utils/format";
 import StoreLogo from "../components/ui/StoreLogo";
 
@@ -128,7 +128,6 @@ export default function StoresPage() {
 }
 
 function StoreCard({ store }: { store: Store }) {
-  const initial = store.name.charAt(0).toUpperCase();
   const deliveryFeeText = Number(store.deliveryFee) === 0 ? "Grátis" : formatBRL(Number(store.deliveryFee));
 
   return (

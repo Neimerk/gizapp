@@ -101,7 +101,6 @@ export default function CategoryPage() {
 }
 
 function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string }) {
-  const initial = store.name.charAt(0).toUpperCase();
   const deliveryFeeText =
     Number(store.deliveryFee) === 0 ? "Grátis" : formatBRL(Number(store.deliveryFee));
 

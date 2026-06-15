@@ -16,7 +16,6 @@ import { Link } from "react-router-dom";
 import {
   getStores,
   getStoreProducts,
-  getProductImageUrl,
   type Store,
   type StoreProduct,
 } from "../services/gizApi";
@@ -358,7 +357,6 @@ function ProductCard({ product }: { product: StoreProduct }) {
 }
 
 function StoreCard({ store }: { store: Store }) {
-  const initial = store.name.charAt(0).toUpperCase();
   const deliveryFeeText =
     Number(store.deliveryFee) === 0
       ? "Grátis"
