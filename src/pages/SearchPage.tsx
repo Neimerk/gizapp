@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
-import { Search, Store as StoreIcon, ArrowRight } from "lucide-react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { useDebounce } from "../hooks/useDebounce";
+import { ChevronLeft, ChevronRight, Search, Store as StoreIcon, ArrowRight } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import {
@@ -13,24 +14,32 @@ import { usePagination } from "../hooks/usePagination";
 import Pagination from "../components/ui/Pagination";
 import ProductImage from "../components/ui/ProductImage";
 import { formatBRL } from "../utils/format";
+import { categories } from "../data/categories";
+import { categoryIcons } from "../data/categoryIcons";
 
-const FILTERS = ["Todos", "Mercearia", "Bebidas", "Restaurante", "Farmácia", "Pet Shop", "Padaria"];
 const PAGE_SIZE = 24;
+
+function matchesCategory(productCategory: string, slug: string): boolean {
+  const norm = productCategory.toLowerCase().replace(/\s+/g, "-");
+  return norm === slug || norm.includes(slug) || slug.includes(norm);
+}
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
 
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
-  const [filter, setFilter] = useState("Todos");
+  const [filter, setFilter] = useState("");
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const debouncedSearch = useDebounce(search, 400);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
 
-    Promise.all([getStoreProducts({ search }), getStores()])
+    Promise.all([getStoreProducts({ search: debouncedSearch }), getStores()])
       .then(([prods, strs]) => {
         if (!cancelled) {
           setProducts(prods);
@@ -41,11 +50,11 @@ export default function SearchPage() {
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [search]);
+  }, [debouncedSearch]);
 
   const filteredProducts = useMemo(() => {
-    if (filter === "Todos") return products;
-    return products.filter((p) => p.category?.toLowerCase().includes(filter.toLowerCase()));
+    if (!filter) return products;
+    return products.filter((p) => matchesCategory(p.category ?? "", filter));
   }, [products, filter]);
 
   const filteredStores = useMemo(() => {
@@ -58,8 +67,7 @@ export default function SearchPage() {
 
   const { page, setPage, totalPages, pageItems } = usePagination(filteredProducts, PAGE_SIZE);
 
-  // Reset page when filter or search changes
-  useEffect(() => { setPage(1); }, [filter, search, setPage]);
+  useEffect(() => { setPage(1); }, [filter, debouncedSearch, setPage]);
 
   return (
     <div className="space-y-6">
@@ -87,19 +95,7 @@ export default function SearchPage() {
       </div>
 
       {/* Category filter chips */}
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded-full px-4 py-2 text-sm font-black transition-colors ${
-              filter === f ? "bg-[#7c3aed] text-white" : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <CategoryScroll filter={filter} onSelect={setFilter} />
 
       {/* Stores found */}
       {filteredStores.length > 0 && (
@@ -210,6 +206,94 @@ export default function SearchPage() {
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+function CategoryScroll({
+  filter,
+  onSelect,
+}: {
+  filter: string;
+  onSelect: (slug: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
+  function updateArrows() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }
+
+  useEffect(() => {
+    updateArrows();
+    const el = scrollRef.current;
+    el?.addEventListener("scroll", updateArrows, { passive: true });
+    window.addEventListener("resize", updateArrows);
+    return () => {
+      el?.removeEventListener("scroll", updateArrows);
+      window.removeEventListener("resize", updateArrows);
+    };
+  }, []);
+
+  function scroll(dir: "left" | "right") {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -240 : 240, behavior: "smooth" });
+  }
+
+  return (
+    <div className="relative flex items-center gap-1">
+      <button
+        onClick={() => scroll("left")}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
+          canLeft ? "opacity-100 hover:border-[#7c3aed]/30 hover:text-[#7c3aed]" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <ChevronLeft size={16} />
+      </button>
+
+      <div
+        ref={scrollRef}
+        className="flex flex-1 gap-2 overflow-x-auto pb-1 scrollbar-none"
+        onScroll={updateArrows}
+      >
+        <button
+          onClick={() => onSelect("")}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition-colors ${
+            filter === ""
+              ? "bg-[#7c3aed] text-white"
+              : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
+          }`}
+        >
+          Todos
+        </button>
+
+        {categories.map((cat) => (
+          <button
+            key={cat.slug}
+            onClick={() => onSelect(cat.slug)}
+            className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition-colors ${
+              filter === cat.slug
+                ? "bg-[#7c3aed] text-white"
+                : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
+            }`}
+          >
+            <span>{categoryIcons[cat.slug] ?? "✨"}</span>
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={() => scroll("right")}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
+          canRight ? "opacity-100 hover:border-[#7c3aed]/30 hover:text-[#7c3aed]" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <ChevronRight size={16} />
+      </button>
     </div>
   );
 }

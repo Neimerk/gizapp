@@ -1,5 +1,4 @@
 import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import {
   Home,
   Search,
@@ -7,14 +6,13 @@ import {
   ReceiptText,
   User,
   Zap,
-  Menu,
-  X,
 } from "lucide-react";
+import BottomNavigation from "./BottomNavigation";
 import { useCartStore } from "../../stores/cartStore";
+import Toast from "../ui/Toast";
 
 const navLinks = [
   { label: "Início", path: "/", icon: Home },
-  { label: "Buscar", path: "/buscar", icon: Search },
   { label: "Lojas", path: "/lojas", icon: ShoppingCart },
   { label: "Pedidos", path: "/pedidos", icon: ReceiptText },
   { label: "Conta", path: "/conta", icon: User },
@@ -23,7 +21,6 @@ const navLinks = [
 export default function AppLayout() {
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
-  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   return (
@@ -65,7 +62,7 @@ export default function AppLayout() {
           </form>
 
           {/* Desktop nav links */}
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav className="hidden items-center gap-1 md:flex">
             {navLinks.map((item) => (
               <NavLink
                 key={item.path}
@@ -98,44 +95,13 @@ export default function AppLayout() {
             )}
           </Link>
 
-          {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] text-[#64748b] lg:hidden"
-          >
-            {menuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
         </div>
-
-        {/* Mobile dropdown menu */}
-        {menuOpen && (
-          <div className="border-t border-[#e8eaf0] bg-white px-4 pb-4 pt-2 lg:hidden">
-            <nav className="grid grid-cols-5 gap-1">
-              {navLinks.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  end={item.path === "/"}
-                  onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex flex-col items-center gap-1 rounded-xl p-2.5 text-[10px] font-bold transition-colors ${
-                      isActive
-                        ? "bg-[#7c3aed]/10 text-[#7c3aed]"
-                        : "text-[#94a3b8] hover:bg-[#f8fafc]"
-                    }`
-                  }
-                >
-                  <item.icon size={20} />
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-        )}
       </header>
 
+      <Toast />
+
       {/* ── MAIN CONTENT ── */}
-      <main className="mx-auto max-w-7xl px-4 py-6 pb-8 md:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-6 pb-24 md:pb-8 md:px-8">
         <Outlet />
       </main>
 
@@ -143,7 +109,7 @@ export default function AppLayout() {
       {totalItems > 0 && (
         <Link
           to="/carrinho"
-          className="fixed bottom-4 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between rounded-2xl bg-[#7c3aed] px-5 py-3.5 shadow-xl shadow-[#7c3aed]/40 md:hidden"
+          className="fixed bottom-16 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between rounded-2xl bg-[#7c3aed] px-5 py-3.5 shadow-xl shadow-[#7c3aed]/40 md:hidden"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
@@ -163,6 +129,8 @@ export default function AppLayout() {
           </span>
         </Link>
       )}
+
+      <BottomNavigation />
 
       {/* ── DESKTOP CART BAR (when items in cart) ── */}
       {totalItems > 0 && (

@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   CreditCard,
+  Loader2,
   MapPin,
   QrCode,
   ReceiptText,
@@ -10,9 +11,11 @@ import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { createOrder } from "../services/gizApi";
+import { createOrder, getStoreById, type Store } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
 import { getAuth } from "../services/auth";
+import { useCepLookup } from "../hooks/useCepLookup";
+import { useToastStore } from "../stores/toastStore";
 
 type PaymentMethod = "pix" | "card";
 
@@ -25,6 +28,7 @@ type CardData = {
 
 type AddressData = {
   phone: string;
+  cep: string;
   address: string;
   number: string;
   complement: string;
@@ -47,6 +51,8 @@ const fmtPhone = (v: string) =>
     .slice(0, 11)
     .replace(/^(\d{2})(\d)/, "($1) $2")
     .replace(/(\d{5})(\d)/, "$1-$2");
+const fmtCEP = (v: string) =>
+  num(v).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
 
 function loadCheckout() {
   try {
@@ -61,13 +67,14 @@ function loadAddressData(): AddressData {
     const saved = JSON.parse(localStorage.getItem(ACCOUNT_KEY) ?? "{}");
     return {
       phone: saved.phone ?? "",
+      cep: saved.cep ?? "",
       address: saved.address ?? "",
       number: saved.number ?? "",
       complement: saved.complement ?? "",
       neighborhood: saved.neighborhood ?? "",
     };
   } catch {
-    return { phone: "", address: "", number: "", complement: "", neighborhood: "" };
+    return { phone: "", cep: "", address: "", number: "", complement: "", neighborhood: "" };
   }
 }
 
@@ -93,6 +100,20 @@ export default function CheckoutPage() {
   const totalItems = useCartStore((s) => s.totalItems());
   const subtotal = useCartStore((s) => s.totalPrice());
 
+  const storeId = items[0]?.storeId ?? "";
+
+  const [store, setStore] = useState<Store | null>(null);
+  const [loadingStore, setLoadingStore] = useState(false);
+
+  useEffect(() => {
+    if (!storeId) return;
+    setLoadingStore(true);
+    getStoreById(storeId)
+      .then(setStore)
+      .catch(console.error)
+      .finally(() => setLoadingStore(false));
+  }, [storeId]);
+
   const saved = loadCheckout();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     saved.paymentMethod === "card" ? "card" : "pix"
@@ -110,9 +131,16 @@ export default function CheckoutPage() {
 
   const hasFullAddress = !!(address.address && address.number && address.neighborhood);
 
-  const deliveryFee = items.length > 0 ? 4.99 : 0;
+  const deliveryFee = store ? Number(store.deliveryFee) : 0;
   const total = subtotal + deliveryFee;
-  const storeId = items[0]?.storeId ?? "";
+
+  const cardValid =
+    paymentMethod === "pix" ||
+    (paymentMethod === "card" &&
+      num(card.number).length === 16 &&
+      card.name.trim().length > 0 &&
+      num(card.expiration).length === 4 &&
+      num(card.cvv).length >= 3);
 
   const pixCode = `00020126580014BR.GOV.BCB.PIX0136GIZAPP-CLIENTE-PIX520400005303986540${total
     .toFixed(2)
@@ -144,9 +172,7 @@ export default function CheckoutPage() {
 
   async function handleFinish() {
     const auth = getAuth();
-    if (!auth) { navigate("/login"); return; }
-    if (!storeId) { alert("Não foi possível identificar a loja."); return; }
-    if (!hasFullAddress) { alert("Preencha o endereço de entrega."); return; }
+    if (!auth) { navigate("/login", { state: { from: "/checkout" } }); return; }
 
     try {
       setSaving(true);
@@ -159,13 +185,15 @@ export default function CheckoutPage() {
         deliveryComplement: address.complement,
         deliveryNeighborhood: address.neighborhood,
         paymentMethod,
-        items: items.map((i) => ({ storeProductId: i.id, quantity: i.quantity })),
+        items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
       });
       saveOrderId(order.id);
       clearCart();
       navigate("/pedidos");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Erro ao finalizar pedido.");
+      useToastStore.getState().show(
+        e instanceof Error ? e.message : "Erro ao finalizar pedido."
+      );
     } finally {
       setSaving(false);
     }
@@ -233,6 +261,9 @@ export default function CheckoutPage() {
 
           {!editingAddress && hasFullAddress ? (
             <div className="rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3">
+              {address.cep && (
+                <p className="text-[10px] font-bold text-[#94a3b8] mb-0.5">CEP {address.cep}</p>
+              )}
               <p className="text-sm font-black text-[#0f172a]">
                 {address.address}, {address.number}
                 {address.complement ? ` — ${address.complement}` : ""}
@@ -336,6 +367,9 @@ export default function CheckoutPage() {
                   className={inputCls}
                 />
               </div>
+              {!cardValid && (num(card.number).length > 0 || card.name.length > 0) && (
+                <p className="text-xs font-bold text-red-500">Preencha todos os dados do cartão.</p>
+              )}
             </div>
           )}
         </div>
@@ -379,26 +413,38 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between text-xs text-[#64748b]">
               <span>Entrega</span>
-              <strong>R$ {deliveryFee.toFixed(2).replace(".", ",")}</strong>
+              {loadingStore ? (
+                <span className="h-3 w-12 animate-pulse rounded bg-[#f1f5f9]" />
+              ) : (
+                <strong>
+                  {deliveryFee === 0 ? "Grátis" : `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`}
+                </strong>
+              )}
             </div>
             <div className="flex justify-between pt-1">
               <span className="text-base font-black text-[#0f172a]">Total</span>
-              <span className="text-xl font-black text-[#7c3aed]">
-                R$ {total.toFixed(2).replace(".", ",")}
-              </span>
+              {loadingStore ? (
+                <span className="h-5 w-20 animate-pulse rounded bg-[#f1f5f9]" />
+              ) : (
+                <span className="text-xl font-black text-[#7c3aed]">
+                  R$ {total.toFixed(2).replace(".", ",")}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         <button
           onClick={handleFinish}
-          disabled={saving || !hasFullAddress || editingAddress}
+          disabled={saving || !hasFullAddress || editingAddress || !cardValid || loadingStore}
           className="w-full rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#7c3aed]/30 disabled:opacity-60 active:scale-[0.98] transition-transform"
         >
           {saving
             ? "Enviando pedido…"
             : !hasFullAddress
             ? "Informe o endereço para continuar"
+            : !cardValid
+            ? "Preencha os dados do cartão"
             : "Confirmar pedido"}
         </button>
       </div>
@@ -423,8 +469,24 @@ function AddressForm({
   onConfirm: () => void;
   onCancel?: () => void;
 }) {
+  const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
+
   function update(k: keyof AddressData, v: string) {
     onChange({ ...value, [k]: v });
+  }
+
+  async function handleCepChange(raw: string) {
+    const v = fmtCEP(raw);
+    onChange({ ...value, cep: v });
+    const data = await lookupCep(v);
+    if (data) {
+      onChange({
+        ...value,
+        cep: v,
+        address: data.logradouro || value.address,
+        neighborhood: data.bairro || value.neighborhood,
+      });
+    }
   }
 
   const canConfirm = !!(value.address && value.number && value.neighborhood);
@@ -440,6 +502,27 @@ function AddressForm({
           inputMode="numeric"
           className={inputCls}
         />
+      </div>
+      <div>
+        <label className={labelCls}>CEP</label>
+        <div className="relative">
+          <input
+            value={value.cep}
+            onChange={(e) => handleCepChange(e.target.value)}
+            placeholder="00000-000"
+            inputMode="numeric"
+            className={`${inputCls} ${cepLoading ? "pr-10" : ""}`}
+          />
+          {cepLoading && (
+            <Loader2
+              size={15}
+              className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#94a3b8]"
+            />
+          )}
+        </div>
+        {cepError && (
+          <p className="mt-1 text-xs font-bold text-red-500">{cepError}</p>
+        )}
       </div>
       <div>
         <label className={labelCls}>

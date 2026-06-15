@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useToastStore } from "./toastStore";
 
 export type CartItem = {
   id: string;
@@ -73,10 +74,10 @@ export const useCartStore =
             currentItems[0].storeId !==
               item.storeId
           ) {
-            alert(
-              "Finalize o pedido atual antes de comprar em outra loja."
+            useToastStore.getState().show(
+              "Finalize o pedido atual antes de comprar em outra loja.",
+              "warning"
             );
-
             return;
           }
 

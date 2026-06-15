@@ -1,21 +1,25 @@
 import { useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Zap } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { loginCustomer, registerCustomer } from "../services/gizApi";
 import { saveAuth } from "../services/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from ?? "/";
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     try {
       setLoading(true);
       const auth =
@@ -23,9 +27,9 @@ export default function LoginPage() {
           ? await loginCustomer({ email, password })
           : await registerCustomer({ name, email, password, role: "Customer", storeId: null });
       saveAuth(auth);
-      navigate("/checkout");
+      navigate(from, { replace: true });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erro ao entrar.");
+      setError(err instanceof Error ? err.message : "Erro ao entrar.");
     } finally {
       setLoading(false);
     }
@@ -116,6 +120,13 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          {error && (
+            <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+              <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-500" />
+              <p className="text-sm font-semibold text-red-700">{error}</p>
+            </div>
+          )}
 
           <button
             type="submit"

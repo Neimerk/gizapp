@@ -215,6 +215,7 @@ export type OrderItem = {
 export type Order = {
   id: string;
   storeId: string;
+  storeName?: string;
   customerId?: string;
   customerName: string;
   customerPhone: string;
@@ -370,6 +371,21 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
     const error = await response.json().catch(() => null);
 
     throw new Error(error?.message || "Erro ao criar pedido");
+  }
+
+  return response.json();
+}
+
+export async function getMyOrders(): Promise<Order[]> {
+  const response = await fetch(`${GIZ_API_URL}/api/orders/my`, {
+    headers: {
+      Authorization: `Bearer ${getAuthToken()}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao buscar pedidos");
   }
 
   return response.json();

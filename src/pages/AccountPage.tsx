@@ -4,6 +4,7 @@ import {
   Eye,
   EyeOff,
   Home,
+  Loader2,
   LogOut,
   Mail,
   Smartphone,
@@ -11,6 +12,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import { useCepLookup } from "../hooks/useCepLookup";
 
 import { getAuth, logout } from "../services/auth";
 
@@ -72,9 +75,24 @@ export default function AccountPage() {
   }));
   const [saved, setSaved] = useState(false);
   const [showCard, setShowCard] = useState(false);
+  const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
 
   function update(key: keyof AccountForm, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleCepChange(raw: string) {
+    const v = fmtCEP(raw);
+    update("cep", v);
+    const data = await lookupCep(v);
+    if (data) {
+      setForm((f) => ({
+        ...f,
+        cep: v,
+        address: data.logradouro || f.address,
+        neighborhood: data.bairro || f.neighborhood,
+      }));
+    }
   }
 
   function handleSave() {
@@ -193,13 +211,24 @@ export default function AccountPage() {
         {/* ENDEREÇO */}
         <SectionCard icon={<Home size={16} className="text-[#ec4899]" />} title="Endereço de entrega">
           <Field label="CEP">
-            <input
-              value={form.cep}
-              onChange={(e) => update("cep", fmtCEP(e.target.value))}
-              placeholder="00000-000"
-              inputMode="numeric"
-              className={inputCls}
-            />
+            <div className="relative">
+              <input
+                value={form.cep}
+                onChange={(e) => handleCepChange(e.target.value)}
+                placeholder="00000-000"
+                inputMode="numeric"
+                className={`${inputCls} ${cepLoading ? "pr-10" : ""}`}
+              />
+              {cepLoading && (
+                <Loader2
+                  size={15}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#94a3b8]"
+                />
+              )}
+            </div>
+            {cepError && (
+              <p className="mt-1 text-xs font-bold text-red-500">{cepError}</p>
+            )}
           </Field>
           <Field label="Rua / Avenida">
             <input
