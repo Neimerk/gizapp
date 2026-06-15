@@ -146,7 +146,7 @@ export default function HomePage() {
           linkLabel="Ver todas"
         />
         <div className="mt-5 grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
-          {categories.map((cat, i) => (
+          {categories.slice(0, 16).map((cat, i) => (
             <Link
               key={cat.id}
               to={`/categorias/${cat.slug}`}
