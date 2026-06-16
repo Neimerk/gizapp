@@ -11,11 +11,17 @@ import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { createOrder, getStoreById, type Store } from "../services/gizApi";
+import { useQuery } from "@tanstack/react-query";
+import { createOrder, getStoreById, queryKeys } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
 import { getAuth } from "../services/auth";
 import { useCepLookup } from "../hooks/useCepLookup";
 import { useToastStore } from "../stores/toastStore";
+import { generatePixCode } from "../utils/pix";
+
+const PIX_KEY = import.meta.env.VITE_PIX_KEY as string | undefined;
+const PIX_MERCHANT_NAME = (import.meta.env.VITE_PIX_MERCHANT_NAME as string | undefined) ?? "GizApp";
+const PIX_MERCHANT_CITY = (import.meta.env.VITE_PIX_MERCHANT_CITY as string | undefined) ?? "Brasil";
 
 type PaymentMethod = "pix" | "card";
 
@@ -102,17 +108,11 @@ export default function CheckoutPage() {
 
   const storeId = items[0]?.storeId ?? "";
 
-  const [store, setStore] = useState<Store | null>(null);
-  const [loadingStore, setLoadingStore] = useState(false);
-
-  useEffect(() => {
-    if (!storeId) return;
-    setLoadingStore(true);
-    getStoreById(storeId)
-      .then(setStore)
-      .catch(console.error)
-      .finally(() => setLoadingStore(false));
-  }, [storeId]);
+  const { data: store, isLoading: loadingStore } = useQuery({
+    queryKey: queryKeys.store(storeId),
+    queryFn: () => getStoreById(storeId),
+    enabled: !!storeId,
+  });
 
   const saved = loadCheckout();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
@@ -142,9 +142,14 @@ export default function CheckoutPage() {
       num(card.expiration).length === 4 &&
       num(card.cvv).length >= 3);
 
-  const pixCode = `00020126580014BR.GOV.BCB.PIX0136GIZAPP-CLIENTE-PIX520400005303986540${total
-    .toFixed(2)
-    .replace(".", "")}5802BR5920GIZAPP MARKETPLACE6009RIO DE JANEIRO62070503***6304ABCD`;
+  const pixCode = PIX_KEY
+    ? generatePixCode({
+        pixKey: PIX_KEY,
+        amount: total,
+        merchantName: PIX_MERCHANT_NAME,
+        merchantCity: PIX_MERCHANT_CITY,
+      })
+    : null;
 
   useEffect(() => {
     localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ paymentMethod, card, showCardForm }));
@@ -155,6 +160,7 @@ export default function CheckoutPage() {
   }
 
   async function copyPix() {
+    if (!pixCode) return;
     await navigator.clipboard.writeText(pixCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -173,6 +179,10 @@ export default function CheckoutPage() {
   async function handleFinish() {
     const auth = getAuth();
     if (!auth) { navigate("/login", { state: { from: "/checkout" } }); return; }
+    if (auth.role !== "Customer" && auth.role !== "Admin") {
+      useToastStore.getState().show("Use uma conta de cliente para finalizar pedidos. Faça login com outra conta.");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -317,19 +327,27 @@ export default function CheckoutPage() {
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]">
                 <QrCode size={20} className="text-[#a855f7]" />
               </div>
-              <h3 className="mt-2 text-sm font-black text-[#0f172a]">Pix copia e cola</h3>
-              <div className="mt-3 flex justify-center rounded-2xl bg-white p-3 border border-[#e2e8f0]">
-                <QRCodeCanvas value={pixCode} size={160} />
-              </div>
-              <p className="mt-3 break-all rounded-xl bg-white border border-[#e2e8f0] p-2.5 text-[10px] font-mono text-[#64748b]">
-                {pixCode}
-              </p>
-              <button
-                onClick={copyPix}
-                className="mt-3 w-full rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] py-3 text-sm font-black text-white"
-              >
-                {copied ? "✓ Copiado!" : "Copiar código Pix"}
-              </button>
+              {pixCode ? (
+                <>
+                  <h3 className="mt-2 text-sm font-black text-[#0f172a]">Pix copia e cola</h3>
+                  <div className="mt-3 flex justify-center rounded-2xl bg-white p-3 border border-[#e2e8f0]">
+                    <QRCodeCanvas value={pixCode} size={160} />
+                  </div>
+                  <p className="mt-3 break-all rounded-xl bg-white border border-[#e2e8f0] p-2.5 text-[10px] font-mono text-[#64748b]">
+                    {pixCode}
+                  </p>
+                  <button
+                    onClick={copyPix}
+                    className="mt-3 w-full rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] py-3 text-sm font-black text-white"
+                  >
+                    {copied ? "✓ Copiado!" : "Copiar código Pix"}
+                  </button>
+                </>
+              ) : (
+                <p className="mt-3 text-sm font-bold text-[#64748b]">
+                  Pagamento via Pix temporariamente indisponível.
+                </p>
+              )}
             </div>
           )}
 
