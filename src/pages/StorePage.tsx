@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { ArrowLeft, Bike, ChevronLeft, ChevronRight, Clock3, Search, Star, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Bike, Clock3, Search, Star, X } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -7,12 +8,13 @@ import {
   getProductImageUrl,
   getStoreById,
   getStoreProducts,
-  type Store,
+  queryKeys,
   type StoreProduct,
 } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
 import { usePagination } from "../hooks/usePagination";
 import Pagination from "../components/ui/Pagination";
+import CategoryScroll from "../components/ui/CategoryScroll";
 import ProductImage from "../components/ui/ProductImage";
 import { categoryIcons } from "../data/categoryIcons";
 import { categories as masterCategories } from "../data/categories";
@@ -35,30 +37,25 @@ export default function StorePage() {
   const [searchParams] = useSearchParams();
   const currentStoreId = storeId || DEFAULT_STORE_ID;
 
-  const [store, setStore] = useState<Store | null>(null);
-  const [products, setProducts] = useState<StoreProduct[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeSlug, setActiveSlug] = useState(searchParams.get("categoria") ?? "");
   const [search, setSearch] = useState("");
 
+  const { data: store, isLoading: loadingStore } = useQuery({
+    queryKey: queryKeys.store(currentStoreId),
+    queryFn: () => getStoreById(currentStoreId),
+  });
+
+  const { data: products = [], isLoading: loadingProducts } = useQuery({
+    queryKey: queryKeys.storeProducts(currentStoreId),
+    queryFn: () => getStoreProducts({ storeId: currentStoreId }),
+  });
+
+  const loading = loadingStore || loadingProducts;
+
+  // Reset tab and search when navigating to a different store
   useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        const [storeData, prods] = await Promise.all([
-          getStoreById(currentStoreId),
-          getStoreProducts({ storeId: currentStoreId }),
-        ]);
-        setStore(storeData);
-        setProducts(prods);
-        setActiveSlug("");
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    setActiveSlug("");
+    setSearch("");
   }, [currentStoreId]);
 
   // Build tab list: declared store types (from store.category) + any extra product categories
@@ -217,10 +214,10 @@ export default function StorePage() {
 
       {/* ── CATEGORY QUICK-NAV ── */}
       {tabs.length > 1 && (
-        <CategoryNav
-          tabs={tabs}
+        <CategoryScroll
+          tabs={tabs.map((t) => ({ slug: t.slug, icon: t.icon, label: t.name, count: t.count }))}
           activeSlug={activeSlug}
-          totalProducts={products.length}
+          allCount={products.length}
           onSelect={setActiveSlug}
         />
       )}
@@ -279,108 +276,6 @@ export default function StorePage() {
           onPageChange={setPage}
         />
       </section>
-    </div>
-  );
-}
-
-function CategoryNav({
-  tabs,
-  activeSlug,
-  totalProducts,
-  onSelect,
-}: {
-  tabs: { slug: string; icon: string; name: string; count: number }[];
-  activeSlug: string;
-  totalProducts: number;
-  onSelect: (slug: string) => void;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(false);
-
-  function updateArrows() {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanLeft(el.scrollLeft > 4);
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  }
-
-  useEffect(() => {
-    updateArrows();
-    const el = scrollRef.current;
-    el?.addEventListener("scroll", updateArrows, { passive: true });
-    window.addEventListener("resize", updateArrows);
-    return () => {
-      el?.removeEventListener("scroll", updateArrows);
-      window.removeEventListener("resize", updateArrows);
-    };
-  }, [tabs]);
-
-  function scroll(dir: "left" | "right") {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir === "left" ? -240 : 240, behavior: "smooth" });
-  }
-
-  return (
-    <div className="relative flex items-center gap-1">
-      {/* Left arrow */}
-      <button
-        onClick={() => scroll("left")}
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
-          canLeft ? "opacity-100 hover:border-[#7c3aed]/30 hover:text-[#7c3aed]" : "pointer-events-none opacity-0"
-        }`}
-      >
-        <ChevronLeft size={16} />
-      </button>
-
-      {/* Scrollable row */}
-      <div
-        ref={scrollRef}
-        className="flex flex-1 gap-2 overflow-x-auto pb-1 scrollbar-none"
-        onScroll={updateArrows}
-      >
-        <button
-          onClick={() => onSelect("")}
-          className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition-colors ${
-            activeSlug === ""
-              ? "bg-[#0f172a] text-white"
-              : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
-          }`}
-        >
-          Todos
-          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${activeSlug === "" ? "bg-white/20 text-white" : "bg-[#f1f5f9] text-[#64748b]"}`}>
-            {totalProducts}
-          </span>
-        </button>
-        {tabs.map((tab) => (
-          <button
-            key={tab.slug}
-            onClick={() => onSelect(tab.slug)}
-            className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition-colors ${
-              activeSlug === tab.slug
-                ? "bg-[#7c3aed] text-white"
-                : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
-            }`}
-          >
-            <span>{tab.icon}</span>
-            {tab.name}
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${activeSlug === tab.slug ? "bg-white/20 text-white" : "bg-[#f1f5f9] text-[#64748b]"}`}>
-              {tab.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {/* Right arrow */}
-      <button
-        onClick={() => scroll("right")}
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
-          canRight ? "opacity-100 hover:border-[#7c3aed]/30 hover:text-[#7c3aed]" : "pointer-events-none opacity-0"
-        }`}
-      >
-        <ChevronRight size={16} />
-      </button>
     </div>
   );
 }

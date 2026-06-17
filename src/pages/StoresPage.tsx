@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Bike, Clock3, Search, Star, ArrowRight } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
-import { getStores, type Store } from "../services/gizApi";
+import { getStores, queryKeys, type Store } from "../services/gizApi";
 import { formatBRL } from "../utils/format";
 import StoreLogo from "../components/ui/StoreLogo";
 
@@ -11,18 +12,15 @@ const CATEGORIES = ["Todas", "Restaurante", "Mercearia", "Bebidas", "Farmácia",
 export default function StoresPage() {
   const [params] = useSearchParams();
 
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(params.get("q") ?? "");
   const [category, setCategory] = useState("Todas");
   const [sort, setSort] = useState<"rating" | "time" | "fee">("rating");
 
-  useEffect(() => {
-    getStores()
-      .then((data) => setStores(data.filter((s) => s.active)))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: stores = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.stores(),
+    queryFn: getStores,
+    select: (data) => data.filter((s) => s.active),
+  });
 
   const filtered = useMemo(() => {
     let list = stores;
@@ -133,12 +131,13 @@ function StoreCard({ store }: { store: Store }) {
   return (
     <Link
       to={`/lojas/${store.id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
       <div
-        className="relative h-24"
+        className="relative h-28"
         style={{
-          background: "radial-gradient(circle at 80% 30%, rgba(124,58,237,0.4), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          background: "radial-gradient(circle at 80% 30%, rgba(124,58,237,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
         }}
       >
         <span
@@ -150,7 +149,13 @@ function StoreCard({ store }: { store: Store }) {
           {store.isOpen ? "Aberto" : "Fechado"}
         </span>
 
-        <span className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[#7c3aed] text-base font-black text-white shadow-lg">
+        <span
+          className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
+          style={{
+            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+            boxShadow: "0 4px 16px rgba(124,58,237,0.45)",
+          }}
+        >
           <StoreLogo logoUrl={store.logoUrl} name={store.name} />
         </span>
       </div>
@@ -168,7 +173,7 @@ function StoreCard({ store }: { store: Store }) {
             { icon: <Bike size={12} />, label: "Taxa", value: deliveryFeeText },
             { icon: <Star size={12} />, label: "Nota", value: Number(store.rating).toFixed(1) },
           ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-[#e8eaf0] bg-[#f8fafc] px-2 py-2">
+            <div key={s.label} className="rounded-xl bg-[#f8fafc] px-2 py-2" style={{ border: "1px solid #f1f5f9" }}>
               <div className="flex items-center gap-1 text-[#94a3b8]">
                 {s.icon}
                 <span className="text-[9px] font-bold uppercase tracking-wide">{s.label}</span>
@@ -178,7 +183,10 @@ function StoreCard({ store }: { store: Store }) {
           ))}
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-black text-white group-hover:bg-[#7c3aed] transition-colors">
+        <div
+          className="mt-4 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-black text-white transition-opacity group-hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
+        >
           Ver catálogo <ArrowRight size={16} />
         </div>
       </div>

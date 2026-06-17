@@ -5,9 +5,9 @@ import {
   ShoppingCart,
   ReceiptText,
   User,
-  Zap,
 } from "lucide-react";
 import BottomNavigation from "./BottomNavigation";
+import GizLogo from "../ui/GizLogo";
 import { useCartStore } from "../../stores/cartStore";
 import Toast from "../ui/Toast";
 
@@ -24,28 +24,38 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#f0f2f7]">
-      {/* ── TOP HEADER (desktop + mobile) ── */}
-      <header className="sticky top-0 z-50 border-b border-[#e8eaf0] bg-white/95 backdrop-blur-xl">
+    <div className="min-h-screen bg-[#f0f4ff]">
+      {/* ── TOP HEADER ── */}
+      <header
+        className="sticky top-0 z-50"
+        style={{
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(124,58,237,0.10)",
+          boxShadow: "0 1px 0 rgba(124,58,237,0.06)",
+        }}
+      >
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 md:px-8">
           {/* Logo */}
-          <Link to="/" className="flex shrink-0 items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#7c3aed] to-[#2563eb]">
-              <Zap size={18} className="fill-[#ffd400] text-[#ffd400]" />
-            </div>
+          <Link to="/" className="flex shrink-0 items-center gap-2.5">
+            <GizLogo size={36} style={{ filter: "drop-shadow(0 4px 10px rgba(124,58,237,0.45))" }} />
             <span className="hidden text-lg font-black text-[#0f172a] sm:block">
               Giz<span className="text-[#7c3aed]">App</span>
             </span>
           </Link>
 
-          {/* Search bar (center, desktop) */}
+          {/* Search bar */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value.trim();
               navigate(q ? `/buscar?q=${encodeURIComponent(q)}` : "/buscar");
             }}
-            className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-2.5 transition-colors focus-within:border-[#7c3aed]/40 focus-within:bg-white"
+            className="flex flex-1 items-center gap-2 rounded-2xl border bg-[#f8fafc] px-4 py-2.5 transition-all focus-within:bg-white"
+            style={{
+              borderColor: "rgba(124,58,237,0.15)",
+            }}
           >
             <Search size={16} className="shrink-0 text-[#94a3b8]" />
             <input
@@ -56,12 +66,13 @@ export default function AppLayout() {
             <button
               type="submit"
               className="hidden rounded-xl bg-[#7c3aed] px-3 py-1 text-xs font-black text-white sm:block"
+              style={{ boxShadow: "0 2px 8px rgba(124,58,237,0.35)" }}
             >
               Buscar
             </button>
           </form>
 
-          {/* Desktop nav links */}
+          {/* Desktop nav */}
           <nav className="hidden items-center gap-1 md:flex">
             {navLinks.map((item) => (
               <NavLink
@@ -72,7 +83,7 @@ export default function AppLayout() {
                   `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                     isActive
                       ? "bg-[#7c3aed]/10 text-[#7c3aed]"
-                      : "text-[#64748b] hover:bg-[#f8fafc] hover:text-[#0f172a]"
+                      : "text-[#64748b] hover:bg-[#f0f4ff] hover:text-[#0f172a]"
                   }`
                 }
               >
@@ -85,31 +96,42 @@ export default function AppLayout() {
           {/* Cart button */}
           <Link
             to="/carrinho"
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#7c3aed]/30 hover:text-[#7c3aed]"
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-all hover:border-[#7c3aed]/40 hover:text-[#7c3aed]"
           >
             <ShoppingCart size={18} />
             {totalItems > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#7c3aed] text-[10px] font-black text-white">
+              <span
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black text-white"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}
+              >
                 {totalItems > 9 ? "9+" : totalItems}
               </span>
             )}
           </Link>
-
         </div>
       </header>
 
       <Toast />
 
       {/* ── MAIN CONTENT ── */}
-      <main className={`mx-auto max-w-7xl px-4 py-6 md:px-8 md:pb-8 ${totalItems > 0 ? "pb-40" : "pb-28"}`}>
+      <main
+        className={`mx-auto max-w-7xl px-4 py-6 md:px-8 md:pb-8 ${
+          totalItems > 0 ? "pb-44" : "pb-32"
+        }`}
+      >
         <Outlet />
       </main>
 
-      {/* ── FLOATING CART BAR (mobile only, when items in cart) ── */}
+      {/* ── FLOATING CART BAR (mobile) ── */}
       {totalItems > 0 && (
         <Link
           to="/carrinho"
-          className="fixed bottom-16 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between rounded-2xl bg-[#7c3aed] px-5 py-3.5 shadow-xl shadow-[#7c3aed]/40 md:hidden"
+          className="fixed left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between rounded-2xl px-5 py-3.5 md:hidden"
+          style={{
+            bottom: "96px",
+            background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+            boxShadow: "0 8px 32px rgba(124,58,237,0.5), 0 2px 8px rgba(0,0,0,0.15)",
+          }}
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
@@ -132,12 +154,16 @@ export default function AppLayout() {
 
       <BottomNavigation />
 
-      {/* ── DESKTOP CART BAR (when items in cart) ── */}
+      {/* ── DESKTOP CART BAR ── */}
       {totalItems > 0 && (
         <div className="fixed bottom-6 right-6 z-40 hidden md:block">
           <Link
             to="/carrinho"
-            className="flex items-center gap-3 rounded-2xl bg-[#7c3aed] px-5 py-3.5 shadow-xl shadow-[#7c3aed]/40"
+            className="flex items-center gap-3 rounded-2xl px-5 py-3.5"
+            style={{
+              background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+              boxShadow: "0 8px 32px rgba(124,58,237,0.5)",
+            }}
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
               <ShoppingCart size={16} className="text-white" />

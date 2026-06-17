@@ -13,8 +13,16 @@ export default function BottomNavigation() {
   const totalItems = useCartStore((s) => s.totalItems());
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 border-t border-[#e8eaf0] bg-white/95 backdrop-blur-xl md:hidden">
-      <div className="grid grid-cols-4">
+    <nav className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 md:hidden">
+      <div
+        className="flex items-center rounded-[28px] p-1.5"
+        style={{
+          background: "rgba(15, 23, 42, 0.92)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          boxShadow: "0 8px 40px rgba(15,23,42,0.45), 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06)",
+        }}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const isCart = item.path === "/carrinho";
@@ -24,27 +32,32 @@ export default function BottomNavigation() {
               key={item.path}
               to={item.path}
               end={item.path === "/"}
-              className={({ isActive }) =>
-                `relative flex flex-col items-center justify-center gap-0.5 py-3 text-[10px] font-bold transition-colors ${
-                  isActive ? "text-[#7c3aed]" : "text-[#94a3b8]"
-                }`
-              }
+              className="relative"
             >
               {({ isActive }) => (
-                <>
+                <div
+                  className="relative flex flex-col items-center gap-0.5 rounded-[22px] px-4 py-2.5 transition-all duration-200"
+                  style={isActive ? { background: "#7c3aed" } : {}}
+                >
                   <div className="relative">
-                    <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                    <Icon
+                      size={20}
+                      strokeWidth={isActive ? 2.5 : 1.8}
+                      className={isActive ? "text-white" : "text-white/45"}
+                    />
                     {isCart && totalItems > 0 && (
-                      <span className="absolute -right-2 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#7c3aed] text-[9px] font-black text-white">
+                      <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[8px] font-black text-[#7c3aed]">
                         {totalItems > 9 ? "9+" : totalItems}
                       </span>
                     )}
                   </div>
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <span className="absolute bottom-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-[#7c3aed]" />
-                  )}
-                </>
+                  <span
+                    className="text-[9px] font-black leading-none tracking-wide"
+                    style={{ color: isActive ? "white" : "rgba(255,255,255,0.38)" }}
+                  >
+                    {item.label}
+                  </span>
+                </div>
               )}
             </NavLink>
           );

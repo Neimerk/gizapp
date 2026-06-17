@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bike,
   Clock3,
@@ -7,79 +7,93 @@ import {
   Store as StoreIcon,
   ChevronRight,
   Sparkles,
-  Zap,
   MapPin,
   Package,
 } from "lucide-react";
+import GizLogo from "../components/ui/GizLogo";
 import { Link } from "react-router-dom";
 
 import {
   getStores,
   getStoreProducts,
+  queryKeys,
   type Store,
   type StoreProduct,
 } from "../services/gizApi";
 import { categories } from "../data/categories";
+
+const SELLER_URL = (import.meta.env.VITE_SELLER_URL as string | undefined) ?? "http://localhost:5175";
 import { categoryIcons } from "../data/categoryIcons";
 import { formatBRL } from "../utils/format";
 import ProductImage from "../components/ui/ProductImage";
 import StoreLogo from "../components/ui/StoreLogo";
 
-const catColors = [
-  "from-[#7c3aed] to-[#6d28d9]",
+const catGradients = [
+  "from-[#7c3aed] to-[#5b21b6]",
   "from-[#2563eb] to-[#1d4ed8]",
   "from-[#0f172a] to-[#1e293b]",
-  "from-[#ec4899] to-[#db2777]",
-  "from-[#f59e0b] to-[#d97706]",
-  "from-[#10b981] to-[#059669]",
+  "from-[#ec4899] to-[#be185d]",
+  "from-[#f59e0b] to-[#b45309]",
+  "from-[#10b981] to-[#047857]",
+  "from-[#06b6d4] to-[#0e7490]",
+  "from-[#ef4444] to-[#b91c1c]",
 ];
 
 export default function HomePage() {
-  const [products, setProducts] = useState<StoreProduct[]>([]);
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [loadingStores, setLoadingStores] = useState(true);
+  const { data: stores = [], isLoading: loadingStores } = useQuery({
+    queryKey: queryKeys.stores(),
+    queryFn: getStores,
+    select: (data) => data.filter((s) => s.active),
+  });
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const storesData = await getStores();
-        setStores(storesData.filter((s) => s.active));
-        if (storesData.length > 0) {
-          const prods = await getStoreProducts({ storeId: storesData[0].id });
-          setProducts(prods.slice(0, 12));
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoadingProducts(false);
-        setLoadingStores(false);
-      }
-    }
-    load();
-  }, []);
+  const firstStoreId = stores[0]?.id;
+
+  const { data: products = [], isLoading: loadingProducts } = useQuery({
+    queryKey: queryKeys.storeProducts(firstStoreId ?? ""),
+    queryFn: () => getStoreProducts({ storeId: firstStoreId! }),
+    enabled: !!firstStoreId,
+    select: (data) => data.slice(0, 12),
+  });
 
   return (
     <div className="space-y-10">
 
       {/* ── HERO ── */}
-      <section className="relative overflow-hidden rounded-3xl bg-[#0f172a] p-8 md:p-12">
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#7c3aed] opacity-25 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#2563eb] opacity-20 blur-3xl" />
-        <div className="pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#ec4899] opacity-10 blur-3xl" />
+      <section
+        className="relative overflow-hidden rounded-3xl p-8 md:p-12"
+        style={{ background: "linear-gradient(135deg, #0f172a 0%, #1a1040 60%, #0f172a 100%)" }}
+      >
+        {/* Animated gradient blobs */}
+        <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#7c3aed] blur-3xl" />
+        <div className="blob-b pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#2563eb] blur-3xl" />
+        <div className="blob-c pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#ec4899] blur-3xl" />
+
+        {/* Subtle grid overlay */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        />
 
         <div className="relative z-10 flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
           {/* Left: text */}
           <div className="flex-1">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 backdrop-blur-sm">
-              <Sparkles size={13} className="text-[#ffd400]" />
-              <span className="text-xs font-bold uppercase tracking-widest text-white">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
+              <Sparkles size={12} className="text-[#ffd400]" />
+              <span className="text-[11px] font-black uppercase tracking-widest text-white/90">
                 GizApp — Entrega rápida
               </span>
             </div>
-            <h1 className="mt-5 text-4xl font-black leading-tight text-white md:text-5xl lg:text-6xl">
+            <h1 className="mt-5 text-4xl font-black leading-[1.1] text-white md:text-5xl lg:text-6xl">
               Tudo perto de você,<br />
-              <span className="bg-gradient-to-r from-[#a855f7] to-[#60a5fa] bg-clip-text text-transparent">
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage: "linear-gradient(135deg, #c084fc 0%, #818cf8 50%, #60a5fa 100%)",
+                }}
+              >
                 em minutos.
               </span>
             </h1>
@@ -90,37 +104,51 @@ export default function HomePage() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 to="/buscar"
-                className="flex items-center gap-2 rounded-2xl bg-[#7c3aed] px-6 py-3 text-sm font-black text-white shadow-lg shadow-[#7c3aed]/40 transition-transform hover:scale-[1.02]"
+                className="flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
+                  boxShadow: "0 8px 24px rgba(124,58,237,0.5)",
+                }}
               >
                 <Package size={16} /> Ver produtos
               </Link>
               <Link
                 to="/lojas"
-                className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/8 px-6 py-3 text-sm font-black text-white backdrop-blur-sm transition-colors hover:bg-white/15"
+                className="flex items-center gap-2 rounded-2xl border border-white/15 bg-white/8 px-6 py-3 text-sm font-black text-white backdrop-blur-sm transition-all hover:bg-white/15 hover:border-white/25"
               >
                 <StoreIcon size={16} /> Ver lojas
               </Link>
             </div>
           </div>
 
-          {/* Right: stats + logo */}
+          {/* Right: stats */}
           <div className="flex shrink-0 flex-col items-center gap-6">
-            <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-gradient-to-br from-[#7c3aed] to-[#2563eb] shadow-2xl shadow-[#7c3aed]/40">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#0f172a]">
-                <Zap size={44} className="fill-[#ffd400] text-[#ffd400]" />
-              </div>
-            </div>
+            <GizLogo
+              size={108}
+              style={{
+                filter: "drop-shadow(0 12px 32px rgba(124,58,237,0.55))",
+                borderRadius: "28px",
+              }}
+            />
 
-            <div className="grid grid-cols-3 gap-3 md:gap-4">
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: <Bike size={16} className="text-[#a855f7]" />, value: "15min", label: "entrega" },
-                { icon: <Clock3 size={16} className="text-[#60a5fa]" />, value: "24h", label: "disponível" },
-                { icon: <Star size={16} className="text-[#ffd400]" />, value: "5.0", label: "avaliação" },
+                { icon: <Bike size={15} className="text-[#a855f7]" />, value: "15min", label: "entrega" },
+                { icon: <Clock3 size={15} className="text-[#60a5fa]" />, value: "24h", label: "disponível" },
+                { icon: <Star size={15} className="text-[#ffd400]" />, value: "5.0", label: "avaliação" },
               ].map((s) => (
-                <div key={s.label} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white/8 p-4 backdrop-blur-sm">
+                <div
+                  key={s.label}
+                  className="flex flex-col items-center gap-1.5 rounded-2xl p-4"
+                  style={{
+                    background: "rgba(255,255,255,0.07)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(12px)",
+                  }}
+                >
                   {s.icon}
                   <p className="text-xl font-black text-white">{s.value}</p>
-                  <span className="text-[10px] text-[#94a3b8]">{s.label}</span>
+                  <span className="text-[10px] font-medium text-[#94a3b8]">{s.label}</span>
                 </div>
               ))}
             </div>
@@ -144,23 +172,26 @@ export default function HomePage() {
           linkTo="/categorias"
           linkLabel="Ver todas"
         />
-        <div className="mt-5 grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
-          {categories.slice(0, 16).map((cat, i) => (
-            <Link
-              key={cat.id}
-              to={`/categorias/${cat.slug}`}
-              className="group flex flex-col items-center gap-2"
-            >
-              <div
-                className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br shadow-md transition-transform group-hover:scale-105 ${catColors[i % catColors.length]}`}
+        <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide md:-mx-8 md:px-8">
+          <div className="flex gap-4 pb-2">
+            {categories.slice(0, 16).map((cat, i) => (
+              <Link
+                key={cat.id}
+                to={`/categorias/${cat.slug}`}
+                className="group flex shrink-0 flex-col items-center gap-2.5"
               >
-                <span className="text-2xl">{categoryIcons[cat.slug] ?? "✨"}</span>
-              </div>
-              <span className="text-center text-[10px] font-black uppercase tracking-wide text-[#475569] line-clamp-1">
-                {cat.name}
-              </span>
-            </Link>
-          ))}
+                <div
+                  className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br shadow-lg transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl ${catGradients[i % catGradients.length]}`}
+                  style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}
+                >
+                  <span className="text-3xl">{categoryIcons[cat.slug] ?? "✨"}</span>
+                </div>
+                <span className="w-16 text-center text-[10px] font-black uppercase tracking-wide text-[#475569] line-clamp-1">
+                  {cat.name}
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -207,7 +238,7 @@ export default function HomePage() {
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse rounded-3xl bg-white p-5 shadow-sm">
-                <div className="h-16 rounded-2xl bg-[#f1f5f9]" />
+                <div className="h-28 rounded-2xl bg-[#f1f5f9]" />
                 <div className="mt-4 h-4 w-1/2 rounded bg-[#f1f5f9]" />
                 <div className="mt-2 h-3 w-1/3 rounded bg-[#f1f5f9]" />
               </div>
@@ -227,10 +258,19 @@ export default function HomePage() {
       {/* ── CTAs ── */}
       <section className="grid gap-4 md:grid-cols-2">
         {/* Seller CTA */}
-        <div className="relative overflow-hidden rounded-3xl bg-[#0f172a] p-8">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#7c3aed] opacity-30 blur-3xl" />
+        <div
+          className="relative overflow-hidden rounded-3xl p-8"
+          style={{ background: "linear-gradient(135deg, #0f172a 0%, #1a1040 100%)" }}
+        >
+          <div className="blob-a pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#7c3aed] opacity-35 blur-3xl" />
           <div className="relative z-10 flex items-start gap-5">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#7c3aed]">
+            <div
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
+              style={{
+                background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+                boxShadow: "0 6px 20px rgba(124,58,237,0.4)",
+              }}
+            >
               <StoreIcon size={24} className="text-white" />
             </div>
             <div className="flex-1">
@@ -239,10 +279,11 @@ export default function HomePage() {
                 Venda pelo GizApp sem comissão por pedido. Catálogo pronto, só informe o preço.
               </p>
               <a
-                href="http://localhost:5175"
+                href={SELLER_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#7c3aed] px-5 py-2.5 text-sm font-black text-white transition-transform hover:scale-[1.02]"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black text-white transition-transform hover:scale-[1.03]"
+                style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}
               >
                 Quero vender <ArrowRight size={15} />
               </a>
@@ -251,8 +292,11 @@ export default function HomePage() {
         </div>
 
         {/* Courier CTA */}
-        <div className="flex items-start gap-5 rounded-3xl border border-[#e2e8f0] bg-white p-8">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#7c3aed]/10">
+        <div className="flex items-start gap-5 rounded-3xl border border-[#e2e8f0] bg-white p-8 shadow-sm">
+          <div
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
+            style={{ background: "rgba(124,58,237,0.1)" }}
+          >
             <Bike size={24} className="text-[#7c3aed]" />
           </div>
           <div className="flex-1">
@@ -261,10 +305,10 @@ export default function HomePage() {
               Qualquer veículo — a pé, bike, moto, carro. Receba por PIX a cada corrida.
             </p>
             <a
-              href="http://localhost:5175"
+              href={SELLER_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#0f172a] px-5 py-2.5 text-sm font-black text-white transition-transform hover:scale-[1.02]"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#0f172a] px-5 py-2.5 text-sm font-black text-white transition-transform hover:scale-[1.03]"
             >
               Ser entregador <ArrowRight size={15} />
             </a>
@@ -314,9 +358,13 @@ function ProductCard({ product }: { product: StoreProduct }) {
   return (
     <Link
       to={`/lojas/${product.storeId}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
-      <div className="flex h-40 items-center justify-center bg-[#f8fafc] p-3">
+      <div
+        className="flex h-40 items-center justify-center p-3"
+        style={{ background: "linear-gradient(135deg, #f8fafc, #f1f5f9)" }}
+      >
         <ProductImage
           imageUrl={product.imageUrl}
           alt={product.imageAlt || product.name}
@@ -348,7 +396,10 @@ function ProductCard({ product }: { product: StoreProduct }) {
             </p>
           )}
         </div>
-        <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-[#0f172a] py-2 text-xs font-black text-white group-hover:bg-[#7c3aed] transition-colors">
+        <div
+          className="mt-3 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black text-white transition-all group-hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
+        >
           <StoreIcon size={12} /> Ver loja
         </div>
       </div>
@@ -365,14 +416,15 @@ function StoreCard({ store }: { store: Store }) {
   return (
     <Link
       to={`/lojas/${store.id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
       {/* Banner */}
       <div
-        className="relative h-24"
+        className="relative h-28"
         style={{
           background:
-            "radial-gradient(circle at 80% 30%, rgba(124,58,237,0.4), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+            "radial-gradient(circle at 80% 30%, rgba(124,58,237,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
         }}
       >
         <span
@@ -386,7 +438,13 @@ function StoreCard({ store }: { store: Store }) {
           {store.isOpen ? "Aberto" : "Fechado"}
         </span>
 
-        <span className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[#7c3aed] font-black text-white shadow-lg text-base">
+        <span
+          className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
+          style={{
+            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+            boxShadow: "0 4px 16px rgba(124,58,237,0.5)",
+          }}
+        >
           <StoreLogo logoUrl={store.logoUrl} name={store.name} />
         </span>
       </div>
@@ -406,7 +464,10 @@ function StoreCard({ store }: { store: Store }) {
           <StatBadge icon={<Star size={12} />} label="Nota" value={Number(store.rating).toFixed(1)} />
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-black text-white group-hover:bg-[#7c3aed] transition-colors">
+        <div
+          className="mt-4 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-black text-white transition-opacity group-hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
+        >
           Ver catálogo
           <ArrowRight size={16} />
         </div>
@@ -417,7 +478,7 @@ function StoreCard({ store }: { store: Store }) {
 
 function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#e8eaf0] bg-[#f8fafc] px-2 py-2">
+    <div className="rounded-xl bg-[#f8fafc] px-2 py-2" style={{ border: "1px solid #f1f5f9" }}>
       <div className="flex items-center gap-1 text-[#94a3b8]">
         {icon}
         <span className="text-[9px] font-bold uppercase tracking-wide">{label}</span>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Clock3, LogIn, Package, ReceiptText, RefreshCw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getMyOrders, getProductImageUrl, type Order } from "../services/gizApi";
+import { getMyOrders, getProductImageUrl, queryKeys, type Order } from "../services/gizApi";
 import { ordersConnection, startOrdersConnection } from "../services/signalr";
 import { formatBRL } from "../utils/format";
 import { getAuth } from "../services/auth";
@@ -50,31 +51,17 @@ const PAYMENT_LABEL: Record<string, string> = {
 export default function OrdersPage() {
   const navigate = useNavigate();
   const auth = getAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
 
-  async function loadOrders(silent = false) {
-    if (!silent) setLoading(true);
-    else setRefreshing(true);
-    try {
-      const data = await getMyOrders();
-      setOrders(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
+  const { data: orders = [], isLoading: loading, isFetching: refreshing, refetch } = useQuery({
+    queryKey: queryKeys.myOrders(),
+    queryFn: getMyOrders,
+    enabled: !!auth,
+    staleTime: 30 * 1000,
+  });
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-
-    loadOrders();
+    if (!auth) return;
 
     async function setupSignalR() {
       try {
@@ -82,10 +69,14 @@ export default function OrdersPage() {
         ordersConnection.off("OrderCreated");
         ordersConnection.off("OrderStatusUpdated");
         ordersConnection.on("OrderCreated", (order: Order) => {
-          setOrders((cur) => (cur.some((o) => o.id === order.id) ? cur : [order, ...cur]));
+          queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
+            cur.some((o) => o.id === order.id) ? cur : [order, ...cur]
+          );
         });
         ordersConnection.on("OrderStatusUpdated", (updated: Order) => {
-          setOrders((cur) => cur.map((o) => (o.id === updated.id ? updated : o)));
+          queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
+            cur.map((o) => (o.id === updated.id ? updated : o))
+          );
         });
       } catch (e) {
         console.error("SignalR:", e);
@@ -97,7 +88,7 @@ export default function OrdersPage() {
       ordersConnection.off("OrderCreated");
       ordersConnection.off("OrderStatusUpdated");
     };
-  }, []);
+  }, [auth, queryClient]);
 
   if (!auth) {
     return (
@@ -138,7 +129,7 @@ export default function OrdersPage() {
           </div>
         </div>
         <button
-          onClick={() => loadOrders(true)}
+          onClick={() => refetch()}
           disabled={refreshing}
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white"
         >

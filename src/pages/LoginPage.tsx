@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AlertCircle, ArrowLeft, Eye, EyeOff, Zap } from "lucide-react";
+import { AlertCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import GizLogo from "../components/ui/GizLogo";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { loginCustomer, registerCustomer } from "../services/gizApi";
@@ -36,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f2f7]">
+    <div className="min-h-screen bg-[#f0f4ff]">
       {/* TOP BANNER */}
       <div
         className="relative overflow-hidden px-6 pb-10 pt-14"
@@ -52,9 +53,10 @@ export default function LoginPage() {
           <ArrowLeft size={18} className="text-white" />
         </button>
 
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#7c3aed] to-[#2563eb] shadow-xl">
-          <Zap size={28} className="fill-[#ffd400] text-[#ffd400]" />
-        </div>
+        <GizLogo
+          size={56}
+          style={{ filter: "drop-shadow(0 6px 16px rgba(124,58,237,0.5))" }}
+        />
 
         <h1 className="mt-5 text-3xl font-black text-white">
           {mode === "login" ? "Entrar" : "Criar conta"}
@@ -67,7 +69,7 @@ export default function LoginPage() {
       </div>
 
       {/* FORM CARD */}
-      <div className="-mt-6 rounded-t-[32px] bg-[#f0f2f7] px-4 pt-6">
+      <div className="-mt-6 rounded-t-[32px] bg-[#f0f4ff] px-4 pt-6">
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm"

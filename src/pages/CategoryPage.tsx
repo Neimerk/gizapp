@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { ArrowRight, Bike, Clock3, Star } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
-import { getStores, getProductImageUrl, type Store } from "../services/gizApi";
+import { getStores, getProductImageUrl, queryKeys, type Store } from "../services/gizApi";
 import { categoryIcons } from "../data/categoryIcons";
 import { categories as masterCategories } from "../data/categories";
 import { formatBRL } from "../utils/format";
@@ -17,21 +18,17 @@ function storeHasCategory(store: Store, slug: string): boolean {
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
-  const [stores, setStores] = useState<Store[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const categorySlug = slug ?? "";
   const master = masterCategories.find((c) => c.slug === categorySlug);
   const icon = categoryIcons[categorySlug] ?? "✨";
   const label = master?.name ?? categorySlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-  useEffect(() => {
-    setLoading(true);
-    getStores()
-      .then((data) => setStores(data.filter((s) => s.active)))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: stores = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.stores(),
+    queryFn: getStores,
+    select: (data) => data.filter((s) => s.active),
+  });
 
   const filtered = useMemo(
     () => stores.filter((s) => storeHasCategory(s, categorySlug)),
@@ -115,7 +112,8 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
   return (
     <Link
       to={`/lojas/${store.id}?categoria=${categorySlug}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
       {/* Banner */}
       <div
@@ -146,7 +144,13 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
         </span>
 
         {/* Logo */}
-        <span className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[#7c3aed] font-black text-white shadow-lg text-base">
+        <span
+          className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
+          style={{
+            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
+            boxShadow: "0 4px 16px rgba(124,58,237,0.45)",
+          }}
+        >
           <StoreLogo logoUrl={store.logoUrl} name={store.name} />
         </span>
       </div>
@@ -188,7 +192,10 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
           ))}
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-black text-white transition-colors group-hover:bg-[#7c3aed]">
+        <div
+          className="mt-4 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-black text-white transition-opacity group-hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
+        >
           Ver loja
           <ArrowRight size={16} />
         </div>

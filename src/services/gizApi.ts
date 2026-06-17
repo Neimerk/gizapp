@@ -3,6 +3,11 @@ import { getAuthToken } from "./auth";
 export const GIZ_API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5003";
 
+// Base URL para imagens — pode ser o Supabase CDN, CDN própria ou o mesmo API_URL.
+// Em produção, defina VITE_IMAGE_BASE_URL no painel do Vercel.
+const IMAGE_BASE_URL: string =
+  import.meta.env.VITE_IMAGE_BASE_URL || GIZ_API_URL;
+
 export const DEFAULT_STORE_ID =
   "b5c148b0-a07b-4532-aca3-e66c12f389af";
 
@@ -406,6 +411,16 @@ export async function getOrderById(id: string): Promise<Order> {
   return response.json();
 }
 
+/* QUERY KEYS */
+
+export const queryKeys = {
+  stores: () => ["stores"] as const,
+  store: (id: string) => ["stores", id] as const,
+  storeProducts: (storeId: string) => ["storeProducts", storeId] as const,
+  products: (params: ProductQuery) => ["products", params] as const,
+  myOrders: () => ["orders", "my"] as const,
+};
+
 /* IMAGES */
 
 export function getProductImageUrl(imageUrl?: string) {
@@ -413,9 +428,13 @@ export function getProductImageUrl(imageUrl?: string) {
     return "/placeholder.png";
   }
 
+  // URL completa (http/https) — retorna sem modificação
   if (imageUrl.startsWith("http")) {
     return imageUrl;
   }
 
-  return `${GIZ_API_URL}${imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`}`;
+  // Path relativo — monta a partir do IMAGE_BASE_URL
+  const base = IMAGE_BASE_URL.replace(/\/$/, "");
+  const path = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
+  return `${base}${path}`;
 }
