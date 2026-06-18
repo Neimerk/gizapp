@@ -1,11 +1,16 @@
 import {
   ArrowLeft,
+  CheckCircle2,
   CreditCard,
   Loader2,
   MapPin,
+  Plus,
   QrCode,
   ReceiptText,
   ShoppingBag,
+  Tag,
+  Trash2,
+  X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
@@ -16,8 +21,11 @@ import { createOrder, getStoreById, queryKeys } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
 import { getAuth } from "../services/auth";
 import { useCepLookup } from "../hooks/useCepLookup";
+import { useSavedAddresses, type SavedAddress } from "../hooks/useSavedAddresses";
+import { useCoupon } from "../hooks/useCoupon";
 import { useToastStore } from "../stores/toastStore";
 import { generatePixCode } from "../utils/pix";
+import { formatBRL } from "../utils/format";
 
 const PIX_KEY = import.meta.env.VITE_PIX_KEY as string | undefined;
 const PIX_MERCHANT_NAME = (import.meta.env.VITE_PIX_MERCHANT_NAME as string | undefined) ?? "BrasUX";
@@ -32,65 +40,27 @@ type CardData = {
   cvv: string;
 };
 
-type AddressData = {
-  phone: string;
-  cep: string;
-  address: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-};
-
 const CHECKOUT_KEY = "brasux-checkout";
 const ORDERS_KEY = "brasux-orders";
-const ACCOUNT_KEY = "brasux-account";
 const EMPTY_CARD: CardData = { number: "", name: "", expiration: "", cvv: "" };
 
 const num = (v: string) => v.replace(/\D/g, "");
-const fmtCard = (v: string) =>
-  num(v).slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
-const fmtExp = (v: string) =>
-  num(v).slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
+const fmtCard = (v: string) => num(v).slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
+const fmtExp = (v: string) => num(v).slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
 const fmtCVV = (v: string) => num(v).slice(0, 4);
 const fmtPhone = (v: string) =>
-  num(v)
-    .slice(0, 11)
-    .replace(/^(\d{2})(\d)/, "($1) $2")
-    .replace(/(\d{5})(\d)/, "$1-$2");
-const fmtCEP = (v: string) =>
-  num(v).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
+  num(v).slice(0, 11).replace(/^(\d{2})(\d)/, "($1) $2").replace(/(\d{5})(\d)/, "$1-$2");
+const fmtCEP = (v: string) => num(v).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
 
 function loadCheckout() {
-  try {
-    return JSON.parse(localStorage.getItem(CHECKOUT_KEY) ?? "{}");
-  } catch {
-    return {};
-  }
-}
-
-function loadAddressData(): AddressData {
-  try {
-    const saved = JSON.parse(localStorage.getItem(ACCOUNT_KEY) ?? "{}");
-    return {
-      phone: saved.phone ?? "",
-      cep: saved.cep ?? "",
-      address: saved.address ?? "",
-      number: saved.number ?? "",
-      complement: saved.complement ?? "",
-      neighborhood: saved.neighborhood ?? "",
-    };
-  } catch {
-    return { phone: "", cep: "", address: "", number: "", complement: "", neighborhood: "" };
-  }
+  try { return JSON.parse(localStorage.getItem(CHECKOUT_KEY) ?? "{}"); } catch { return {}; }
 }
 
 function getSavedOrderIds(): string[] {
   try {
     const p = JSON.parse(localStorage.getItem(ORDERS_KEY) ?? "[]");
     return Array.isArray(p) ? p.filter((i: unknown) => typeof i === "string") : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveOrderId(id?: string) {
@@ -98,6 +68,10 @@ function saveOrderId(id?: string) {
   const saved = getSavedOrderIds();
   localStorage.setItem(ORDERS_KEY, JSON.stringify([id, ...saved.filter((x) => x !== id)]));
 }
+
+const EMPTY_ADDR: Omit<SavedAddress, "id"> = {
+  label: "", phone: "", cep: "", address: "", number: "", complement: "", neighborhood: "",
+};
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -108,13 +82,27 @@ export default function CheckoutPage() {
   const auth = getAuth();
 
   const storeId = items[0]?.storeId ?? "";
-
   const { data: store, isLoading: loadingStore } = useQuery({
     queryKey: queryKeys.store(storeId),
     queryFn: () => getStoreById(storeId),
     enabled: !!storeId,
   });
 
+  // Saved addresses
+  const { addresses, save: saveAddress, remove: removeAddress } = useSavedAddresses();
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    () => addresses[0]?.id ?? null
+  );
+  const [showAddressForm, setShowAddressForm] = useState(addresses.length === 0);
+  const [newAddr, setNewAddr] = useState<Omit<SavedAddress, "id">>(EMPTY_ADDR);
+
+  const selectedAddress = addresses.find((a) => a.id === selectedAddressId) ?? null;
+
+  // Coupon
+  const { coupon, error: couponError, apply: applyCoupon, remove: removeCoupon, discount } = useCoupon();
+  const [couponInput, setCouponInput] = useState(coupon?.code ?? "");
+
+  // Payment
   const saved = loadCheckout();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     saved.paymentMethod === "card" ? "card" : "pix"
@@ -124,16 +112,9 @@ export default function CheckoutPage() {
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [address, setAddress] = useState<AddressData>(loadAddressData);
-  const [editingAddress, setEditingAddress] = useState(() => {
-    const d = loadAddressData();
-    return !(d.address && d.number && d.neighborhood);
-  });
-
-  const hasFullAddress = !!(address.address && address.number && address.neighborhood);
-
   const deliveryFee = store ? Number(store.deliveryFee) : 0;
-  const total = subtotal + deliveryFee;
+  const discountAmount = discount(subtotal, deliveryFee);
+  const total = subtotal + deliveryFee - discountAmount;
 
   const cardValid =
     paymentMethod === "pix" ||
@@ -143,13 +124,12 @@ export default function CheckoutPage() {
       num(card.expiration).length === 4 &&
       num(card.cvv).length >= 3);
 
+  const hasFullAddress = !!(
+    selectedAddress?.address && selectedAddress?.number && selectedAddress?.neighborhood
+  );
+
   const pixCode = PIX_KEY
-    ? generatePixCode({
-        pixKey: PIX_KEY,
-        amount: total,
-        merchantName: PIX_MERCHANT_NAME,
-        merchantCity: PIX_MERCHANT_CITY,
-      })
+    ? generatePixCode({ pixKey: PIX_KEY, amount: total, merchantName: PIX_MERCHANT_NAME, merchantCity: PIX_MERCHANT_CITY })
     : null;
 
   useEffect(() => {
@@ -167,44 +147,42 @@ export default function CheckoutPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function confirmAddress() {
-    try {
-      const existing = JSON.parse(localStorage.getItem(ACCOUNT_KEY) ?? "{}");
-      localStorage.setItem(ACCOUNT_KEY, JSON.stringify({ ...existing, ...address }));
-    } catch {
-      localStorage.setItem(ACCOUNT_KEY, JSON.stringify(address));
-    }
-    setEditingAddress(false);
+  function handleSaveAddress() {
+    if (!newAddr.address || !newAddr.number || !newAddr.neighborhood) return;
+    const saved = saveAddress({ ...newAddr, label: newAddr.label || "Endereço" });
+    setSelectedAddressId(saved.id);
+    setNewAddr(EMPTY_ADDR);
+    setShowAddressForm(false);
   }
 
   async function handleFinish() {
     const auth = getAuth();
     if (!auth) { navigate("/login", { state: { from: "/checkout" } }); return; }
     if (auth.role !== "Customer" && auth.role !== "Admin") {
-      useToastStore.getState().show("Use uma conta de cliente para finalizar pedidos. Faça login com outra conta.");
+      useToastStore.getState().show("Use uma conta de cliente para finalizar pedidos.");
       return;
     }
+    if (!selectedAddress) { useToastStore.getState().show("Selecione um endereço de entrega."); return; }
 
     try {
       setSaving(true);
       const order = await createOrder({
         storeId,
         customerName: auth.name,
-        customerPhone: address.phone || "—",
-        deliveryAddress: address.address,
-        deliveryNumber: address.number,
-        deliveryComplement: address.complement,
-        deliveryNeighborhood: address.neighborhood,
+        customerPhone: selectedAddress.phone || "—",
+        deliveryAddress: selectedAddress.address,
+        deliveryNumber: selectedAddress.number,
+        deliveryComplement: selectedAddress.complement,
+        deliveryNeighborhood: selectedAddress.neighborhood,
         paymentMethod,
         items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
       });
       saveOrderId(order.id);
       clearCart();
+      removeCoupon();
       navigate("/pedidos");
     } catch (e) {
-      useToastStore.getState().show(
-        e instanceof Error ? e.message : "Erro ao finalizar pedido."
-      );
+      useToastStore.getState().show(e instanceof Error ? e.message : "Erro ao finalizar pedido.");
     } finally {
       setSaving(false);
     }
@@ -217,13 +195,8 @@ export default function CheckoutPage() {
           <ShoppingBag size={40} className="text-[#16a34a]" />
         </div>
         <h2 className="mt-6 text-xl font-black text-[#0f172a]">Carrinho vazio</h2>
-        <p className="mt-2 text-sm text-[#64748b]">
-          Adicione produtos antes de continuar.
-        </p>
-        <Link
-          to="/"
-          className="mt-6 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
-        >
+        <p className="mt-2 text-sm text-[#64748b]">Adicione produtos antes de continuar.</p>
+        <Link to="/" className="mt-6 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white">
           Explorar lojas
         </Link>
       </div>
@@ -240,15 +213,13 @@ export default function CheckoutPage() {
           <ArrowLeft size={18} className="text-white" />
         </button>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
-            BrasUX
-          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
           <h1 className="text-xl font-black text-[#0f172a]">Checkout</h1>
         </div>
       </div>
 
       <div className="space-y-3">
-        {/* ENDEREÇO */}
+        {/* ── ENDEREÇO ── */}
         <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -257,41 +228,129 @@ export default function CheckoutPage() {
               </div>
               <h2 className="text-sm font-black text-[#0f172a]">Endereço de entrega</h2>
             </div>
-            {hasFullAddress && !editingAddress && (
+            {!showAddressForm && (
               <button
-                onClick={() => setEditingAddress(true)}
-                className="text-xs font-black text-[#16a34a]"
+                onClick={() => setShowAddressForm(true)}
+                className="flex items-center gap-1 text-xs font-black text-[#16a34a]"
               >
-                Alterar
+                <Plus size={13} /> Novo
               </button>
             )}
           </div>
 
-          {!editingAddress && hasFullAddress ? (
-            <div className="rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3">
-              {address.cep && (
-                <p className="text-[10px] font-bold text-[#94a3b8] mb-0.5">CEP {address.cep}</p>
-              )}
-              <p className="text-sm font-black text-[#0f172a]">
-                {address.address}, {address.number}
-                {address.complement ? ` — ${address.complement}` : ""}
-              </p>
-              <p className="mt-0.5 text-xs text-[#64748b]">{address.neighborhood}</p>
-              {address.phone && (
-                <p className="mt-1 text-xs text-[#94a3b8]">{address.phone}</p>
-              )}
+          {/* Saved address list */}
+          {!showAddressForm && addresses.length > 0 && (
+            <div className="space-y-2">
+              {addresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  className={`flex items-start gap-3 rounded-2xl border p-3 cursor-pointer transition-colors ${
+                    selectedAddressId === addr.id
+                      ? "border-[#16a34a]/40 bg-[#f0fdf4]"
+                      : "border-[#e2e8f0] bg-[#f8fafc]"
+                  }`}
+                  onClick={() => setSelectedAddressId(addr.id)}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    <div
+                      className={`flex h-4 w-4 items-center justify-center rounded-full border-2 transition-colors ${
+                        selectedAddressId === addr.id
+                          ? "border-[#16a34a] bg-[#16a34a]"
+                          : "border-[#cbd5e1]"
+                      }`}
+                    >
+                      {selectedAddressId === addr.id && (
+                        <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {addr.label && (
+                      <p className="text-[10px] font-black uppercase tracking-wide text-[#16a34a]">
+                        {addr.label}
+                      </p>
+                    )}
+                    <p className="text-sm font-black text-[#0f172a]">
+                      {addr.address}, {addr.number}
+                      {addr.complement ? ` — ${addr.complement}` : ""}
+                    </p>
+                    <p className="text-xs text-[#64748b]">{addr.neighborhood}</p>
+                    {addr.phone && <p className="text-xs text-[#94a3b8]">{addr.phone}</p>}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeAddress(addr.id);
+                      if (selectedAddressId === addr.id) {
+                        const remaining = addresses.filter((a) => a.id !== addr.id);
+                        setSelectedAddressId(remaining[0]?.id ?? null);
+                      }
+                    }}
+                    className="shrink-0 rounded-lg p-1 text-[#cbd5e1] hover:text-red-500"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
-          ) : (
+          )}
+
+          {/* New address form */}
+          {showAddressForm && (
             <AddressForm
-              value={address}
-              onChange={setAddress}
-              onConfirm={confirmAddress}
-              onCancel={hasFullAddress ? () => setEditingAddress(false) : undefined}
+              value={newAddr}
+              onChange={setNewAddr}
+              onConfirm={handleSaveAddress}
+              onCancel={addresses.length > 0 ? () => setShowAddressForm(false) : undefined}
             />
           )}
         </div>
 
-        {/* PAGAMENTO */}
+        {/* ── CUPOM ── */}
+        <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f59e0b]/10">
+              <Tag size={15} className="text-[#f59e0b]" />
+            </div>
+            <h2 className="text-sm font-black text-[#0f172a]">Cupom de desconto</h2>
+          </div>
+
+          {coupon ? (
+            <div className="flex items-center justify-between rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-[#16a34a]" />
+                <div>
+                  <p className="text-sm font-black text-[#16a34a]">{coupon.code}</p>
+                  <p className="text-xs text-[#16a34a]/70">{coupon.label} aplicado</p>
+                </div>
+              </div>
+              <button onClick={removeCoupon} className="rounded-lg p-1 text-[#94a3b8] hover:text-red-500">
+                <X size={16} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && applyCoupon(couponInput)}
+                placeholder="Digite o código do cupom"
+                className="flex-1 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-2.5 text-sm font-bold text-[#0f172a] uppercase outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1] placeholder:normal-case"
+              />
+              <button
+                onClick={() => applyCoupon(couponInput)}
+                className="rounded-xl bg-[#0f172a] px-4 py-2.5 text-xs font-black text-white"
+              >
+                Aplicar
+              </button>
+            </div>
+          )}
+          {couponError && (
+            <p className="mt-2 text-xs font-bold text-red-500">{couponError}</p>
+          )}
+        </div>
+
+        {/* ── PAGAMENTO ── */}
         <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#2563eb]/10">
@@ -304,9 +363,7 @@ export default function CheckoutPage() {
             <button
               onClick={() => setPaymentMethod("pix")}
               className={`rounded-2xl py-3 text-sm font-black transition-colors ${
-                paymentMethod === "pix"
-                  ? "bg-[#0f172a] text-white"
-                  : "border border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"
+                paymentMethod === "pix" ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"
               }`}
             >
               Pix
@@ -314,9 +371,7 @@ export default function CheckoutPage() {
             <button
               onClick={() => { setPaymentMethod("card"); setShowCardForm(true); }}
               className={`rounded-2xl py-3 text-sm font-black transition-colors ${
-                paymentMethod === "card"
-                  ? "bg-[#0f172a] text-white"
-                  : "border border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"
+                paymentMethod === "card" ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"
               }`}
             >
               Cartão
@@ -324,7 +379,7 @@ export default function CheckoutPage() {
           </div>
 
           {paymentMethod === "pix" && (
-            <div className="mt-4 rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] p-4 text-center">
+            <div className="mt-4 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4 text-center">
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]">
                 <QrCode size={20} className="text-[#4ade80]" />
               </div>
@@ -345,9 +400,7 @@ export default function CheckoutPage() {
                   </button>
                 </>
               ) : (
-                <p className="mt-3 text-sm font-bold text-[#64748b]">
-                  Pagamento via Pix temporariamente indisponível.
-                </p>
+                <p className="mt-3 text-sm font-bold text-[#64748b]">Pagamento via Pix temporariamente indisponível.</p>
               )}
             </div>
           )}
@@ -390,7 +443,7 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        {/* RESUMO */}
+        {/* ── RESUMO ── */}
         <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#ec4899]/10">
@@ -405,7 +458,7 @@ export default function CheckoutPage() {
                 <img
                   src={item.image}
                   alt={item.name}
-                  className="h-12 w-12 rounded-xl object-cover bg-[#f8fafc] shrink-0"
+                  className="h-12 w-12 shrink-0 rounded-xl object-cover bg-[#f8fafc]"
                   onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
                 />
                 <div className="flex-1 min-w-0">
@@ -413,9 +466,7 @@ export default function CheckoutPage() {
                     {item.quantity}× {item.name}
                   </h3>
                   <p className="text-xs text-[#64748b]">
-                    R$ {((item.promotionalPrice ?? item.price) * item.quantity)
-                      .toFixed(2)
-                      .replace(".", ",")}
+                    {formatBRL((item.promotionalPrice ?? item.price) * item.quantity)}
                   </p>
                 </div>
               </div>
@@ -425,26 +476,30 @@ export default function CheckoutPage() {
           <div className="mt-4 border-t border-[#f1f5f9] pt-4 space-y-2">
             <div className="flex justify-between text-xs text-[#64748b]">
               <span>{totalItems} {totalItems === 1 ? "item" : "itens"}</span>
-              <strong>R$ {subtotal.toFixed(2).replace(".", ",")}</strong>
+              <strong>{formatBRL(subtotal)}</strong>
             </div>
             <div className="flex justify-between text-xs text-[#64748b]">
               <span>Entrega</span>
               {loadingStore ? (
                 <span className="h-3 w-12 animate-pulse rounded bg-[#f1f5f9]" />
               ) : (
-                <strong>
-                  {deliveryFee === 0 ? "Grátis" : `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`}
-                </strong>
+                <strong>{deliveryFee === 0 ? "Grátis" : formatBRL(deliveryFee)}</strong>
               )}
             </div>
+            {coupon && discountAmount > 0 && (
+              <div className="flex justify-between text-xs text-[#16a34a]">
+                <span className="flex items-center gap-1">
+                  <Tag size={11} /> {coupon.code}
+                </span>
+                <strong>−{formatBRL(discountAmount)}</strong>
+              </div>
+            )}
             <div className="flex justify-between pt-1">
               <span className="text-base font-black text-[#0f172a]">Total</span>
               {loadingStore ? (
                 <span className="h-5 w-20 animate-pulse rounded bg-[#f1f5f9]" />
               ) : (
-                <span className="text-xl font-black text-[#16a34a]">
-                  R$ {total.toFixed(2).replace(".", ",")}
-                </span>
+                <span className="text-xl font-black text-[#16a34a]">{formatBRL(total)}</span>
               )}
             </div>
           </div>
@@ -460,13 +515,13 @@ export default function CheckoutPage() {
         ) : (
           <button
             onClick={handleFinish}
-            disabled={saving || !hasFullAddress || editingAddress || !cardValid || loadingStore}
+            disabled={saving || !hasFullAddress || !cardValid || loadingStore}
             className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 disabled:opacity-60 active:scale-[0.98] transition-transform"
           >
             {saving
               ? "Enviando pedido…"
               : !hasFullAddress
-              ? "Informe o endereço para continuar"
+              ? "Selecione um endereço para continuar"
               : !cardValid
               ? "Preencha os dados do cartão"
               : "Confirmar pedido"}
@@ -489,14 +544,14 @@ function AddressForm({
   onConfirm,
   onCancel,
 }: {
-  value: AddressData;
-  onChange: (v: AddressData) => void;
+  value: Omit<SavedAddress, "id">;
+  onChange: (v: Omit<SavedAddress, "id">) => void;
   onConfirm: () => void;
   onCancel?: () => void;
 }) {
   const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
 
-  function update(k: keyof AddressData, v: string) {
+  function update(k: keyof Omit<SavedAddress, "id">, v: string) {
     onChange({ ...value, [k]: v });
   }
 
@@ -519,6 +574,15 @@ function AddressForm({
   return (
     <div className="space-y-3">
       <div>
+        <label className={labelCls}>Apelido (ex: Casa, Trabalho)</label>
+        <input
+          value={value.label}
+          onChange={(e) => update("label", e.target.value)}
+          placeholder="Casa"
+          className={inputCls}
+        />
+      </div>
+      <div>
         <label className={labelCls}>Celular</label>
         <input
           value={value.phone}
@@ -539,20 +603,13 @@ function AddressForm({
             className={`${inputCls} ${cepLoading ? "pr-10" : ""}`}
           />
           {cepLoading && (
-            <Loader2
-              size={15}
-              className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#94a3b8]"
-            />
+            <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#94a3b8]" />
           )}
         </div>
-        {cepError && (
-          <p className="mt-1 text-xs font-bold text-red-500">{cepError}</p>
-        )}
+        {cepError && <p className="mt-1 text-xs font-bold text-red-500">{cepError}</p>}
       </div>
       <div>
-        <label className={labelCls}>
-          Rua / Avenida <span className="text-red-400">*</span>
-        </label>
+        <label className={labelCls}>Rua / Avenida <span className="text-red-400">*</span></label>
         <input
           value={value.address}
           onChange={(e) => update("address", e.target.value)}
@@ -562,9 +619,7 @@ function AddressForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>
-            Número <span className="text-red-400">*</span>
-          </label>
+          <label className={labelCls}>Número <span className="text-red-400">*</span></label>
           <input
             value={value.number}
             onChange={(e) => update("number", e.target.value)}
@@ -583,9 +638,7 @@ function AddressForm({
         </div>
       </div>
       <div>
-        <label className={labelCls}>
-          Bairro <span className="text-red-400">*</span>
-        </label>
+        <label className={labelCls}>Bairro <span className="text-red-400">*</span></label>
         <input
           value={value.neighborhood}
           onChange={(e) => update("neighborhood", e.target.value)}
@@ -607,7 +660,7 @@ function AddressForm({
           disabled={!canConfirm}
           className="flex-1 rounded-2xl bg-[#0f172a] py-3 text-sm font-black text-white disabled:opacity-40"
         >
-          Usar este endereço
+          Salvar endereço
         </button>
       </div>
     </div>

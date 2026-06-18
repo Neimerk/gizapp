@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,6 +14,7 @@ import {
 } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
 import { useFavoritesStore } from "../stores/favoritesStore";
+import { useProductReviews } from "../hooks/useProductReviews";
 import { formatBRL } from "../utils/format";
 import ProductImage from "../components/ui/ProductImage";
 import StoreLogo from "../components/ui/StoreLogo";
@@ -280,6 +281,9 @@ export default function ProductPage() {
             </div>
           )}
 
+          {/* Reviews */}
+          <ProductReviewSection productId={productId} />
+
           {/* Store card */}
           {store && (
             <Link
@@ -323,6 +327,105 @@ export default function ProductPage() {
             ))}
           </div>
         </section>
+      )}
+    </div>
+  );
+}
+
+function ProductReviewSection({ productId }: { productId: string }) {
+  const { review, submit, remove } = useProductReviews(productId);
+  const [hovered, setHovered] = useState(review?.stars ?? 0);
+  const [selected, setSelected] = useState(review?.stars ?? 0);
+  const [comment, setComment] = useState(review?.comment ?? "");
+  const [submitted, setSubmitted] = useState(!!review);
+  const [editing, setEditing] = useState(false);
+
+  function handleSubmit() {
+    if (!selected) return;
+    submit(selected, comment);
+    setSubmitted(true);
+    setEditing(false);
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+        Sua avaliação
+      </p>
+
+      {submitted && !editing ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <span key={s} className={`text-lg ${s <= (review?.stars ?? 0) ? "text-yellow-400" : "text-[#e2e8f0]"}`}>★</span>
+              ))}
+            </div>
+            <span className="text-xs font-bold text-[#64748b]">
+              {new Date(review?.date ?? "").toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+          {review?.comment && (
+            <p className="text-sm italic text-[#475569]">"{review.comment}"</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setEditing(true); setSelected(review?.stars ?? 0); setHovered(review?.stars ?? 0); setComment(review?.comment ?? ""); }}
+              className="text-xs font-bold text-[#16a34a]"
+            >
+              Editar
+            </button>
+            <button onClick={() => { remove(); setSubmitted(false); setSelected(0); setHovered(0); setComment(""); }} className="text-xs font-bold text-red-500">
+              Remover
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                onMouseEnter={() => setHovered(star)}
+                onMouseLeave={() => setHovered(selected)}
+                onClick={() => setSelected(star)}
+                className="text-2xl transition-transform hover:scale-125 focus:outline-none"
+              >
+                <span className={star <= (hovered || selected) ? "text-yellow-400" : "text-[#e2e8f0]"}>★</span>
+              </button>
+            ))}
+          </div>
+          {selected > 0 && (
+            <>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Deixe um comentário (opcional)…"
+                rows={2}
+                className="mt-3 w-full resize-none rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={handleSubmit}
+                  className="flex-1 rounded-xl bg-[#16a34a] py-2.5 text-xs font-black text-white"
+                >
+                  {editing ? "Atualizar avaliação" : "Enviar avaliação"}
+                </button>
+                {editing && (
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="rounded-xl border border-[#e2e8f0] px-4 py-2.5 text-xs font-black text-[#64748b]"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </>
+          )}
+          {!selected && (
+            <p className="mt-2 text-xs text-[#94a3b8]">Clique nas estrelas para avaliar.</p>
+          )}
+        </div>
       )}
     </div>
   );

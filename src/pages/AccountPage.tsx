@@ -190,14 +190,27 @@ export default function AccountPage() {
             <Shield size={16} /> Painel Admin
           </a>
         )}
-        {auth && (
-          <button
-            onClick={handleLogout}
-            className="mt-4 flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-black text-white active:scale-95 transition-transform"
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            to="/favoritos"
+            className="flex items-center gap-2 rounded-xl bg-red-500/80 px-4 py-2.5 text-sm font-black text-white active:scale-95 transition-transform"
           >
-            <LogOut size={16} /> Sair da conta
-          </button>
-        )}
+            <Heart size={16} /> Favoritos
+            {(favProducts.length + favStores.length) > 0 && (
+              <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[10px] font-black">
+                {favProducts.length + favStores.length}
+              </span>
+            )}
+          </Link>
+          {auth && (
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-black text-white active:scale-95 transition-transform"
+            >
+              <LogOut size={16} /> Sair da conta
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">

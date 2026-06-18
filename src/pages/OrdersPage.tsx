@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ArrowLeft, Clock3, LogIn, Package, ReceiptText, RefreshCw } from "lucide-react";
+
+const MapTrack = lazy(() => import("../components/ui/MapTrack"));
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getMyOrders, getProductImageUrl, queryKeys, type Order } from "../services/gizApi";
+import type { CourierPosition } from "../components/ui/MapTrack";
 import { ordersConnection, startOrdersConnection } from "../services/signalr";
 import { formatBRL } from "../utils/format";
 import { getAuth } from "../services/auth";
@@ -332,8 +335,20 @@ function RatingSection({ orderId }: { orderId: string }) {
 
 function OrderCard({ order }: { order: Order }) {
   const [open, setOpen] = useState(false);
+  const [courierPosition, setCourierPosition] = useState<CourierPosition | null>(null);
   const isCancelled = order.status === 5;
   const isDelivered = order.status === 4;
+  const isInTransit = order.status === 3;
+
+  // Listen for courier location updates for this specific order
+  useEffect(() => {
+    if (!isInTransit) return;
+    const handler = (data: { orderId: string; lat: number; lng: number }) => {
+      if (data.orderId === order.id) setCourierPosition({ lat: data.lat, lng: data.lng });
+    };
+    ordersConnection.on("CourierLocationUpdated", handler);
+    return () => { ordersConnection.off("CourierLocationUpdated", handler); };
+  }, [order.id, isInTransit]);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
@@ -409,15 +424,29 @@ function OrderCard({ order }: { order: Order }) {
               ))}
             </div>
 
+            {/* MAPA (status >= Saindo) */}
+            {(isInTransit || isDelivered) && (
+              <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-[#f1f5f9]" />}>
+                <MapTrack
+                  deliveryAddress={order.deliveryAddress}
+                  deliveryNumber={order.deliveryNumber}
+                  deliveryNeighborhood={order.deliveryNeighborhood}
+                  courierPosition={courierPosition}
+                />
+              </Suspense>
+            )}
+
             {/* ENDEREÇO */}
-            <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
-              <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">Entrega</p>
-              <p className="text-sm font-black text-[#0f172a]">
-                {order.deliveryAddress}, {order.deliveryNumber}
-                {order.deliveryComplement ? ` — ${order.deliveryComplement}` : ""}
-              </p>
-              <p className="text-xs text-[#64748b]">{order.deliveryNeighborhood}</p>
-            </div>
+            {!isInTransit && !isDelivered && (
+              <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">Entrega</p>
+                <p className="text-sm font-black text-[#0f172a]">
+                  {order.deliveryAddress}, {order.deliveryNumber}
+                  {order.deliveryComplement ? ` — ${order.deliveryComplement}` : ""}
+                </p>
+                <p className="text-xs text-[#64748b]">{order.deliveryNeighborhood}</p>
+              </div>
+            )}
 
             {/* TOTAIS + PAGAMENTO */}
             <div className="space-y-1.5">

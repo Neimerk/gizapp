@@ -16,6 +16,7 @@ import LoginPage from "../pages/LoginPage";
 import AdminPage from "../pages/AdminPage";
 import ProductPage from "../pages/ProductPage";
 import NotFoundPage from "../pages/NotFoundPage";
+import FavoritesPage from "../pages/FavoritesPage";
 import { getAuth } from "../services/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -97,6 +98,10 @@ export const router = createBrowserRouter([
       {
         path: "login",
         element: <LoginPage />
+      },
+      {
+        path: "favoritos",
+        element: <FavoritesPage />,
       },
       {
         path: "*",
