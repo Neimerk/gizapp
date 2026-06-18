@@ -105,6 +105,7 @@ export default function CheckoutPage() {
   const clearCart = useCartStore((s) => s.clearCart);
   const totalItems = useCartStore((s) => s.totalItems());
   const subtotal = useCartStore((s) => s.totalPrice());
+  const auth = getAuth();
 
   const storeId = items[0]?.storeId ?? "";
 
@@ -449,19 +450,28 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleFinish}
-          disabled={saving || !hasFullAddress || editingAddress || !cardValid || loadingStore}
-          className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 disabled:opacity-60 active:scale-[0.98] transition-transform"
-        >
-          {saving
-            ? "Enviando pedido…"
-            : !hasFullAddress
-            ? "Informe o endereço para continuar"
-            : !cardValid
-            ? "Preencha os dados do cartão"
-            : "Confirmar pedido"}
-        </button>
+        {!auth ? (
+          <button
+            onClick={() => navigate("/login", { state: { from: "/checkout" } })}
+            className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#15803d] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 active:scale-[0.98] transition-transform"
+          >
+            Entrar para confirmar o pedido
+          </button>
+        ) : (
+          <button
+            onClick={handleFinish}
+            disabled={saving || !hasFullAddress || editingAddress || !cardValid || loadingStore}
+            className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 disabled:opacity-60 active:scale-[0.98] transition-transform"
+          >
+            {saving
+              ? "Enviando pedido…"
+              : !hasFullAddress
+              ? "Informe o endereço para continuar"
+              : !cardValid
+              ? "Preencha os dados do cartão"
+              : "Confirmar pedido"}
+          </button>
+        )}
       </div>
     </div>
   );
