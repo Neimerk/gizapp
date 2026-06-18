@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { ArrowRight, Search, Store as StoreIcon } from "lucide-react";
+import { ArrowRight, ExternalLink, Search, Store as StoreIcon } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
@@ -17,6 +17,7 @@ import ProductImage from "../components/ui/ProductImage";
 import { formatBRL } from "../utils/format";
 import { categories } from "../data/categories";
 import { categoryIcons } from "../data/categoryIcons";
+import { brasuxSolutions, type BrasUXSolution } from "../data/brasuxSolutions";
 
 const PAGE_SIZE = 24;
 
@@ -141,6 +142,29 @@ export default function SearchPage() {
         </section>
       )}
 
+      {/* BrasUX Solutions (soluções estáticas por categoria) */}
+      {(() => {
+        const solutions = brasuxSolutions.filter((s) => s.categorySlug === filter);
+        if (solutions.length === 0) return null;
+        return (
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
+                Soluções BrasUX
+              </span>
+              <span className="rounded-full bg-[#16a34a]/10 px-2 py-0.5 text-[10px] font-black text-[#16a34a]">
+                {solutions.length}
+              </span>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {solutions.map((s) => (
+                <BrasUXSolutionCard key={s.id} solution={s} />
+              ))}
+            </div>
+          </section>
+        );
+      })()}
+
       {/* Product results */}
       <section>
         <div className="mb-3 flex items-center justify-between">
@@ -194,6 +218,42 @@ export default function SearchPage() {
         )}
       </section>
     </div>
+  );
+}
+
+function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
+  return (
+    <a
+      href={solution.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group relative flex flex-col overflow-hidden rounded-3xl transition-all hover:-translate-y-0.5 hover:shadow-xl"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.10)" }}
+    >
+      {/* Dark header */}
+      <div
+        className={`relative flex items-center gap-4 bg-gradient-to-br p-5 ${solution.gradient}`}
+      >
+        <span className="text-4xl">{solution.icon}</span>
+        <div className="flex-1 min-w-0">
+          <span className="inline-block rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white/90">
+            {solution.badge}
+          </span>
+          <h3 className="mt-1 text-lg font-black text-white leading-tight">{solution.name}</h3>
+        </div>
+        <ExternalLink size={16} className="shrink-0 text-white/60 transition-colors group-hover:text-white" />
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 flex-col bg-white px-5 pb-5 pt-4">
+        <p className="flex-1 text-sm leading-relaxed text-[#64748b]">{solution.description}</p>
+        <div
+          className={`mt-4 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r py-2.5 text-xs font-black text-white ${solution.gradient}`}
+        >
+          Acessar <ArrowRight size={13} />
+        </div>
+      </div>
+    </a>
   );
 }
 
