@@ -438,6 +438,46 @@ export function getProductImageUrl(imageUrl?: string) {
   const path = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
   return `${base}${path}`;
 }
+/* ── PROFILE API ── */
+
+export type UpdateProfilePayload = {
+  name?: string;
+  phone?: string;
+  cpf?: string;
+  zipCode?: string;
+  address?: string;
+  addressNumber?: string;
+  addressComplement?: string;
+  neighborhood?: string;
+};
+
+export type ProfileResponse = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  cpf?: string | null;
+  zipCode?: string | null;
+  address?: string | null;
+  addressNumber?: string | null;
+  addressComplement?: string | null;
+  neighborhood?: string | null;
+  updatedAt: string;
+};
+
+export async function updateMyProfile(payload: UpdateProfilePayload): Promise<ProfileResponse> {
+  const res = await fetch(`${GIZ_API_URL}/api/auth/me`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.message || "Erro ao atualizar perfil.");
+  }
+  return res.json();
+}
+
 /* ── ADMIN API ── */
 
 export type AdminUser = {

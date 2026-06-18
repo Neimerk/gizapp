@@ -16,7 +16,8 @@ import { useNavigate } from "react-router-dom";
 
 import { useCepLookup } from "../hooks/useCepLookup";
 
-import { getAuth, logout } from "../services/auth";
+import { getAuth, logout, saveAuth } from "../services/auth";
+import { updateMyProfile } from "../services/gizApi";
 
 const ACCOUNT_KEY = "brasux-account";
 
@@ -75,6 +76,8 @@ export default function AccountPage() {
     email: load().email || auth?.email || "",
   }));
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showCard, setShowCard] = useState(false);
   const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
 
@@ -96,8 +99,35 @@ export default function AccountPage() {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
+    setSaving(true);
+    setSaveError(null);
+
+    // Always persist locally (covers payment fields and offline use)
     localStorage.setItem(ACCOUNT_KEY, JSON.stringify(form));
+
+    if (auth) {
+      try {
+        const updated = await updateMyProfile({
+          name: form.name || undefined,
+          phone: num(form.phone) || undefined,
+          cpf: num(form.cpf) || undefined,
+          zipCode: num(form.cep) || undefined,
+          address: form.address || undefined,
+          addressNumber: form.number || undefined,
+          addressComplement: form.complement || undefined,
+          neighborhood: form.neighborhood || undefined,
+        });
+        // Keep the auth token in sync if name changed
+        if (updated.name && updated.name !== auth.name) {
+          saveAuth({ ...auth, name: updated.name });
+        }
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : "Erro ao salvar no servidor.");
+      }
+    }
+
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
@@ -318,15 +348,27 @@ export default function AccountPage() {
         </SectionCard>
 
         {/* SAVE */}
+        {saveError && (
+          <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-600">
+            {saveError}
+          </p>
+        )}
         <button
           onClick={handleSave}
-          className={`w-full rounded-2xl py-4 text-sm font-black text-white shadow-lg transition-all active:scale-[0.98] ${
+          disabled={saving}
+          className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 text-sm font-black text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-70 ${
             saved
               ? "bg-[#16a34a] shadow-green-200"
               : "bg-gradient-to-r from-[#16a34a] to-[#2563eb] shadow-[#16a34a]/30"
           }`}
         >
-          {saved ? "✓ Salvo com sucesso!" : "Salvar cadastro"}
+          {saving ? (
+            <><Loader2 size={16} className="animate-spin" /> Salvando…</>
+          ) : saved ? (
+            "✓ Salvo com sucesso!"
+          ) : (
+            "Salvar cadastro"
+          )}
         </button>
 
       </div>
