@@ -32,14 +32,11 @@ export default function AdminPage() {
   const auth = getAuth();
 
   useEffect(() => {
-    if (!auth) {
-      navigate("/login", { state: { from: "/admin" } });
-    } else if (auth.role !== "Admin") {
-      // Token desatualizado ou role errado — limpa e pede novo login
+    if (!auth || auth.role !== "Admin") {
       logout();
-      navigate("/login", { state: { from: "/admin" } });
+      navigate("/login", { state: { from: "/admin" }, replace: true });
     }
-  }, [auth, navigate]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!auth || auth.role !== "Admin") return null;
 
