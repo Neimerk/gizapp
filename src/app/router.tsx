@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate, useLocation } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
 
@@ -15,6 +15,15 @@ import StoresPage from "../pages/StoresPage";
 import LoginPage from "../pages/LoginPage";
 import AdminPage from "../pages/AdminPage";
 import ProductPage from "../pages/ProductPage";
+import { getAuth } from "../services/auth";
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  if (!getAuth()) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+  return <>{children}</>;
+}
 
 export const router = createBrowserRouter([
   {
@@ -68,7 +77,11 @@ export const router = createBrowserRouter([
 
       {
         path: "checkout",
-        element: <CheckoutPage />,
+        element: (
+          <ProtectedRoute>
+            <CheckoutPage />
+          </ProtectedRoute>
+        ),
       },
 
       {

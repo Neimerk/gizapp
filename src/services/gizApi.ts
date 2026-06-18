@@ -1,4 +1,26 @@
-import { getAuthToken } from "./auth";
+import { getAuthToken, logout } from "./auth";
+
+function handleUnauthorized() {
+  logout();
+  window.location.replace("/login");
+}
+
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Sessão expirada. Faça login novamente.");
+  }
+  return res;
+}
 
 export const GIZ_API_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5003";
@@ -10,15 +32,6 @@ const IMAGE_BASE_URL: string =
 
 export const DEFAULT_STORE_ID =
   "b5c148b0-a07b-4532-aca3-e66c12f389af";
-
-function authHeaders() {
-  const token = getAuthToken();
-
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
-}
 
 /* AUTH */
 
@@ -153,6 +166,8 @@ export type ProductQuery = {
   available?: boolean;
   page?: number;
   pageSize?: number;
+  minPrice?: number;
+  maxPrice?: number;
 };
 
 /* STORE PRODUCTS */
@@ -276,6 +291,8 @@ export async function getProducts(params?: ProductQuery): Promise<PagedProducts>
   }
   if (params?.page) query.append("page", String(params.page));
   if (params?.pageSize) query.append("pageSize", String(params.pageSize));
+  if (params?.minPrice !== undefined) query.append("minPrice", String(params.minPrice));
+  if (params?.maxPrice !== undefined) query.append("maxPrice", String(params.maxPrice));
 
   const url = `${GIZ_API_URL}/api/products${
     query.toString() ? `?${query.toString()}` : ""
@@ -366,15 +383,13 @@ export async function getStoreProductsByCategory(
 /* ORDERS API */
 
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  const response = await fetch(`${GIZ_API_URL}/api/orders`, {
+  const response = await authFetch(`${GIZ_API_URL}/api/orders`, {
     method: "POST",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => null);
-
     throw new Error(error?.message || "Erro ao criar pedido");
   }
 
@@ -382,10 +397,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
 }
 
 export async function getMyOrders(): Promise<Order[]> {
-  const response = await fetch(`${GIZ_API_URL}/api/orders/my`, {
-    headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
-    },
+  const response = await authFetch(`${GIZ_API_URL}/api/orders/my`, {
     cache: "no-store",
   });
 
@@ -397,10 +409,7 @@ export async function getMyOrders(): Promise<Order[]> {
 }
 
 export async function getOrderById(id: string): Promise<Order> {
-  const response = await fetch(`${GIZ_API_URL}/api/orders/${id}`, {
-    headers: {
-      Authorization: `Bearer ${getAuthToken()}`,
-    },
+  const response = await authFetch(`${GIZ_API_URL}/api/orders/${id}`, {
     cache: "no-store",
   });
 
@@ -466,9 +475,8 @@ export type ProfileResponse = {
 };
 
 export async function updateMyProfile(payload: UpdateProfilePayload): Promise<ProfileResponse> {
-  const res = await fetch(`${GIZ_API_URL}/api/auth/me`, {
+  const res = await authFetch(`${GIZ_API_URL}/api/auth/me`, {
     method: "PUT",
-    headers: authHeaders(),
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -492,8 +500,7 @@ export type AdminUser = {
 };
 
 export async function adminGetUsers(): Promise<AdminUser[]> {
-  const res = await fetch(`${GIZ_API_URL}/api/auth/users`, {
-    headers: authHeaders(),
+  const res = await authFetch(`${GIZ_API_URL}/api/auth/users`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Erro ao buscar usuários.");
@@ -501,9 +508,8 @@ export async function adminGetUsers(): Promise<AdminUser[]> {
 }
 
 export async function adminToggleUserActive(id: string, active: boolean): Promise<void> {
-  const res = await fetch(`${GIZ_API_URL}/api/auth/users/${id}/active`, {
+  const res = await authFetch(`${GIZ_API_URL}/api/auth/users/${id}/active`, {
     method: "PATCH",
-    headers: authHeaders(),
     body: JSON.stringify({ active }),
   });
   if (!res.ok) throw new Error("Erro ao atualizar usuário.");

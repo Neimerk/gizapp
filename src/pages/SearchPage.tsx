@@ -44,12 +44,21 @@ export default function SearchPage() {
   });
   const stores = storesData ?? [];
 
+  const debouncedMin = useDebounce(minPrice, 400);
+  const debouncedMax = useDebounce(maxPrice, 400);
+
+  const priceFilterActive = minPrice !== "" || maxPrice !== "";
+  const parsedMin = debouncedMin ? parseFloat(debouncedMin.replace(",", ".")) : undefined;
+  const parsedMax = debouncedMax ? parseFloat(debouncedMax.replace(",", ".")) : undefined;
+
   const productsParams = {
     search: debouncedSearch || undefined,
     category: filter || undefined,
-    page,
-    pageSize: PAGE_SIZE,
+    page: priceFilterActive ? 1 : page,
+    pageSize: priceFilterActive ? 500 : PAGE_SIZE,
     available: true,
+    minPrice: parsedMin,
+    maxPrice: parsedMax,
   };
 
   const { data: result, isLoading: loadingProducts } = useQuery({
@@ -58,8 +67,8 @@ export default function SearchPage() {
     placeholderData: keepPreviousData,
   });
 
-  // Reset page when search, category or price filter changes
-  useEffect(() => { setPage(1); }, [debouncedSearch, filter, minPrice, maxPrice]);
+  // Reset page when search or category changes
+  useEffect(() => { setPage(1); }, [debouncedSearch, filter]);
 
   const filteredStores = useMemo(() => {
     if (!search.trim()) return [];
@@ -73,19 +82,18 @@ export default function SearchPage() {
   const totalItems = result?.totalItems ?? 0;
   const totalPages = result?.totalPages ?? 1;
 
-  const priceFilterActive = minPrice !== "" || maxPrice !== "";
-
+  // Client-side price filter as fallback (in case the backend ignores minPrice/maxPrice)
   const visibleProducts = useMemo(() => {
     if (!priceFilterActive) return products;
-    const min = minPrice ? parseFloat(minPrice.replace(",", ".")) : null;
-    const max = maxPrice ? parseFloat(maxPrice.replace(",", ".")) : null;
+    const min = parsedMin ?? null;
+    const max = parsedMax ?? null;
     return products.filter((p) => {
       const price = Number(p.price ?? 0);
       if (min !== null && price < min) return false;
       if (max !== null && price > max) return false;
       return true;
     });
-  }, [products, minPrice, maxPrice, priceFilterActive]);
+  }, [products, parsedMin, parsedMax, priceFilterActive]);
 
   return (
     <div className="space-y-6">
@@ -231,10 +239,10 @@ export default function SearchPage() {
             {loadingProducts && (
               <span className="text-xs text-[#94a3b8]">Buscando…</span>
             )}
-            {!loadingProducts && totalItems > 0 && (
+            {!loadingProducts && (visibleProducts.length > 0 || totalItems > 0) && (
               <span className="text-xs font-bold text-[#64748b]">
                 {priceFilterActive
-                  ? `${visibleProducts.length} de ${products.length} nesta página`
+                  ? `${visibleProducts.length} ${visibleProducts.length === 1 ? "resultado" : "resultados"}`
                   : `${totalItems} ${totalItems === 1 ? "resultado" : "resultados"}`}
               </span>
             )}
@@ -242,7 +250,7 @@ export default function SearchPage() {
         </div>
 
         {/* Initial skeleton */}
-        {result === null && loadingProducts ? (
+        {!result && loadingProducts ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="animate-pulse rounded-3xl bg-white p-3 shadow-sm">
@@ -267,13 +275,15 @@ export default function SearchPage() {
               ))}
             </div>
 
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              pageSize={PAGE_SIZE}
-              onPageChange={setPage}
-            />
+            {!priceFilterActive && (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+              />
+            )}
           </>
         )}
       </section>

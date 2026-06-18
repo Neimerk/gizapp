@@ -1,8 +1,5 @@
 import {
   ArrowLeft,
-  CreditCard,
-  Eye,
-  EyeOff,
   Home,
   Loader2,
   LogOut,
@@ -32,14 +29,12 @@ type AccountForm = {
   complement: string;
   neighborhood: string;
   pixKey: string;
-  cardNumber: string;
-  cardExpiration: string;
 };
 
 const EMPTY: AccountForm = {
   name: "", cpf: "", email: "", phone: "",
   cep: "", address: "", number: "", complement: "", neighborhood: "",
-  pixKey: "", cardNumber: "", cardExpiration: "",
+  pixKey: "",
 };
 
 function load(): AccountForm {
@@ -62,10 +57,6 @@ const fmtPhone = (v: string) =>
     .replace(/^(\d{2})(\d)/, "($1) $2")
     .replace(/(\d{5})(\d)/, "$1-$2");
 const fmtCEP = (v: string) => num(v).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2");
-const fmtCard = (v: string) =>
-  num(v).slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 ");
-const fmtDate = (v: string) =>
-  num(v).slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
 
 export default function AccountPage() {
   const navigate = useNavigate();
@@ -78,7 +69,6 @@ export default function AccountPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [showCard, setShowCard] = useState(false);
   const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
 
   function update(key: keyof AccountForm, value: string) {
@@ -310,38 +300,6 @@ export default function AccountPage() {
               value={form.pixKey}
               onChange={(e) => update("pixKey", e.target.value)}
               placeholder="CPF, e-mail, celular ou chave aleatória"
-              className={inputCls}
-            />
-          </Field>
-        </SectionCard>
-
-        {/* CARTÃO */}
-        <SectionCard icon={<CreditCard size={16} className="text-[#f59e0b]" />} title="Cartão de crédito">
-          <Field label="Número do cartão">
-            <div className="relative">
-              <input
-                value={form.cardNumber}
-                onChange={(e) => update("cardNumber", fmtCard(e.target.value))}
-                type={showCard ? "text" : "password"}
-                placeholder="0000 0000 0000 0000"
-                inputMode="numeric"
-                className={`${inputCls} pr-11`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowCard((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]"
-              >
-                {showCard ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </Field>
-          <Field label="Validade">
-            <input
-              value={form.cardExpiration}
-              onChange={(e) => update("cardExpiration", fmtDate(e.target.value))}
-              placeholder="MM/AA"
-              inputMode="numeric"
               className={inputCls}
             />
           </Field>

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import BottomNavigation from "./BottomNavigation";
 import BrasUXLogo from "../ui/BrasUXLogo";
+import ErrorBoundary from "./ErrorBoundary";
 import { useCartStore } from "../../stores/cartStore";
 import Toast from "../ui/Toast";
 
@@ -119,7 +120,9 @@ export default function AppLayout() {
           totalItems > 0 ? "pb-44" : "pb-32"
         }`}
       >
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       {/* ── FLOATING CART BAR (mobile) ── */}
