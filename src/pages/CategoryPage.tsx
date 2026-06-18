@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ArrowRight, Bike, Clock3, ExternalLink, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bike, Clock3, ExternalLink, Star } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -42,6 +42,12 @@ export default function CategoryPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
+        <Link
+          to="/categorias"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+        >
+          <ArrowLeft size={17} />
+        </Link>
         <div
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-4xl shadow-md"
           style={{
