@@ -48,6 +48,46 @@ const PAYMENT_LABEL: Record<string, string> = {
   card: "Cartão de crédito",
 };
 
+/* ── RATING HELPERS ── */
+
+type OrderRating = { stars: number; comment?: string };
+
+function getRating(orderId: string): OrderRating | null {
+  try {
+    return JSON.parse(localStorage.getItem(`brasux-rating-${orderId}`) ?? "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveRating(orderId: string, rating: OrderRating) {
+  localStorage.setItem(`brasux-rating-${orderId}`, JSON.stringify(rating));
+}
+
+/* ── NOTIFICATION HELPER ── */
+
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+}
+
+function showOrderNotification(order: Order) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  if (document.visibilityState === "visible") return;
+
+  const label = STATUS_LABEL[order.status] ?? "Status atualizado";
+  new Notification("BrasUX — Pedido atualizado", {
+    body: `${label} · ${formatBRL(Number(order.total))}`,
+    icon: "/logo-brasux.webp",
+    badge: "/favicon.svg",
+  });
+}
+
+/* ── PAGE ── */
+
 export default function OrdersPage() {
   const navigate = useNavigate();
   const auth = getAuth();
@@ -63,20 +103,25 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!auth) return;
 
+    requestNotificationPermission();
+
     async function setupSignalR() {
       try {
         await startOrdersConnection();
         ordersConnection.off("OrderCreated");
         ordersConnection.off("OrderStatusUpdated");
+
         ordersConnection.on("OrderCreated", (order: Order) => {
           queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
             cur.some((o) => o.id === order.id) ? cur : [order, ...cur]
           );
         });
+
         ordersConnection.on("OrderStatusUpdated", (updated: Order) => {
           queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
             cur.map((o) => (o.id === updated.id ? updated : o))
           );
+          showOrderNotification(updated);
         });
       } catch (e) {
         console.error("SignalR:", e);
@@ -122,9 +167,7 @@ export default function OrdersPage() {
             <ArrowLeft size={18} className="text-white" />
           </button>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
-              BrasUX
-            </p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
             <h1 className="text-xl font-black text-[#0f172a]">Meus pedidos</h1>
           </div>
         </div>
@@ -133,10 +176,7 @@ export default function OrdersPage() {
           disabled={refreshing}
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white"
         >
-          <RefreshCw
-            size={16}
-            className={`text-[#64748b] ${refreshing ? "animate-spin" : ""}`}
-          />
+          <RefreshCw size={16} className={`text-[#64748b] ${refreshing ? "animate-spin" : ""}`} />
         </button>
       </div>
 
@@ -157,9 +197,7 @@ export default function OrdersPage() {
               <ReceiptText size={40} className="text-[#16a34a]" />
             </div>
             <h2 className="mt-6 text-xl font-black text-[#0f172a]">Nenhum pedido ainda</h2>
-            <p className="mt-2 text-sm text-[#64748b]">
-              Seus pedidos aparecerão aqui em tempo real.
-            </p>
+            <p className="mt-2 text-sm text-[#64748b]">Seus pedidos aparecerão aqui em tempo real.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -172,6 +210,8 @@ export default function OrdersPage() {
     </div>
   );
 }
+
+/* ── STATUS TIMELINE ── */
 
 function StatusTimeline({ status }: { status: number }) {
   return (
@@ -215,9 +255,85 @@ function StatusTimeline({ status }: { status: number }) {
   );
 }
 
+/* ── RATING SECTION ── */
+
+function RatingSection({ orderId }: { orderId: string }) {
+  const [saved, setSaved] = useState(false);
+  const [existing] = useState(() => getRating(orderId));
+  const [hovered, setHovered] = useState(existing?.stars ?? 0);
+  const [selected, setSelected] = useState(existing?.stars ?? 0);
+  const [comment, setComment] = useState(existing?.comment ?? "");
+  const [submitted, setSubmitted] = useState(!!existing);
+
+  if (submitted && existing) {
+    return (
+      <div className="rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-center">
+        <p className="text-sm font-black text-[#16a34a]">
+          Sua avaliação: {"⭐".repeat(existing.stars)}
+        </p>
+        {existing.comment && (
+          <p className="mt-1 text-xs italic text-[#64748b]">"{existing.comment}"</p>
+        )}
+      </div>
+    );
+  }
+
+  function handleSave() {
+    if (!selected) return;
+    const rating: OrderRating = { stars: selected, comment: comment.trim() || undefined };
+    saveRating(orderId, rating);
+    setSaved(true);
+    setSubmitted(true);
+  }
+
+  return (
+    <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+        Avalie sua experiência
+      </p>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(selected)}
+            onClick={() => setSelected(star)}
+            className="text-2xl transition-transform hover:scale-125 focus:outline-none"
+            aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
+          >
+            <span className={star <= (hovered || selected) ? "text-yellow-400" : "text-[#e2e8f0]"}>
+              ★
+            </span>
+          </button>
+        ))}
+      </div>
+      {selected > 0 && !saved && (
+        <>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Deixe um comentário (opcional)…"
+            rows={2}
+            className="mt-3 w-full resize-none rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
+          />
+          <button
+            onClick={handleSave}
+            className="mt-2 w-full rounded-xl bg-[#16a34a] py-2.5 text-xs font-black text-white transition-opacity hover:opacity-90"
+          >
+            Enviar avaliação
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── ORDER CARD ── */
+
 function OrderCard({ order }: { order: Order }) {
   const [open, setOpen] = useState(false);
   const isCancelled = order.status === 5;
+  const isDelivered = order.status === 4;
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
@@ -235,7 +351,7 @@ function OrderCard({ order }: { order: Order }) {
                 </p>
               )}
               <p className="text-xl font-black text-white">
-                {`R$ ${Number(order.total).toFixed(2).replace(".", ",")}`}
+                {formatBRL(Number(order.total))}
               </p>
             </div>
           </div>
@@ -280,17 +396,11 @@ function OrderCard({ order }: { order: Order }) {
                     src={getProductImageUrl(item.imageUrl)}
                     alt={item.productName}
                     className="h-14 w-14 rounded-xl object-cover bg-white shrink-0"
-                    onError={(e) => {
-                      e.currentTarget.style.visibility = "hidden";
-                    }}
+                    onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-black text-[#0f172a] line-clamp-1">
-                      {item.productName}
-                    </h3>
-                    <p className="text-xs text-[#64748b]">
-                      {item.quantity}× {formatBRL(item.unitPrice)}
-                    </p>
+                    <h3 className="text-sm font-black text-[#0f172a] line-clamp-1">{item.productName}</h3>
+                    <p className="text-xs text-[#64748b]">{item.quantity}× {formatBRL(item.unitPrice)}</p>
                   </div>
                   <span className="text-sm font-black text-[#16a34a] shrink-0">
                     {formatBRL(item.totalPrice)}
@@ -301,9 +411,7 @@ function OrderCard({ order }: { order: Order }) {
 
             {/* ENDEREÇO */}
             <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
-              <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">
-                Entrega
-              </p>
+              <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">Entrega</p>
               <p className="text-sm font-black text-[#0f172a]">
                 {order.deliveryAddress}, {order.deliveryNumber}
                 {order.deliveryComplement ? ` — ${order.deliveryComplement}` : ""}
@@ -320,9 +428,7 @@ function OrderCard({ order }: { order: Order }) {
               <div className="flex justify-between text-xs text-[#64748b]">
                 <span>Entrega</span>
                 <strong>
-                  {Number(order.deliveryFee) === 0
-                    ? "Grátis"
-                    : formatBRL(order.deliveryFee)}
+                  {Number(order.deliveryFee) === 0 ? "Grátis" : formatBRL(order.deliveryFee)}
                 </strong>
               </div>
               <div className="flex justify-between text-xs text-[#64748b]">
@@ -331,11 +437,12 @@ function OrderCard({ order }: { order: Order }) {
               </div>
               <div className="flex justify-between border-t border-[#f1f5f9] pt-1.5">
                 <span className="text-sm font-black text-[#0f172a]">Total</span>
-                <span className="text-base font-black text-[#16a34a]">
-                  {formatBRL(order.total)}
-                </span>
+                <span className="text-base font-black text-[#16a34a]">{formatBRL(order.total)}</span>
               </div>
             </div>
+
+            {/* AVALIAÇÃO (só após entrega) */}
+            {isDelivered && <RatingSection orderId={order.id} />}
           </div>
         )}
       </div>

@@ -1,20 +1,25 @@
 import {
   ArrowLeft,
+  Heart,
   Home,
   Loader2,
   LogOut,
   Mail,
   Shield,
   Smartphone,
+  Store as StoreIcon,
+  Trash2,
   User,
 } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { useCepLookup } from "../hooks/useCepLookup";
 
 import { getAuth, logout, saveAuth } from "../services/auth";
-import { updateMyProfile } from "../services/gizApi";
+import { updateMyProfile, getProductImageUrl } from "../services/gizApi";
+import { useFavoritesStore } from "../stores/favoritesStore";
+import { formatBRL } from "../utils/format";
 
 const ACCOUNT_KEY = "brasux-account";
 
@@ -61,6 +66,10 @@ const fmtCEP = (v: string) => num(v).slice(0, 8).replace(/^(\d{5})(\d)/, "$1-$2"
 export default function AccountPage() {
   const navigate = useNavigate();
   const auth = getAuth();
+  const favProducts = useFavoritesStore((s) => s.products);
+  const favStores = useFavoritesStore((s) => s.stores);
+  const toggleProduct = useFavoritesStore((s) => s.toggleProduct);
+  const toggleStore = useFavoritesStore((s) => s.toggleStore);
   const [form, setForm] = useState<AccountForm>(() => ({
     ...load(),
     name: load().name || auth?.name || "",
@@ -292,6 +301,80 @@ export default function AccountPage() {
             />
           </Field>
         </SectionCard>
+
+        {/* FAVORITOS */}
+        {(favProducts.length > 0 || favStores.length > 0) && (
+          <SectionCard icon={<Heart size={16} className="text-red-500" />} title="Favoritos">
+            {favStores.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8] flex items-center gap-1">
+                  <StoreIcon size={10} /> Lojas
+                </p>
+                {favStores.map((store) => (
+                  <div key={store.id} className="flex items-center gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                    <Link to={`/lojas/${store.id}`} className="flex flex-1 items-center gap-3 min-w-0">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#16a34a] text-xs font-black text-white">
+                        {store.name.charAt(0)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-[#0f172a]">{store.name}</p>
+                        <p className="text-xs text-[#64748b]">{store.category.split(",")[0]}</p>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => toggleStore(store)}
+                      className="shrink-0 rounded-lg p-1.5 text-[#cbd5e1] hover:text-red-500"
+                      aria-label="Remover dos favoritos"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {favProducts.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+                  Produtos
+                </p>
+                {favProducts.map((product) => (
+                  <div key={product.id} className="flex items-center gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                    <Link
+                      to={`/lojas/${product.storeId}/produto/${product.id}`}
+                      className="flex flex-1 items-center gap-3 min-w-0"
+                    >
+                      {product.imageUrl ? (
+                        <img
+                          src={getProductImageUrl(product.imageUrl)}
+                          alt={product.name}
+                          className="h-10 w-10 shrink-0 rounded-xl object-cover bg-white"
+                          onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f1f5f9] text-xl">
+                          🛍️
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-black text-[#0f172a]">{product.name}</p>
+                        <p className="text-xs font-bold text-[#16a34a]">
+                          {formatBRL(Number(product.promotionalPrice ?? product.price))}
+                        </p>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => toggleProduct(product)}
+                      className="shrink-0 rounded-lg p-1.5 text-[#cbd5e1] hover:text-red-500"
+                      aria-label="Remover dos favoritos"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        )}
 
         {/* PIX */}
         <SectionCard icon={<Smartphone size={16} className="text-[#16a34a]" />} title="Chave Pix">

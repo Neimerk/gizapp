@@ -9,9 +9,11 @@ import {
   getStoreById,
   getStoreProducts,
   queryKeys,
+  type Store as StoreType,
   type StoreProduct,
 } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
+import { useFavoritesStore } from "../stores/favoritesStore";
 import { usePagination } from "../hooks/usePagination";
 import Pagination from "../components/ui/Pagination";
 import CategoryScroll from "../components/ui/CategoryScroll";
@@ -181,16 +183,19 @@ function StorePageContent() {
                 <p className="mt-1.5 max-w-lg text-sm text-white/70 line-clamp-2">{store.description}</p>
               )}
             </div>
-            <span
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${
-                store.isOpen
-                  ? "border-green-700/40 bg-green-900/30 text-green-400"
-                  : "border-white/20 bg-black/30 text-[#94a3b8]"
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
-              {store.isOpen ? "Aberto" : "Fechado"}
-            </span>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <StoreFavoriteButton store={store} />
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold ${
+                  store.isOpen
+                    ? "border-green-700/40 bg-green-900/30 text-green-400"
+                    : "border-white/20 bg-black/30 text-[#94a3b8]"
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
+                {store.isOpen ? "Aberto" : "Fechado"}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -277,6 +282,36 @@ function StorePageContent() {
         />
       </section>
     </div>
+  );
+}
+
+function StoreFavoriteButton({ store }: { store: StoreType }) {
+  const toggleStore = useFavoritesStore((s) => s.toggleStore);
+  const isStoreFavorite = useFavoritesStore((s) => s.isStoreFavorite);
+  const isFav = isStoreFavorite(store.id);
+
+  return (
+    <button
+      onClick={() =>
+        toggleStore({
+          id: store.id,
+          name: store.name,
+          category: store.category,
+          logoUrl: store.logoUrl,
+          deliveryTimeMin: store.deliveryTimeMin,
+          deliveryTimeMax: store.deliveryTimeMax,
+          deliveryFee: Number(store.deliveryFee),
+          rating: Number(store.rating),
+          isOpen: store.isOpen,
+        })
+      }
+      className={`flex h-9 w-9 items-center justify-center rounded-xl text-lg backdrop-blur-sm transition-all hover:scale-110 ${
+        isFav ? "bg-red-500/90 text-white" : "bg-white/20 text-white/70 hover:bg-white/30"
+      }`}
+      aria-label={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+    >
+      {isFav ? "♥" : "♡"}
+    </button>
   );
 }
 

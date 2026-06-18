@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft, ArrowRight, Bike, Clock3, Minus, Plus, ShoppingCart, Star, Tag,
+  ArrowLeft, ArrowRight, Bike, Clock3, Minus, Plus, Share2, ShoppingCart, Star, Tag,
 } from "lucide-react";
 
 import {
@@ -13,6 +13,7 @@ import {
   type StoreProduct,
 } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
+import { useFavoritesStore } from "../stores/favoritesStore";
 import { formatBRL } from "../utils/format";
 import ProductImage from "../components/ui/ProductImage";
 import StoreLogo from "../components/ui/StoreLogo";
@@ -43,8 +44,11 @@ export default function ProductPage() {
   const addItem = useCartStore((s) => s.addItem);
   const increaseItem = useCartStore((s) => s.increaseItem);
   const decreaseItem = useCartStore((s) => s.decreaseItem);
-
   const cartItem = items.find((i) => i.id === productId);
+
+  const toggleProduct = useFavoritesStore((s) => s.toggleProduct);
+  const isProductFavorite = useFavoritesStore((s) => s.isProductFavorite);
+  const isFav = product ? isProductFavorite(product.id) : false;
 
   function handleAdd() {
     if (!product) return;
@@ -59,6 +63,31 @@ export default function ProductPage() {
       promotionalPrice: product.promotionalPrice,
       image: getProductImageUrl(product.imageUrl),
       stock: product.stock,
+    });
+  }
+
+  function handleShare() {
+    const url = window.location.href;
+    const title = product?.name ?? "Produto BrasUX";
+    if (navigator.share) {
+      navigator.share({ title, url }).catch(() => null);
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Link copiado!");
+      });
+    }
+  }
+
+  function handleFavorite() {
+    if (!product) return;
+    toggleProduct({
+      id: product.id,
+      storeId: product.storeId,
+      name: product.name,
+      imageUrl: product.imageUrl,
+      price: Number(product.price),
+      promotionalPrice: product.promotionalPrice,
+      category: product.category,
     });
   }
 
@@ -100,13 +129,39 @@ export default function ProductPage() {
 
   return (
     <div className="space-y-6">
-      {/* Back */}
-      <Link
-        to={`/lojas/${storeId}`}
-        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
-      >
-        <ArrowLeft size={17} />
-      </Link>
+      {/* Back + actions */}
+      <div className="flex items-center justify-between">
+        <Link
+          to={`/lojas/${storeId}`}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+        >
+          <ArrowLeft size={17} />
+        </Link>
+
+        <div className="flex items-center gap-2">
+          {/* Favorite */}
+          <button
+            onClick={handleFavorite}
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xl transition-all hover:scale-110 ${
+              isFav
+                ? "border-red-200 bg-red-50 text-red-500"
+                : "border-[#e2e8f0] bg-white text-[#cbd5e1] hover:text-red-400"
+            }`}
+            aria-label={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            {isFav ? "♥" : "♡"}
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={handleShare}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+            aria-label="Compartilhar produto"
+          >
+            <Share2 size={16} />
+          </button>
+        </div>
+      </div>
 
       {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-2">

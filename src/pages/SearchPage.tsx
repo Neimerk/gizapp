@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from "react";
-import { ArrowRight, ExternalLink, Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { ArrowRight, Clock, ExternalLink, History, Search, SlidersHorizontal, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
@@ -11,6 +11,7 @@ import {
   type Product,
 } from "../services/gizApi";
 import { useDebounce } from "../hooks/useDebounce";
+import { useSearchHistory } from "../hooks/useSearchHistory";
 import Pagination from "../components/ui/Pagination";
 import CategoryScroll, { type CategoryScrollTab } from "../components/ui/CategoryScroll";
 import ProductImage from "../components/ui/ProductImage";
@@ -18,8 +19,18 @@ import { formatBRL } from "../utils/format";
 import { categories } from "../data/categories";
 import { categoryIcons } from "../data/categoryIcons";
 import { brasuxSolutions, type BrasUXSolution } from "../data/brasuxSolutions";
+import { useFavoritesStore } from "../stores/favoritesStore";
 
 const PAGE_SIZE = 24;
+
+type SortOption = "default" | "price-asc" | "price-desc" | "newest";
+
+const SORT_LABELS: Record<SortOption, string> = {
+  default: "Relevância",
+  "price-asc": "Menor preço",
+  "price-desc": "Maior preço",
+  newest: "Mais recentes",
+};
 
 const CATEGORY_TABS: CategoryScrollTab[] = categories.map((cat) => ({
   slug: cat.slug,
@@ -34,8 +45,15 @@ export default function SearchPage() {
   const [page, setPage] = useState(1);
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState<SortOption>("default");
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { history, add: addHistory, remove: removeHistory, clear: clearHistory } = useSearchHistory();
 
   const debouncedSearch = useDebounce(search, 400);
+  const debouncedMin = useDebounce(minPrice, 400);
+  const debouncedMax = useDebounce(maxPrice, 400);
 
   const { data: storesData } = useQuery({
     queryKey: queryKeys.stores(),
@@ -44,9 +62,6 @@ export default function SearchPage() {
   });
   const stores = storesData ?? [];
 
-  const debouncedMin = useDebounce(minPrice, 400);
-  const debouncedMax = useDebounce(maxPrice, 400);
-
   const priceFilterActive = minPrice !== "" || maxPrice !== "";
   const parsedMin = debouncedMin ? parseFloat(debouncedMin.replace(",", ".")) : undefined;
   const parsedMax = debouncedMax ? parseFloat(debouncedMax.replace(",", ".")) : undefined;
@@ -54,8 +69,8 @@ export default function SearchPage() {
   const productsParams = {
     search: debouncedSearch || undefined,
     category: filter || undefined,
-    page: priceFilterActive ? 1 : page,
-    pageSize: priceFilterActive ? 500 : PAGE_SIZE,
+    page,
+    pageSize: PAGE_SIZE,
     available: true,
     minPrice: parsedMin,
     maxPrice: parsedMax,
@@ -67,8 +82,8 @@ export default function SearchPage() {
     placeholderData: keepPreviousData,
   });
 
-  // Reset page when search or category changes
-  useEffect(() => { setPage(1); }, [debouncedSearch, filter]);
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [debouncedSearch, filter, debouncedMin, debouncedMax]);
 
   const filteredStores = useMemo(() => {
     if (!search.trim()) return [];
@@ -82,18 +97,43 @@ export default function SearchPage() {
   const totalItems = result?.totalItems ?? 0;
   const totalPages = result?.totalPages ?? 1;
 
-  // Client-side price filter as fallback (in case the backend ignores minPrice/maxPrice)
-  const visibleProducts = useMemo(() => {
+  // Client-side price filter as safety net (backend may not always enforce the range)
+  const priceFiltered = useMemo(() => {
     if (!priceFilterActive) return products;
-    const min = parsedMin ?? null;
-    const max = parsedMax ?? null;
     return products.filter((p) => {
       const price = Number(p.price ?? 0);
-      if (min !== null && price < min) return false;
-      if (max !== null && price > max) return false;
+      if (parsedMin != null && price < parsedMin) return false;
+      if (parsedMax != null && price > parsedMax) return false;
       return true;
     });
   }, [products, parsedMin, parsedMax, priceFilterActive]);
+
+  // Client-side sort
+  const visibleProducts = useMemo(() => {
+    const list = [...priceFiltered];
+    if (sort === "price-asc") list.sort((a, b) => Number(a.price ?? 0) - Number(b.price ?? 0));
+    if (sort === "price-desc") list.sort((a, b) => Number(b.price ?? 0) - Number(a.price ?? 0));
+    if (sort === "newest") list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return list;
+  }, [priceFiltered, sort]);
+
+  function commitSearch(term: string) {
+    if (term.trim()) addHistory(term.trim());
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      commitSearch(search);
+      inputRef.current?.blur();
+      setSearchFocused(false);
+    }
+    if (e.key === "Escape") {
+      setSearchFocused(false);
+      inputRef.current?.blur();
+    }
+  }
+
+  const showHistory = searchFocused && !search.trim() && history.length > 0;
 
   return (
     <div className="space-y-6">
@@ -103,37 +143,82 @@ export default function SearchPage() {
       </div>
 
       {/* Search bar */}
-      <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm transition-colors focus-within:border-[#16a34a]/40">
-        <Search size={18} className="shrink-0 text-[#16a34a]" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar produtos, marcas, categorias…"
-          className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
-          autoFocus
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="text-xl leading-none text-[#94a3b8] hover:text-[#0f172a]"
-          >
-            ×
-          </button>
+      <div className="relative">
+        <div
+          className={`flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm transition-colors ${
+            searchFocused ? "border-[#16a34a]/50 ring-2 ring-[#16a34a]/10" : "border-[#e2e8f0]"
+          }`}
+        >
+          <Search size={18} className="shrink-0 text-[#16a34a]" />
+          <input
+            ref={inputRef}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+            onKeyDown={handleKeyDown}
+            placeholder="Buscar produtos, marcas, categorias…"
+            className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            autoFocus
+          />
+          {search && (
+            <button
+              onClick={() => { setSearch(""); inputRef.current?.focus(); }}
+              className="text-xl leading-none text-[#94a3b8] hover:text-[#0f172a]"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Search history dropdown */}
+        {showHistory && (
+          <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-xl">
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+                <History size={11} /> Buscas recentes
+              </span>
+              <button
+                onClick={clearHistory}
+                className="text-[10px] font-bold text-[#94a3b8] hover:text-red-500"
+              >
+                Limpar
+              </button>
+            </div>
+            {history.map((term) => (
+              <div key={term} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc]">
+                <button
+                  className="flex flex-1 items-center gap-2 text-left text-sm font-medium text-[#0f172a]"
+                  onClick={() => {
+                    setSearch(term);
+                    setSearchFocused(false);
+                  }}
+                >
+                  <Clock size={14} className="shrink-0 text-[#94a3b8]" />
+                  {term}
+                </button>
+                <button
+                  onClick={() => removeHistory(term)}
+                  className="shrink-0 text-[#cbd5e1] hover:text-[#94a3b8]"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
       {/* Category filter */}
-      <CategoryScroll
-        tabs={CATEGORY_TABS}
-        activeSlug={filter}
-        onSelect={setFilter}
-      />
+      <CategoryScroll tabs={CATEGORY_TABS} activeSlug={filter} onSelect={setFilter} />
 
-      {/* Price filter */}
+      {/* Filters row: price + sort */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#94a3b8]">
-          <SlidersHorizontal size={13} /> Preço
+          <SlidersHorizontal size={13} /> Filtros
         </div>
+
+        {/* Price filter */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 shadow-sm focus-within:border-[#16a34a]/40">
             <span className="text-xs font-bold text-[#94a3b8]">R$</span>
@@ -159,22 +244,34 @@ export default function SearchPage() {
             />
           </div>
         </div>
+
         {priceFilterActive && (
           <button
             onClick={() => { setMinPrice(""); setMaxPrice(""); }}
             className="flex items-center gap-1 rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-3 py-2 text-xs font-black text-[#e11d48]"
           >
-            <X size={12} /> Limpar preço
+            <X size={12} /> Preço
           </button>
         )}
+
+        {/* Sort */}
+        <div className="ml-auto">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-bold text-[#0f172a] outline-none shadow-sm focus:border-[#16a34a]/40 cursor-pointer"
+          >
+            {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
+              <option key={key} value={key}>{SORT_LABELS[key]}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Store results (only when searching) */}
+      {/* Store results */}
       {filteredStores.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
-            Lojas
-          </h2>
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-[#94a3b8]">Lojas</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredStores.map((s) => (
               <Link
@@ -184,11 +281,7 @@ export default function SearchPage() {
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#16a34a] text-sm font-black text-white">
                   {s.logoUrl ? (
-                    <img
-                      src={getProductImageUrl(s.logoUrl)}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={getProductImageUrl(s.logoUrl)} alt="" className="h-full w-full object-cover" />
                   ) : (
                     s.name.charAt(0)
                   )}
@@ -206,7 +299,7 @@ export default function SearchPage() {
         </section>
       )}
 
-      {/* BrasUX Solutions (soluções estáticas por categoria) */}
+      {/* BrasUX Solutions */}
       {(() => {
         const solutions = brasuxSolutions.filter((s) => s.categorySlug === filter);
         if (solutions.length === 0) return null;
@@ -242,14 +335,13 @@ export default function SearchPage() {
             {!loadingProducts && (visibleProducts.length > 0 || totalItems > 0) && (
               <span className="text-xs font-bold text-[#64748b]">
                 {priceFilterActive
-                  ? `${visibleProducts.length} ${visibleProducts.length === 1 ? "resultado" : "resultados"}`
-                  : `${totalItems} ${totalItems === 1 ? "resultado" : "resultados"}`}
+                  ? `${visibleProducts.length} resultado${visibleProducts.length !== 1 ? "s" : ""}`
+                  : `${totalItems} resultado${totalItems !== 1 ? "s" : ""}`}
               </span>
             )}
           </div>
         </div>
 
-        {/* Initial skeleton */}
         {!result && loadingProducts ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -300,10 +392,7 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
       className="group relative flex flex-col overflow-hidden rounded-3xl transition-all hover:-translate-y-0.5 hover:shadow-xl"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.10)" }}
     >
-      {/* Dark header */}
-      <div
-        className={`relative flex items-center gap-4 bg-gradient-to-br p-5 ${solution.gradient}`}
-      >
+      <div className={`relative flex items-center gap-4 bg-gradient-to-br p-5 ${solution.gradient}`}>
         <span className="text-4xl">{solution.icon}</span>
         <div className="flex-1 min-w-0">
           <span className="inline-block rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white/90">
@@ -313,8 +402,6 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
         </div>
         <ExternalLink size={16} className="shrink-0 text-white/60 transition-colors group-hover:text-white" />
       </div>
-
-      {/* Body */}
       <div className="flex flex-1 flex-col bg-white px-5 pb-5 pt-4">
         <p className="flex-1 text-sm leading-relaxed text-[#64748b]">{solution.description}</p>
         <div
@@ -328,40 +415,64 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
 }
 
 function SearchProductCard({ product }: { product: Product }) {
+  const toggleProduct = useFavoritesStore((s) => s.toggleProduct);
+  const isProductFavorite = useFavoritesStore((s) => s.isProductFavorite);
+  const isFav = isProductFavorite(product.id);
+
   const to = product.storeId
     ? `/lojas/${product.storeId}/produto/${product.id}`
     : `/lojas`;
 
   return (
-    <Link
-      to={to}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="flex h-36 items-center justify-center overflow-hidden bg-[#f8fafc] p-3">
-        <ProductImage
-          imageUrl={product.imageUrl}
-          alt={product.imageAlt || product.name}
-          category={product.category}
-          containerClassName="h-28 w-full rounded-xl"
-          className="h-28 w-full object-contain transition-transform group-hover:scale-105"
-        />
-      </div>
-      <div className="flex flex-1 flex-col p-3">
-        <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
-          {product.category}
-        </p>
-        <h3 className="mt-0.5 flex-1 text-xs font-black leading-tight text-[#0f172a] line-clamp-2">
-          {product.name}
-        </h3>
-        {product.price != null && (
-          <p className="mt-2 text-sm font-black text-[#16a34a]">
-            {formatBRL(Number(product.price))}
-          </p>
-        )}
-        <div className="mt-2 flex items-center justify-center rounded-xl bg-[#0f172a] py-1.5 text-[10px] font-black text-white transition-colors group-hover:bg-[#16a34a]">
-          Ver produto
+    <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+      {/* Favorite button */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          toggleProduct({
+            id: product.id,
+            storeId: product.storeId ?? "",
+            name: product.name,
+            imageUrl: product.imageUrl,
+            price: Number(product.price ?? 0),
+            category: product.category,
+          });
+        }}
+        className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-transform hover:scale-110"
+        aria-label={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+      >
+        <span className={`text-base leading-none ${isFav ? "text-red-500" : "text-[#cbd5e1]"}`}>
+          {isFav ? "♥" : "♡"}
+        </span>
+      </button>
+
+      <Link to={to} className="flex flex-col">
+        <div className="flex h-36 items-center justify-center overflow-hidden bg-[#f8fafc] p-3">
+          <ProductImage
+            imageUrl={product.imageUrl}
+            alt={product.imageAlt || product.name}
+            category={product.category}
+            containerClassName="h-28 w-full rounded-xl"
+            className="h-28 w-full object-contain transition-transform group-hover:scale-105"
+          />
         </div>
-      </div>
-    </Link>
+        <div className="flex flex-1 flex-col p-3">
+          <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
+            {product.category}
+          </p>
+          <h3 className="mt-0.5 flex-1 text-xs font-black leading-tight text-[#0f172a] line-clamp-2">
+            {product.name}
+          </h3>
+          {product.price != null && (
+            <p className="mt-2 text-sm font-black text-[#16a34a]">
+              {formatBRL(Number(product.price))}
+            </p>
+          )}
+          <div className="mt-2 flex items-center justify-center rounded-xl bg-[#0f172a] py-1.5 text-[10px] font-black text-white transition-colors group-hover:bg-[#16a34a]">
+            Ver produto
+          </div>
+        </div>
+      </Link>
+    </div>
   );
 }
