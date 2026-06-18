@@ -2,9 +2,12 @@ import { useState, useCallback, useRef } from "react";
 
 type Status = "idle" | "listening" | "unsupported";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyRecognition = any;
+
 export function useVoiceSearch(onResult: (text: string) => void) {
   const [status, setStatus] = useState<Status>("idle");
-  const recRef = useRef<SpeechRecognition | null>(null);
+  const recRef = useRef<AnyRecognition>(null);
 
   const supported =
     typeof window !== "undefined" &&
@@ -13,20 +16,18 @@ export function useVoiceSearch(onResult: (text: string) => void) {
   const start = useCallback(() => {
     if (!supported) { setStatus("unsupported"); return; }
 
-    const SR =
-      window.SpeechRecognition ??
-      (window as unknown as { webkitSpeechRecognition: typeof SpeechRecognition })
-        .webkitSpeechRecognition;
-
-    const rec = new SR();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    const rec: AnyRecognition = new SR();
     rec.lang = "pt-BR";
     rec.interimResults = false;
     rec.maxAlternatives = 1;
     recRef.current = rec;
 
     rec.onstart = () => setStatus("listening");
-    rec.onresult = (e) => {
-      const text = e.results[0]?.[0]?.transcript ?? "";
+    rec.onresult = (e: AnyRecognition) => {
+      const text: string = e.results[0]?.[0]?.transcript ?? "";
       if (text) onResult(text);
       setStatus("idle");
     };
