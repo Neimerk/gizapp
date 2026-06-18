@@ -438,3 +438,33 @@ export function getProductImageUrl(imageUrl?: string) {
   const path = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
   return `${base}${path}`;
 }
+/* ── ADMIN API ── */
+
+export type AdminUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: "Admin" | "Customer" | "Seller" | "Courier";
+  active: boolean;
+  storeId?: string | null;
+  store?: { id: string; name: string; category: string } | null;
+  createdAt: string;
+};
+
+export async function adminGetUsers(): Promise<AdminUser[]> {
+  const res = await fetch(`${GIZ_API_URL}/api/auth/users`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error("Erro ao buscar usuários.");
+  return res.json();
+}
+
+export async function adminToggleUserActive(id: string, active: boolean): Promise<void> {
+  const res = await fetch(`${GIZ_API_URL}/api/auth/users/${id}/active`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ active }),
+  });
+  if (!res.ok) throw new Error("Erro ao atualizar usuário.");
+}

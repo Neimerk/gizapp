@@ -7,6 +7,7 @@ import {
   Loader2,
   LogOut,
   Mail,
+  Shield,
   Smartphone,
   User,
 } from "lucide-react";
@@ -151,6 +152,15 @@ export default function AccountPage() {
           </div>
         </div>
 
+        {auth?.role === "Admin" && (
+          <a
+            href="/admin"
+            className="mt-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white active:scale-95 transition-transform"
+            style={{ background: "linear-gradient(135deg, #002776, #001640)" }}
+          >
+            <Shield size={16} /> Painel Admin
+          </a>
+        )}
         {auth && (
           <button
             onClick={handleLogout}

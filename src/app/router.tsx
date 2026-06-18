@@ -13,8 +13,13 @@ import CategoriesPage from "../pages/CategoriesPage";
 import SearchPage from "../pages/SearchPage";
 import StoresPage from "../pages/StoresPage";
 import LoginPage from "../pages/LoginPage";
+import AdminPage from "../pages/AdminPage";
 
 export const router = createBrowserRouter([
+  {
+    path: "/admin",
+    element: <AdminPage />,
+  },
   {
     path: "/",
     element: <AppLayout />,
