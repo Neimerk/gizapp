@@ -137,7 +137,7 @@ function StoreCard({ store }: { store: Store }) {
       <div
         className="relative h-28"
         style={{
-          background: "radial-gradient(circle at 80% 30%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          background: "radial-gradient(circle at 80% 30%, rgba(0,39,118,0.55), transparent 55%), linear-gradient(135deg, #0a1628 0%, #1e293b 100%)",
         }}
       >
         <span

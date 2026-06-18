@@ -61,12 +61,12 @@ export default function HomePage() {
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden rounded-3xl p-8 md:p-12"
-        style={{ background: "linear-gradient(135deg, #0f172a 0%, #071a0f 60%, #0f172a 100%)" }}
+        style={{ background: "linear-gradient(135deg, #0f172a 0%, #001640 60%, #0f172a 100%)" }}
       >
         {/* Animated gradient blobs */}
-        <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#16a34a] blur-3xl" />
-        <div className="blob-b pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#0891b2] blur-3xl" />
-        <div className="blob-c pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#059669] blur-3xl" />
+        <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#002776] blur-3xl" />
+        <div className="blob-b pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#16a34a] blur-3xl" />
+        <div className="blob-c pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#1351b4] blur-3xl" />
 
         {/* Subtle grid overlay */}
         <div
@@ -262,11 +262,11 @@ export default function HomePage() {
           target="_blank"
           rel="noopener noreferrer"
           className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
-          style={{ background: "linear-gradient(135deg, #0f172a 0%, #071a0f 60%, #0f172a 100%)" }}
+          style={{ background: "linear-gradient(135deg, #0f172a 0%, #001640 60%, #0f172a 100%)" }}
         >
           {/* Blobs */}
           <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#16a34a] opacity-30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#0891b2] opacity-20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#002776] opacity-20 blur-3xl" />
 
           {/* Grid overlay */}
           <div
@@ -334,7 +334,7 @@ export default function HomePage() {
         {/* Seller CTA */}
         <div
           className="relative overflow-hidden rounded-3xl p-8"
-          style={{ background: "linear-gradient(135deg, #0f172a 0%, #071a0f 100%)" }}
+          style={{ background: "linear-gradient(135deg, #0f172a 0%, #001640 100%)" }}
         >
           <div className="blob-a pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#16a34a] opacity-35 blur-3xl" />
           <div className="relative z-10 flex items-start gap-5">
@@ -498,7 +498,7 @@ function StoreCard({ store }: { store: Store }) {
         className="relative h-28"
         style={{
           background:
-            "radial-gradient(circle at 80% 30%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #071a0f 100%)",
+            "radial-gradient(circle at 80% 30%, rgba(0,39,118,0.55), transparent 55%), linear-gradient(135deg, #0a1628 0%, #001640 100%)",
         }}
       >
         <span

@@ -24,7 +24,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#f0fdf4]">
+    <div className="min-h-screen bg-[#f0f5ff]">
       {/* ── TOP HEADER ── */}
       <header
         className="sticky top-0 z-50"
@@ -83,7 +83,7 @@ export default function AppLayout() {
                   `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                     isActive
                       ? "bg-[#16a34a]/10 text-[#16a34a]"
-                      : "text-[#64748b] hover:bg-[#f0fdf4] hover:text-[#0f172a]"
+                      : "text-[#64748b] hover:bg-[#f0f5ff] hover:text-[#0f172a]"
                   }`
                 }
               >

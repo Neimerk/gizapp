@@ -37,13 +37,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0fdf4]">
+    <div className="min-h-screen bg-[#f0f5ff]">
       {/* TOP BANNER */}
       <div
         className="relative overflow-hidden px-6 pb-10 pt-14"
         style={{
           background:
-            "radial-gradient(circle at 80% 20%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #071a0f 100%)",
+            "radial-gradient(circle at 80% 20%, rgba(0,39,118,0.55), transparent 55%), linear-gradient(135deg, #0a1628 0%, #001640 100%)",
         }}
       >
         <button
@@ -69,7 +69,7 @@ export default function LoginPage() {
       </div>
 
       {/* FORM CARD */}
-      <div className="-mt-6 rounded-t-4xl bg-[#f0fdf4] px-4 pt-6">
+      <div className="-mt-6 rounded-t-4xl bg-[#f0f5ff] px-4 pt-6">
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm"

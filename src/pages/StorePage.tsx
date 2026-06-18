@@ -162,7 +162,7 @@ function StorePageContent() {
               className="flex h-full w-full items-center justify-center text-7xl"
               style={{
                 background:
-                  "radial-gradient(circle at 70% 30%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a, #1e293b)",
+                  "radial-gradient(circle at 70% 30%, rgba(0,39,118,0.55), transparent 55%), linear-gradient(135deg, #0a1628, #1e293b)",
               }}
             >
               🏪
