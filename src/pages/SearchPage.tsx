@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { ArrowRight, ExternalLink, Search, SlidersHorizontal, Store as StoreIcon, X } from "lucide-react";
+import { ArrowRight, ExternalLink, Search, SlidersHorizontal, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
@@ -318,9 +318,13 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
 }
 
 function SearchProductCard({ product }: { product: Product }) {
+  const to = product.storeId
+    ? `/lojas/${product.storeId}/produto/${product.id}`
+    : `/lojas`;
+
   return (
     <Link
-      to={product.storeId ? `/lojas/${product.storeId}` : "/lojas"}
+      to={to}
       className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
       <div className="flex h-36 items-center justify-center overflow-hidden bg-[#f8fafc] p-3">
@@ -344,8 +348,8 @@ function SearchProductCard({ product }: { product: Product }) {
             {formatBRL(Number(product.price))}
           </p>
         )}
-        <div className="mt-2 flex items-center justify-center gap-1 rounded-xl bg-[#0f172a] py-1.5 text-[10px] font-black text-white transition-colors group-hover:bg-[#16a34a]">
-          <StoreIcon size={11} /> Ver loja
+        <div className="mt-2 flex items-center justify-center rounded-xl bg-[#0f172a] py-1.5 text-[10px] font-black text-white transition-colors group-hover:bg-[#16a34a]">
+          Ver produto
         </div>
       </div>
     </Link>
