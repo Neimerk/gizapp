@@ -41,6 +41,16 @@ export const brasuxSolutions: BrasUXSolution[] = [
     gradient: "from-[#1d4ed8] to-[#1e3a8a]",
   },
   {
+    id: "brasux-caixa",
+    name: "BrasUX Caixa",
+    description: "PDV e gestão comercial completos — vendas, estoque, fluxo de caixa e dashboard. Simples, poderoso e acessível.",
+    url: "https://brasux-caixa-livre.vercel.app",
+    categorySlug: "servicos",
+    icon: "🧾",
+    badge: "BrasUX Comercial",
+    gradient: "from-[#064e3b] to-[#022c22]",
+  },
+  {
     id: "fabrica-landing-pages",
     name: "Fábrica de Landing Pages BrasUX",
     description: "Landing pages e páginas de produtos de alta conversão desenvolvidas pela BrasUX. Entrega rápida, design profissional.",
