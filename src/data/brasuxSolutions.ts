@@ -40,4 +40,14 @@ export const brasuxSolutions: BrasUXSolution[] = [
     badge: "BrasUX Edu",
     gradient: "from-[#1d4ed8] to-[#1e3a8a]",
   },
+  {
+    id: "fabrica-landing-pages",
+    name: "Fábrica de Landing Pages BrasUX",
+    description: "Landing pages e páginas de produtos de alta conversão desenvolvidas pela BrasUX. Entrega rápida, design profissional.",
+    url: "https://produtos.brasux.com.br/",
+    categorySlug: "servicos",
+    icon: "🚀",
+    badge: "BrasUX Dev",
+    gradient: "from-[#16a34a] to-[#0f766e]",
+  },
 ];
