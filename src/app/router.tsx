@@ -14,6 +14,7 @@ import SearchPage from "../pages/SearchPage";
 import StoresPage from "../pages/StoresPage";
 import LoginPage from "../pages/LoginPage";
 import AdminPage from "../pages/AdminPage";
+import ProductPage from "../pages/ProductPage";
 
 export const router = createBrowserRouter([
   {
@@ -53,6 +54,11 @@ export const router = createBrowserRouter([
       {
         path: "lojas/:storeId",
         element: <StorePage />,
+      },
+
+      {
+        path: "lojas/:storeId/produto/:productId",
+        element: <ProductPage />,
       },
 
       {

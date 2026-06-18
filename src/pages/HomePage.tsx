@@ -431,7 +431,7 @@ function SectionHeader({
 function ProductCard({ product }: { product: StoreProduct }) {
   return (
     <Link
-      to={`/lojas/${product.storeId}`}
+      to={`/lojas/${product.storeId}/produto/${product.id}`}
       className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
@@ -474,7 +474,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
           className="mt-3 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black text-white transition-all group-hover:opacity-90"
           style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
         >
-          <StoreIcon size={12} /> Ver loja
+          Ver produto
         </div>
       </div>
     </Link>

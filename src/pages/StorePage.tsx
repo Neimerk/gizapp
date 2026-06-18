@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bike, Clock3, Search, Star, X } from "lucide-react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   DEFAULT_STORE_ID,
@@ -306,29 +306,28 @@ function ProductCard({ product }: { product: StoreProduct }) {
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-      <div className="flex h-44 items-center justify-center overflow-hidden bg-[#f8fafc] p-4">
-        <ProductImage
-          imageUrl={product.imageUrl}
-          alt={product.imageAlt || product.name}
-          category={product.category}
-          containerClassName="h-36 w-full rounded-2xl"
-          className="h-36 w-full object-contain transition-transform group-hover:scale-105"
-        />
-      </div>
+      <Link to={`/lojas/${product.storeId}/produto/${product.id}`} className="block">
+        <div className="flex h-44 items-center justify-center overflow-hidden bg-[#f8fafc] p-4">
+          <ProductImage
+            imageUrl={product.imageUrl}
+            alt={product.imageAlt || product.name}
+            category={product.category}
+            containerClassName="h-36 w-full rounded-2xl"
+            className="h-36 w-full object-contain transition-transform group-hover:scale-105"
+          />
+        </div>
 
-      <div className="flex flex-1 flex-col p-4">
-        <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
-          {product.category}
-        </p>
-        <h3 className="mt-1 flex-1 text-sm font-black leading-tight text-[#0f172a] line-clamp-2">
-          {product.name}
-        </h3>
-        {product.description && (
-          <p className="mt-1 text-xs text-[#64748b] line-clamp-1">{product.description}</p>
-        )}
-
-        <div className="mt-3 flex items-end justify-between gap-2">
-          <div>
+        <div className="px-4 pt-4">
+          <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
+            {product.category}
+          </p>
+          <h3 className="mt-1 text-sm font-black leading-tight text-[#0f172a] line-clamp-2">
+            {product.name}
+          </h3>
+          {product.description && (
+            <p className="mt-1 text-xs text-[#64748b] line-clamp-1">{product.description}</p>
+          )}
+          <div className="mt-2">
             {product.promotionalPrice ? (
               <>
                 <p className="text-[10px] font-bold text-[#94a3b8] line-through">
@@ -344,38 +343,40 @@ function ProductCard({ product }: { product: StoreProduct }) {
               </p>
             )}
           </div>
-
-          {product.stock <= 0 ? (
-            <span className="rounded-xl bg-[#f1f5f9] px-3 py-1.5 text-xs font-black text-[#94a3b8]">
-              Sem estoque
-            </span>
-          ) : !cartItem ? (
-            <button
-              onClick={handleAdd}
-              className="rounded-xl bg-[#0f172a] px-4 py-2 text-xs font-black text-white transition-colors hover:bg-[#16a34a]"
-            >
-              + Adicionar
-            </button>
-          ) : (
-            <div className="flex items-center gap-1 rounded-xl bg-[#0f172a] p-1">
-              <button
-                onClick={() => decreaseItem(product.id)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 font-black text-white"
-              >
-                −
-              </button>
-              <span className="w-6 text-center text-sm font-black text-white">
-                {cartItem.quantity}
-              </span>
-              <button
-                onClick={() => increaseItem(product.id)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 font-black text-white"
-              >
-                +
-              </button>
-            </div>
-          )}
         </div>
+      </Link>
+
+      <div className="flex justify-end p-4 pt-2">
+        {product.stock <= 0 ? (
+          <span className="rounded-xl bg-[#f1f5f9] px-3 py-1.5 text-xs font-black text-[#94a3b8]">
+            Sem estoque
+          </span>
+        ) : !cartItem ? (
+          <button
+            onClick={handleAdd}
+            className="rounded-xl bg-[#0f172a] px-4 py-2 text-xs font-black text-white transition-colors hover:bg-[#16a34a]"
+          >
+            + Adicionar
+          </button>
+        ) : (
+          <div className="flex items-center gap-1 rounded-xl bg-[#0f172a] p-1">
+            <button
+              onClick={() => decreaseItem(product.id)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 font-black text-white"
+            >
+              −
+            </button>
+            <span className="w-6 text-center text-sm font-black text-white">
+              {cartItem.quantity}
+            </span>
+            <button
+              onClick={() => increaseItem(product.id)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 font-black text-white"
+            >
+              +
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
