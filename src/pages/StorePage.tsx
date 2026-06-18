@@ -141,15 +141,16 @@ function StorePageContent() {
 
   return (
     <div className="space-y-6">
+      {/* ── BACK BUTTON ── */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+      >
+        <ArrowLeft size={17} />
+      </button>
+
       {/* ── HERO BANNER ── */}
       <div className="relative overflow-hidden rounded-3xl">
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute left-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-xl bg-black/50 backdrop-blur-md transition-colors hover:bg-black/70"
-        >
-          <ArrowLeft size={18} className="text-white" />
-        </button>
-
         <div className="relative h-64 md:h-80">
           {store.bannerUrl ? (
             <img
