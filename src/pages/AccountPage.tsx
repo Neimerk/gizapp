@@ -7,6 +7,7 @@ import {
   Mail,
   Shield,
   Smartphone,
+  Star,
   Store as StoreIcon,
   Trash2,
   User,
@@ -19,6 +20,7 @@ import { useCepLookup } from "../hooks/useCepLookup";
 import { getAuth, logout, saveAuth } from "../services/auth";
 import { updateMyProfile, getProductImageUrl } from "../services/gizApi";
 import { useFavoritesStore } from "../stores/favoritesStore";
+import { usePointsStore } from "../stores/pointsStore";
 import { formatBRL } from "../utils/format";
 
 const ACCOUNT_KEY = "brasux-account";
@@ -70,6 +72,8 @@ export default function AccountPage() {
   const favStores = useFavoritesStore((s) => s.stores);
   const toggleProduct = useFavoritesStore((s) => s.toggleProduct);
   const toggleStore = useFavoritesStore((s) => s.toggleStore);
+  const points = usePointsStore((s) => s.points);
+  const pointsHistory = usePointsStore((s) => s.history);
   const [form, setForm] = useState<AccountForm>(() => ({
     ...load(),
     name: load().name || auth?.name || "",
@@ -313,6 +317,42 @@ export default function AccountPage() {
               className={inputCls}
             />
           </Field>
+        </SectionCard>
+
+        {/* PONTOS */}
+        <SectionCard icon={<Star size={16} className="text-[#f59e0b]" />} title="Programa de pontos">
+          <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-[#0f172a] to-[#002776] px-5 py-4">
+            <div>
+              <p className="text-xs font-bold text-white/60">Seus pontos</p>
+              <p className="text-3xl font-black text-white">{points.toLocaleString("pt-BR")}</p>
+              <p className="mt-0.5 text-[10px] text-white/40">1 ponto = R$ 1 gasto</p>
+            </div>
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f59e0b]/20">
+              <Star size={28} className="text-[#f59e0b]" />
+            </div>
+          </div>
+          {pointsHistory.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Histórico recente</p>
+              {pointsHistory.slice(0, 5).map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between rounded-xl bg-[#f8fafc] px-3 py-2">
+                  <div>
+                    <p className="text-xs font-bold text-[#0f172a]">{entry.description}</p>
+                    <p className="text-[10px] text-[#94a3b8]">
+                      {new Date(entry.date).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-sm font-black ${
+                      entry.amount > 0 ? "text-[#16a34a]" : "text-red-500"
+                    }`}
+                  >
+                    {entry.amount > 0 ? "+" : ""}{entry.amount} pts
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </SectionCard>
 
         {/* FAVORITOS */}

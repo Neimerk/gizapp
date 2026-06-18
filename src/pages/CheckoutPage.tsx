@@ -24,6 +24,7 @@ import { useCepLookup } from "../hooks/useCepLookup";
 import { useSavedAddresses, type SavedAddress } from "../hooks/useSavedAddresses";
 import { useCoupon } from "../hooks/useCoupon";
 import { useToastStore } from "../stores/toastStore";
+import { usePointsStore } from "../stores/pointsStore";
 import { generatePixCode } from "../utils/pix";
 import { formatBRL } from "../utils/format";
 
@@ -100,6 +101,7 @@ export default function CheckoutPage() {
 
   // Coupon
   const { coupon, error: couponError, apply: applyCoupon, remove: removeCoupon, discount } = useCoupon();
+  const earnPoints = usePointsStore((s) => s.earn);
   const [couponInput, setCouponInput] = useState(coupon?.code ?? "");
 
   // Payment
@@ -178,6 +180,7 @@ export default function CheckoutPage() {
         items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
       });
       saveOrderId(order.id);
+      earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
       clearCart();
       removeCoupon();
       navigate("/pedidos");

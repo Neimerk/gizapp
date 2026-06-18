@@ -17,6 +17,8 @@ import AdminPage from "../pages/AdminPage";
 import ProductPage from "../pages/ProductPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import FavoritesPage from "../pages/FavoritesPage";
+import ComparePage from "../pages/ComparePage";
+import ChatPage from "../pages/ChatPage";
 import { getAuth } from "../services/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -102,6 +104,14 @@ export const router = createBrowserRouter([
       {
         path: "favoritos",
         element: <FavoritesPage />,
+      },
+      {
+        path: "comparar",
+        element: <ComparePage />,
+      },
+      {
+        path: "lojas/:storeId/chat",
+        element: <ChatPage />,
       },
       {
         path: "*",

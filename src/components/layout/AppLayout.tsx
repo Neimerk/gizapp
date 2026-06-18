@@ -1,16 +1,25 @@
 import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
+  Mic,
+  MicOff,
+  Moon,
+  ReceiptText,
   Search,
   ShoppingCart,
-  ReceiptText,
+  Sun,
   User,
 } from "lucide-react";
+import { useCallback } from "react";
 import BottomNavigation from "./BottomNavigation";
 import BrasUXLogo from "../ui/BrasUXLogo";
 import ErrorBoundary from "./ErrorBoundary";
-import { useCartStore } from "../../stores/cartStore";
+import CompareBar from "../ui/CompareBar";
+import Onboarding from "../ui/Onboarding";
 import Toast from "../ui/Toast";
+import { useCartStore } from "../../stores/cartStore";
+import { useThemeStore } from "../../stores/themeStore";
+import { useVoiceSearch } from "../../hooks/useVoiceSearch";
 
 const navLinks = [
   { label: "Início", path: "/", icon: Home },
@@ -24,16 +33,33 @@ export default function AppLayout() {
   const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
 
+  const { theme, toggle: toggleTheme } = useThemeStore();
+  const isDark = theme === "dark";
+
+  const handleVoiceResult = useCallback(
+    (text: string) => {
+      navigate(`/buscar?q=${encodeURIComponent(text)}`);
+    },
+    [navigate]
+  );
+  const { status: voiceStatus, supported: voiceSupported, start: startVoice, stop: stopVoice } =
+    useVoiceSearch(handleVoiceResult);
+  const isListening = voiceStatus === "listening";
+
   return (
     <div className="min-h-screen bg-[#f7f9fc]">
+      <Onboarding />
+
       {/* ── TOP HEADER ── */}
       <header
         className="sticky top-0 z-50"
         style={{
-          background: "rgba(255,255,255,0.92)",
+          background: isDark ? "rgba(15,23,42,0.96)" : "rgba(255,255,255,0.92)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(0,39,118,0.10)",
+          borderBottom: isDark
+            ? "1px solid rgba(255,255,255,0.06)"
+            : "1px solid rgba(0,39,118,0.10)",
           boxShadow: "0 1px 8px rgba(0,39,118,0.06)",
         }}
       >
@@ -54,9 +80,7 @@ export default function AppLayout() {
               navigate(q ? `/buscar?q=${encodeURIComponent(q)}` : "/buscar");
             }}
             className="flex flex-1 items-center gap-2 rounded-2xl border bg-[#f8fafc] px-4 py-2.5 transition-all focus-within:bg-white"
-            style={{
-              borderColor: "rgba(22,163,74,0.15)",
-            }}
+            style={{ borderColor: "rgba(22,163,74,0.15)" }}
           >
             <Search size={16} className="shrink-0 text-[#94a3b8]" />
             <input
@@ -64,6 +88,23 @@ export default function AppLayout() {
               placeholder="Buscar soluções, produtos, lojas…"
               className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
             />
+
+            {/* Voice search button */}
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={isListening ? stopVoice : startVoice}
+                className={`shrink-0 rounded-lg p-1 transition-colors ${
+                  isListening
+                    ? "text-red-500 animate-pulse"
+                    : "text-[#94a3b8] hover:text-[#16a34a]"
+                }`}
+                aria-label={isListening ? "Parar gravação" : "Buscar por voz"}
+              >
+                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+              </button>
+            )}
+
             <button
               type="submit"
               className="hidden rounded-xl bg-[#16a34a] px-3 py-1 text-xs font-black text-white sm:block"
@@ -93,6 +134,15 @@ export default function AppLayout() {
               </NavLink>
             ))}
           </nav>
+
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggleTheme}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+            aria-label={isDark ? "Modo claro" : "Modo escuro"}
+          >
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
 
           {/* Cart button */}
           <Link
@@ -155,6 +205,7 @@ export default function AppLayout() {
         </Link>
       )}
 
+      <CompareBar />
       <BottomNavigation />
 
       {/* ── DESKTOP CART BAR ── */}

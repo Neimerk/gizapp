@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Bike, Clock3, Search, Star, X } from "lucide-react";
+import { ArrowLeft, Bike, Clock3, GitCompareArrows, MessageCircle, Search, Star, X } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -14,6 +14,7 @@ import {
 } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
 import { useFavoritesStore } from "../stores/favoritesStore";
+import { useCompareStore } from "../stores/compareStore";
 import { usePagination } from "../hooks/usePagination";
 import Pagination from "../components/ui/Pagination";
 import CategoryScroll from "../components/ui/CategoryScroll";
@@ -200,6 +201,16 @@ function StorePageContent() {
         </div>
       </div>
 
+      {/* ── ACTIONS ── */}
+      <div className="flex gap-2">
+        <Link
+          to={`/lojas/${currentStoreId}/chat`}
+          className="flex items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 text-sm font-black text-[#0f172a] shadow-sm transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+        >
+          <MessageCircle size={16} /> Chat com a loja
+        </Link>
+      </div>
+
       {/* ── STORE INFO ── */}
       <div className="grid grid-cols-3 gap-3 md:grid-cols-6 md:gap-4">
         {[
@@ -282,6 +293,47 @@ function StorePageContent() {
         />
       </section>
     </div>
+  );
+}
+
+function CompareButton({ product }: { product: StoreProduct }) {
+  const add = useCompareStore((s) => s.add);
+  const remove = useCompareStore((s) => s.remove);
+  const has = useCompareStore((s) => s.has);
+  const products = useCompareStore((s) => s.products);
+  const inCompare = has(product.id);
+  const full = products.length >= 3 && !inCompare;
+
+  function toggle() {
+    if (inCompare) { remove(product.id); return; }
+    add({
+      id: product.id,
+      storeId: product.storeId,
+      name: product.name,
+      imageUrl: product.imageUrl,
+      price: Number(product.price),
+      promotionalPrice: product.promotionalPrice,
+      category: product.category,
+      brand: product.brand,
+      description: product.description,
+      stock: product.stock,
+    });
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={full}
+      className={`flex h-8 w-8 items-center justify-center rounded-xl border text-xs transition-colors disabled:opacity-30 ${
+        inCompare
+          ? "border-[#2563eb]/40 bg-[#eff6ff] text-[#2563eb]"
+          : "border-[#e2e8f0] bg-[#f8fafc] text-[#94a3b8] hover:border-[#2563eb]/40 hover:text-[#2563eb]"
+      }`}
+      aria-label={inCompare ? "Remover da comparação" : "Adicionar à comparação"}
+      title={full ? "Máximo de 3 produtos" : inCompare ? "Remover da comparação" : "Comparar"}
+    >
+      <GitCompareArrows size={14} />
+    </button>
   );
 }
 
@@ -381,7 +433,10 @@ function ProductCard({ product }: { product: StoreProduct }) {
         </div>
       </Link>
 
-      <div className="flex justify-end p-4 pt-2">
+      <div className="flex items-center justify-between gap-2 p-4 pt-2">
+        {/* Compare button */}
+        <CompareButton product={product} />
+
         {product.stock <= 0 ? (
           <span className="rounded-xl bg-[#f1f5f9] px-3 py-1.5 text-xs font-black text-[#94a3b8]">
             Sem estoque
