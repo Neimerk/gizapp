@@ -1,11 +1,10 @@
-import { ArrowLeft, Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 import { useCartStore } from "../stores/cartStore";
 import { formatBRL } from "../utils/format";
 
 export default function CartPage() {
-  const navigate = useNavigate();
   const items = useCartStore((s) => s.items);
   const increaseItem = useCartStore((s) => s.increaseItem);
   const decreaseItem = useCartStore((s) => s.decreaseItem);
@@ -15,38 +14,24 @@ export default function CartPage() {
   const totalPrice = useCartStore((s) => s.totalPrice());
 
   return (
-    <div className="min-h-screen bg-[#f0f2f7] pb-28">
-      {/* HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-[#e8eaf0] px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
-            >
-              <ArrowLeft size={18} className="text-white" />
-            </button>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
-                BrasUX
-              </p>
-              <h1 className="text-xl font-black text-[#0f172a]">Carrinho</h1>
-            </div>
-          </div>
-
-          {items.length > 0 && (
-            <button
-              onClick={clearCart}
-              className="rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-3 py-1.5 text-xs font-black text-[#e11d48]"
-            >
-              Limpar
-            </button>
-          )}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-widest text-[#16a34a]">BrasUX</p>
+          <h1 className="text-2xl font-black text-[#0f172a]">Carrinho</h1>
         </div>
-      </header>
+        {items.length > 0 && (
+          <button
+            onClick={clearCart}
+            className="rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-3 py-1.5 text-xs font-black text-[#e11d48]"
+          >
+            Limpar
+          </button>
+        )}
+      </div>
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center px-4 pt-20 text-center">
+        <div className="flex flex-col items-center justify-center pt-16 text-center">
           <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
             <ShoppingCart size={40} className="text-[#16a34a]" />
           </div>
@@ -64,7 +49,7 @@ export default function CartPage() {
           </Link>
         </div>
       ) : (
-        <div className="px-4 pt-4 space-y-3">
+        <div className="space-y-3">
           {/* ITEMS */}
           {items.map((item) => (
             <div
