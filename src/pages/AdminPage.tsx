@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Store as StoreIcon, Package, ShoppingBag,
@@ -31,21 +31,17 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const auth = getAuth();
 
-  if (!auth || auth.role !== "Admin") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#f7f9fc] p-8 text-center">
-        <Shield size={48} className="text-red-400" />
-        <h1 className="text-2xl font-black text-[#0f172a]">Acesso restrito</h1>
-        <p className="text-sm text-[#64748b]">Apenas administradores podem acessar esta área.</p>
-        <button
-          onClick={() => navigate("/")}
-          className="mt-2 rounded-xl bg-[#0f172a] px-5 py-2.5 text-sm font-black text-white"
-        >
-          Voltar ao início
-        </button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!auth) {
+      navigate("/login", { state: { from: "/admin" } });
+    } else if (auth.role !== "Admin") {
+      // Token desatualizado ou role errado — limpa e pede novo login
+      logout();
+      navigate("/login", { state: { from: "/admin" } });
+    }
+  }, [auth, navigate]);
+
+  if (!auth || auth.role !== "Admin") return null;
 
   return <AdminDashboard auth={auth} />;
 }
