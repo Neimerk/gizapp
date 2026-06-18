@@ -24,7 +24,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#f0f5ff]">
+    <div className="min-h-screen bg-[#f7f9fc]">
       {/* ── TOP HEADER ── */}
       <header
         className="sticky top-0 z-50"
@@ -32,8 +32,8 @@ export default function AppLayout() {
           background: "rgba(255,255,255,0.92)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(22,163,74,0.10)",
-          boxShadow: "0 1px 0 rgba(22,163,74,0.06)",
+          borderBottom: "1px solid rgba(0,39,118,0.10)",
+          boxShadow: "0 1px 8px rgba(0,39,118,0.06)",
         }}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 md:px-8">
@@ -83,7 +83,7 @@ export default function AppLayout() {
                   `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                     isActive
                       ? "bg-[#16a34a]/10 text-[#16a34a]"
-                      : "text-[#64748b] hover:bg-[#f0f5ff] hover:text-[#0f172a]"
+                      : "text-[#64748b] hover:bg-[#f7f9fc] hover:text-[#0f172a]"
                   }`
                 }
               >

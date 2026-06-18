@@ -30,11 +30,11 @@ import StoreLogo from "../components/ui/StoreLogo";
 
 const catGradients = [
   "from-[#16a34a] to-[#15803d]",
-  "from-[#0f766e] to-[#134e4a]",
+  "from-[#002776] to-[#001640]",
   "from-[#0f172a] to-[#1e293b]",
   "from-[#ec4899] to-[#be185d]",
   "from-[#f59e0b] to-[#b45309]",
-  "from-[#10b981] to-[#047857]",
+  "from-[#1351b4] to-[#002776]",
   "from-[#06b6d4] to-[#0e7490]",
   "from-[#ef4444] to-[#b91c1c]",
 ];
@@ -61,7 +61,7 @@ export default function HomePage() {
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden rounded-3xl p-8 md:p-12"
-        style={{ background: "linear-gradient(135deg, #0f172a 0%, #001640 60%, #0f172a 100%)" }}
+        style={{ background: "linear-gradient(135deg, #001640 0%, #002776 30%, #001a4e 65%, #00361a 100%)" }}
       >
         {/* Animated gradient blobs */}
         <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#002776] blur-3xl" />
@@ -91,7 +91,7 @@ export default function HomePage() {
               <span
                 className="bg-clip-text text-transparent"
                 style={{
-                  backgroundImage: "linear-gradient(135deg, #86efac 0%, #4ade80 50%, #34d399 100%)",
+                  backgroundImage: "linear-gradient(135deg, #86efac 0%, #4ade80 45%, #60a5fa 100%)",
                 }}
               >
                 de Soluções Tech.
@@ -106,8 +106,8 @@ export default function HomePage() {
                 to="/buscar"
                 className="flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
                 style={{
-                  background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-                  boxShadow: "0 8px 24px rgba(22,163,74,0.5)",
+                  background: "linear-gradient(135deg, #16a34a 0%, #0d6e9a 60%, #1351b4 100%)",
+                  boxShadow: "0 8px 24px rgba(0,39,118,0.45)",
                 }}
               >
                 <Package size={16} /> Explorar soluções
@@ -262,11 +262,11 @@ export default function HomePage() {
           target="_blank"
           rel="noopener noreferrer"
           className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
-          style={{ background: "linear-gradient(135deg, #0f172a 0%, #001640 60%, #0f172a 100%)" }}
+          style={{ background: "linear-gradient(135deg, #001640 0%, #002776 40%, #003d1a 100%)" }}
         >
           {/* Blobs */}
           <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#16a34a] opacity-30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#002776] opacity-20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#002776] opacity-35 blur-3xl" />
 
           {/* Grid overlay */}
           <div
@@ -334,9 +334,9 @@ export default function HomePage() {
         {/* Seller CTA */}
         <div
           className="relative overflow-hidden rounded-3xl p-8"
-          style={{ background: "linear-gradient(135deg, #0f172a 0%, #001640 100%)" }}
+          style={{ background: "linear-gradient(135deg, #001640 0%, #002776 50%, #003d1a 100%)" }}
         >
-          <div className="blob-a pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#16a34a] opacity-35 blur-3xl" />
+          <div className="blob-a pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#16a34a] opacity-25 blur-3xl" />
           <div className="relative z-10 flex items-start gap-5">
             <div
               className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
