@@ -9,8 +9,7 @@ import { useNavigate } from "react-router-dom";
 
 import { getAuth, logout } from "../services/auth";
 import {
-  adminGetUsers, adminToggleUserActive, getStores, getStoreProducts,
-  type AdminUser,
+  adminGetUsers, adminToggleUserActive, getStores,
 } from "../services/gizApi";
 import { useToastStore } from "../stores/toastStore";
 
