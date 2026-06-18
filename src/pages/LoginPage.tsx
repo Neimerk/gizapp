@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AlertCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import GizLogo from "../components/ui/GizLogo";
+import BrasUXLogo from "../components/ui/BrasUXLogo";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { loginCustomer, registerCustomer } from "../services/gizApi";
@@ -37,13 +37,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f0f4ff]">
+    <div className="min-h-screen bg-[#f0fdf4]">
       {/* TOP BANNER */}
       <div
         className="relative overflow-hidden px-6 pb-10 pt-14"
         style={{
           background:
-            "radial-gradient(circle at 80% 20%, rgba(124,58,237,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+            "radial-gradient(circle at 80% 20%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #071a0f 100%)",
         }}
       >
         <button
@@ -53,9 +53,9 @@ export default function LoginPage() {
           <ArrowLeft size={18} className="text-white" />
         </button>
 
-        <GizLogo
+        <BrasUXLogo
           size={56}
-          style={{ filter: "drop-shadow(0 6px 16px rgba(124,58,237,0.5))" }}
+          style={{ filter: "drop-shadow(0 6px 16px rgba(22,163,74,0.5))" }}
         />
 
         <h1 className="mt-5 text-3xl font-black text-white">
@@ -63,13 +63,13 @@ export default function LoginPage() {
         </h1>
         <p className="mt-1 text-sm text-[#94a3b8]">
           {mode === "login"
-            ? "Acesse para finalizar pedidos com segurança."
-            : "Crie sua conta GizApp em segundos."}
+            ? "Acesse o ecossistema BrasUX."
+            : "Crie sua conta BrasUX em segundos."}
         </p>
       </div>
 
       {/* FORM CARD */}
-      <div className="-mt-6 rounded-t-[32px] bg-[#f0f4ff] px-4 pt-6">
+      <div className="-mt-6 rounded-t-4xl bg-[#f0fdf4] px-4 pt-6">
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm"
@@ -83,7 +83,7 @@ export default function LoginPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
-                className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#7c3aed]/30 border border-[#e2e8f0]"
+                className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
               />
             </div>
           )}
@@ -97,7 +97,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="seu@email.com"
-              className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#7c3aed]/30 border border-[#e2e8f0]"
+              className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
             />
           </div>
 
@@ -111,7 +111,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 type={showPass ? "text" : "password"}
                 placeholder="Sua senha"
-                className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 pr-12 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#7c3aed]/30 border border-[#e2e8f0]"
+                className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 pr-12 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
               />
               <button
                 type="button"
@@ -133,7 +133,11 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#7c3aed]/30 disabled:opacity-60 active:scale-[0.98] transition-transform"
+            className="w-full rounded-2xl py-4 text-sm font-black text-white shadow-lg disabled:opacity-60 active:scale-[0.98] transition-transform"
+            style={{
+              background: "linear-gradient(135deg, #16a34a 0%, #0f766e 100%)",
+              boxShadow: "0 6px 20px rgba(22,163,74,0.35)",
+            }}
           >
             {loading
               ? "Aguarde…"
@@ -145,7 +149,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => setMode((m) => (m === "login" ? "register" : "login"))}
-            className="mt-4 w-full text-center text-sm font-black text-[#7c3aed]"
+            className="mt-4 w-full text-center text-sm font-black text-[#16a34a]"
           >
             {mode === "login"
               ? "Não tenho conta — Criar agora"

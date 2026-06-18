@@ -5,7 +5,7 @@ import { categoryIcons } from "../../data/categoryIcons";
 const CATEGORY_PALETTES: Record<string, string> = {
   mercearia:           "from-[#16a34a] to-[#15803d]",
   cervejas:            "from-[#f59e0b] to-[#d97706]",
-  "destilados-e-vinhos": "from-[#7c3aed] to-[#6d28d9]",
+  "destilados-e-vinhos": "from-[#16a34a] to-[#15803d]",
   "nao-alcoolicos":    "from-[#2563eb] to-[#1d4ed8]",
   farmacia:            "from-[#dc2626] to-[#b91c1c]",
   restaurantes:        "from-[#ea580c] to-[#c2410c]",

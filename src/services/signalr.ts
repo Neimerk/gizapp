@@ -3,7 +3,7 @@ import * as signalR from "@microsoft/signalr";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5003";
 
 function getToken() {
-  const raw = localStorage.getItem("gizapp-client-auth");
+  const raw = localStorage.getItem("brasux-auth");
 
   if (!raw) return "";
 

@@ -17,7 +17,7 @@ import { useCepLookup } from "../hooks/useCepLookup";
 
 import { getAuth, logout } from "../services/auth";
 
-const ACCOUNT_KEY = "gizapp-account";
+const ACCOUNT_KEY = "brasux-account";
 
 type AccountForm = {
   name: string;
@@ -103,7 +103,7 @@ export default function AccountPage() {
 
   function handleLogout() {
     logout();
-    localStorage.removeItem("gizapp-orders");
+    localStorage.removeItem("brasux-orders");
     navigate("/login");
   }
 
@@ -117,8 +117,8 @@ export default function AccountPage() {
           <ArrowLeft size={18} className="text-white" />
         </button>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
-            GizApp
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
+            BrasUX
           </p>
           <h1 className="text-xl font-black text-[#0f172a]">Minha conta</h1>
         </div>
@@ -129,12 +129,12 @@ export default function AccountPage() {
         className="relative overflow-hidden rounded-3xl p-5"
         style={{
           background:
-            "radial-gradient(circle at 80% 20%, rgba(124,58,237,0.4), transparent 50%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+            "radial-gradient(circle at 80% 20%, rgba(22,163,74,0.4), transparent 50%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
         }}
       >
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10">
-            <User size={30} className="text-[#a855f7]" />
+            <User size={30} className="text-[#4ade80]" />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-black text-white truncate">
@@ -144,7 +144,7 @@ export default function AccountPage() {
               {auth ? auth.email : "Complete seu cadastro"}
             </p>
             {auth && (
-              <span className="mt-1 inline-flex items-center rounded-full bg-[#7c3aed]/30 px-2.5 py-0.5 text-[10px] font-bold text-[#c4b5fd]">
+              <span className="mt-1 inline-flex items-center rounded-full bg-[#16a34a]/30 px-2.5 py-0.5 text-[10px] font-bold text-[#c4b5fd]">
                 {auth.role}
               </span>
             )}
@@ -163,7 +163,7 @@ export default function AccountPage() {
 
       <div className="space-y-3">
         {/* DADOS PESSOAIS */}
-        <SectionCard icon={<User size={16} className="text-[#7c3aed]" />} title="Dados pessoais">
+        <SectionCard icon={<User size={16} className="text-[#16a34a]" />} title="Dados pessoais">
           <Field label="Nome completo">
             <input
               value={form.name}
@@ -313,7 +313,7 @@ export default function AccountPage() {
           className={`w-full rounded-2xl py-4 text-sm font-black text-white shadow-lg transition-all active:scale-[0.98] ${
             saved
               ? "bg-[#16a34a] shadow-green-200"
-              : "bg-gradient-to-r from-[#7c3aed] to-[#2563eb] shadow-[#7c3aed]/30"
+              : "bg-gradient-to-r from-[#16a34a] to-[#2563eb] shadow-[#16a34a]/30"
           }`}
         >
           {saved ? "✓ Salvo com sucesso!" : "Salvar cadastro"}
@@ -325,7 +325,7 @@ export default function AccountPage() {
 }
 
 const inputCls =
-  "w-full rounded-xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#7c3aed]/30 placeholder:text-[#cbd5e1]";
+  "w-full rounded-xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
 
 function SectionCard({
   icon,

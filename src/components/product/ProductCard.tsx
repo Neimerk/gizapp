@@ -41,7 +41,7 @@ export default function ProductCard({ product }: Props) {
               </p>
             </>
           ) : (
-            <p className="text-lg font-black text-[#7c3aed]">
+            <p className="text-lg font-black text-[#16a34a]">
               R$ {Number(product.price).toFixed(2).replace(".", ",")}
             </p>
           )}

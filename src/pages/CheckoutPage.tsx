@@ -20,7 +20,7 @@ import { useToastStore } from "../stores/toastStore";
 import { generatePixCode } from "../utils/pix";
 
 const PIX_KEY = import.meta.env.VITE_PIX_KEY as string | undefined;
-const PIX_MERCHANT_NAME = (import.meta.env.VITE_PIX_MERCHANT_NAME as string | undefined) ?? "GizApp";
+const PIX_MERCHANT_NAME = (import.meta.env.VITE_PIX_MERCHANT_NAME as string | undefined) ?? "BrasUX";
 const PIX_MERCHANT_CITY = (import.meta.env.VITE_PIX_MERCHANT_CITY as string | undefined) ?? "Brasil";
 
 type PaymentMethod = "pix" | "card";
@@ -41,9 +41,9 @@ type AddressData = {
   neighborhood: string;
 };
 
-const CHECKOUT_KEY = "gizapp-checkout";
-const ORDERS_KEY = "gizapp-orders";
-const ACCOUNT_KEY = "gizapp-account";
+const CHECKOUT_KEY = "brasux-checkout";
+const ORDERS_KEY = "brasux-orders";
+const ACCOUNT_KEY = "brasux-account";
 const EMPTY_CARD: CardData = { number: "", name: "", expiration: "", cvv: "" };
 
 const num = (v: string) => v.replace(/\D/g, "");
@@ -212,8 +212,8 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#7c3aed]/10">
-          <ShoppingBag size={40} className="text-[#7c3aed]" />
+        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
+          <ShoppingBag size={40} className="text-[#16a34a]" />
         </div>
         <h2 className="mt-6 text-xl font-black text-[#0f172a]">Carrinho vazio</h2>
         <p className="mt-2 text-sm text-[#64748b]">
@@ -221,7 +221,7 @@ export default function CheckoutPage() {
         </p>
         <Link
           to="/"
-          className="mt-6 rounded-2xl bg-[#7c3aed] px-6 py-3 text-sm font-black text-white"
+          className="mt-6 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
         >
           Explorar lojas
         </Link>
@@ -239,8 +239,8 @@ export default function CheckoutPage() {
           <ArrowLeft size={18} className="text-white" />
         </button>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
-            GizApp
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
+            BrasUX
           </p>
           <h1 className="text-xl font-black text-[#0f172a]">Checkout</h1>
         </div>
@@ -251,15 +251,15 @@ export default function CheckoutPage() {
         <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#7c3aed]/10">
-                <MapPin size={15} className="text-[#7c3aed]" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#16a34a]/10">
+                <MapPin size={15} className="text-[#16a34a]" />
               </div>
               <h2 className="text-sm font-black text-[#0f172a]">Endereço de entrega</h2>
             </div>
             {hasFullAddress && !editingAddress && (
               <button
                 onClick={() => setEditingAddress(true)}
-                className="text-xs font-black text-[#7c3aed]"
+                className="text-xs font-black text-[#16a34a]"
               >
                 Alterar
               </button>
@@ -325,7 +325,7 @@ export default function CheckoutPage() {
           {paymentMethod === "pix" && (
             <div className="mt-4 rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] p-4 text-center">
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]">
-                <QrCode size={20} className="text-[#a855f7]" />
+                <QrCode size={20} className="text-[#4ade80]" />
               </div>
               {pixCode ? (
                 <>
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
                   </p>
                   <button
                     onClick={copyPix}
-                    className="mt-3 w-full rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] py-3 text-sm font-black text-white"
+                    className="mt-3 w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-3 text-sm font-black text-white"
                   >
                     {copied ? "✓ Copiado!" : "Copiar código Pix"}
                   </button>
@@ -441,7 +441,7 @@ export default function CheckoutPage() {
               {loadingStore ? (
                 <span className="h-5 w-20 animate-pulse rounded bg-[#f1f5f9]" />
               ) : (
-                <span className="text-xl font-black text-[#7c3aed]">
+                <span className="text-xl font-black text-[#16a34a]">
                   R$ {total.toFixed(2).replace(".", ",")}
                 </span>
               )}
@@ -452,7 +452,7 @@ export default function CheckoutPage() {
         <button
           onClick={handleFinish}
           disabled={saving || !hasFullAddress || editingAddress || !cardValid || loadingStore}
-          className="w-full rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#7c3aed]/30 disabled:opacity-60 active:scale-[0.98] transition-transform"
+          className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 disabled:opacity-60 active:scale-[0.98] transition-transform"
         >
           {saving
             ? "Enviando pedido…"
@@ -468,7 +468,7 @@ export default function CheckoutPage() {
 }
 
 const inputCls =
-  "w-full rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#7c3aed]/30 placeholder:text-[#cbd5e1]";
+  "w-full rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
 
 const labelCls =
   "mb-1 block text-[10px] font-black uppercase tracking-wide text-[#94a3b8]";

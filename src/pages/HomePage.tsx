@@ -10,7 +10,7 @@ import {
   MapPin,
   Package,
 } from "lucide-react";
-import GizLogo from "../components/ui/GizLogo";
+import BrasUXLogo from "../components/ui/BrasUXLogo";
 import { Link } from "react-router-dom";
 
 import {
@@ -29,8 +29,8 @@ import ProductImage from "../components/ui/ProductImage";
 import StoreLogo from "../components/ui/StoreLogo";
 
 const catGradients = [
-  "from-[#7c3aed] to-[#5b21b6]",
-  "from-[#2563eb] to-[#1d4ed8]",
+  "from-[#16a34a] to-[#15803d]",
+  "from-[#0f766e] to-[#134e4a]",
   "from-[#0f172a] to-[#1e293b]",
   "from-[#ec4899] to-[#be185d]",
   "from-[#f59e0b] to-[#b45309]",
@@ -61,12 +61,12 @@ export default function HomePage() {
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden rounded-3xl p-8 md:p-12"
-        style={{ background: "linear-gradient(135deg, #0f172a 0%, #1a1040 60%, #0f172a 100%)" }}
+        style={{ background: "linear-gradient(135deg, #0f172a 0%, #071a0f 60%, #0f172a 100%)" }}
       >
         {/* Animated gradient blobs */}
-        <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#7c3aed] blur-3xl" />
-        <div className="blob-b pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#2563eb] blur-3xl" />
-        <div className="blob-c pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#ec4899] blur-3xl" />
+        <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#16a34a] blur-3xl" />
+        <div className="blob-b pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#0891b2] blur-3xl" />
+        <div className="blob-c pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#059669] blur-3xl" />
 
         {/* Subtle grid overlay */}
         <div
@@ -81,24 +81,24 @@ export default function HomePage() {
           {/* Left: text */}
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
-              <Sparkles size={12} className="text-[#ffd400]" />
+              <Sparkles size={12} className="text-[#4ade80]" />
               <span className="text-[11px] font-black uppercase tracking-widest text-white/90">
-                GizApp — Entrega rápida
+                BrasUX Shopping
               </span>
             </div>
             <h1 className="mt-5 text-4xl font-black leading-[1.1] text-white md:text-5xl lg:text-6xl">
-              Tudo perto de você,<br />
+              O Shopping Brasileiro<br />
               <span
                 className="bg-clip-text text-transparent"
                 style={{
-                  backgroundImage: "linear-gradient(135deg, #c084fc 0%, #818cf8 50%, #60a5fa 100%)",
+                  backgroundImage: "linear-gradient(135deg, #86efac 0%, #4ade80 50%, #34d399 100%)",
                 }}
               >
-                em minutos.
+                de Soluções Tech.
               </span>
             </h1>
             <p className="mt-4 max-w-lg text-base leading-relaxed text-[#94a3b8]">
-              Restaurantes, mercado, bebidas, farmácia e muito mais — entregue na sua porta com rapidez e sem complicação.
+              Educação, IA, Desenvolvimento, Gestão, Dados, APIs e Marketplace — tudo em um único ecossistema digital.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -106,11 +106,11 @@ export default function HomePage() {
                 to="/buscar"
                 className="flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
                 style={{
-                  background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)",
-                  boxShadow: "0 8px 24px rgba(124,58,237,0.5)",
+                  background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
+                  boxShadow: "0 8px 24px rgba(22,163,74,0.5)",
                 }}
               >
-                <Package size={16} /> Ver produtos
+                <Package size={16} /> Explorar soluções
               </Link>
               <Link
                 to="/lojas"
@@ -123,18 +123,18 @@ export default function HomePage() {
 
           {/* Right: stats */}
           <div className="flex shrink-0 flex-col items-center gap-6">
-            <GizLogo
+            <BrasUXLogo
               size={108}
               style={{
-                filter: "drop-shadow(0 12px 32px rgba(124,58,237,0.55))",
+                filter: "drop-shadow(0 12px 32px rgba(22,163,74,0.55))",
                 borderRadius: "28px",
               }}
             />
 
             <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: <Bike size={15} className="text-[#a855f7]" />, value: "15min", label: "entrega" },
-                { icon: <Clock3 size={15} className="text-[#60a5fa]" />, value: "24h", label: "disponível" },
+                { icon: <Bike size={15} className="text-[#4ade80]" />, value: "15min", label: "entrega" },
+                { icon: <Clock3 size={15} className="text-[#34d399]" />, value: "24h", label: "disponível" },
                 { icon: <Star size={15} className="text-[#ffd400]" />, value: "5.0", label: "avaliação" },
               ].map((s) => (
                 <div
@@ -157,7 +157,7 @@ export default function HomePage() {
 
         {/* Location strip */}
         <div className="relative z-10 mt-8 flex items-center gap-2 border-t border-white/10 pt-6">
-          <MapPin size={14} className="text-[#7c3aed]" />
+          <MapPin size={14} className="text-[#16a34a]" />
           <span className="text-sm text-[#94a3b8]">
             Entregando em <span className="font-bold text-white">Minha localização</span>
           </span>
@@ -181,7 +181,7 @@ export default function HomePage() {
                 className="group flex shrink-0 flex-col items-center gap-2.5"
               >
                 <div
-                  className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br shadow-lg transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl ${catGradients[i % catGradients.length]}`}
+                  className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br shadow-lg transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl ${catGradients[i % catGradients.length]}`}
                   style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}
                 >
                   <span className="text-3xl">{categoryIcons[cat.slug] ?? "✨"}</span>
@@ -202,7 +202,7 @@ export default function HomePage() {
           title="Produtos em destaque"
           linkTo="/buscar"
           linkLabel="Ver mais"
-          color="#7c3aed"
+          color="#16a34a"
         />
         {loadingProducts ? (
           <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -232,7 +232,7 @@ export default function HomePage() {
           title="Lojas abertas agora"
           linkTo="/lojas"
           linkLabel="Ver todas"
-          color="#2563eb"
+          color="#0f766e"
         />
         {loadingStores ? (
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -260,15 +260,15 @@ export default function HomePage() {
         {/* Seller CTA */}
         <div
           className="relative overflow-hidden rounded-3xl p-8"
-          style={{ background: "linear-gradient(135deg, #0f172a 0%, #1a1040 100%)" }}
+          style={{ background: "linear-gradient(135deg, #0f172a 0%, #071a0f 100%)" }}
         >
-          <div className="blob-a pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#7c3aed] opacity-35 blur-3xl" />
+          <div className="blob-a pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#16a34a] opacity-35 blur-3xl" />
           <div className="relative z-10 flex items-start gap-5">
             <div
               className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
               style={{
-                background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-                boxShadow: "0 6px 20px rgba(124,58,237,0.4)",
+                background: "linear-gradient(135deg, #16a34a, #15803d)",
+                boxShadow: "0 6px 20px rgba(22,163,74,0.4)",
               }}
             >
               <StoreIcon size={24} className="text-white" />
@@ -276,14 +276,14 @@ export default function HomePage() {
             <div className="flex-1">
               <h3 className="text-xl font-black text-white">Tem uma loja?</h3>
               <p className="mt-2 text-sm leading-relaxed text-[#94a3b8]">
-                Venda pelo GizApp sem comissão por pedido. Catálogo pronto, só informe o preço.
+                Venda pelo BrasUX sem comissão por pedido. Catálogo pronto, só informe o preço.
               </p>
               <a
                 href={SELLER_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black text-white transition-transform hover:scale-[1.03]"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #5b21b6)" }}
+                style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
               >
                 Quero vender <ArrowRight size={15} />
               </a>
@@ -295,9 +295,9 @@ export default function HomePage() {
         <div className="flex items-start gap-5 rounded-3xl border border-[#e2e8f0] bg-white p-8 shadow-sm">
           <div
             className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
-            style={{ background: "rgba(124,58,237,0.1)" }}
+            style={{ background: "rgba(22,163,74,0.1)" }}
           >
-            <Bike size={24} className="text-[#7c3aed]" />
+            <Bike size={24} className="text-[#16a34a]" />
           </div>
           <div className="flex-1">
             <h3 className="text-xl font-black text-[#0f172a]">Quer fazer entregas?</h3>
@@ -327,7 +327,7 @@ function SectionHeader({
   title,
   linkTo,
   linkLabel,
-  color = "#7c3aed",
+  color = "#16a34a",
 }: {
   label: string;
   title: string;
@@ -391,7 +391,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
               </p>
             </>
           ) : (
-            <p className="text-base font-black text-[#7c3aed]">
+            <p className="text-base font-black text-[#16a34a]">
               {formatBRL(Number(product.price))}
             </p>
           )}
@@ -424,7 +424,7 @@ function StoreCard({ store }: { store: Store }) {
         className="relative h-28"
         style={{
           background:
-            "radial-gradient(circle at 80% 30%, rgba(124,58,237,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+            "radial-gradient(circle at 80% 30%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #071a0f 100%)",
         }}
       >
         <span
@@ -441,8 +441,8 @@ function StoreCard({ store }: { store: Store }) {
         <span
           className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
           style={{
-            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-            boxShadow: "0 4px 16px rgba(124,58,237,0.5)",
+            background: "linear-gradient(135deg, #16a34a, #15803d)",
+            boxShadow: "0 4px 16px rgba(22,163,74,0.5)",
           }}
         >
           <StoreLogo logoUrl={store.logoUrl} name={store.name} />

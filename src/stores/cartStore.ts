@@ -230,7 +230,7 @@ export const useCartStore =
         },
       }),
       {
-        name: "gizapp-cart",
+        name: "brasux-cart",
       }
     )
   );

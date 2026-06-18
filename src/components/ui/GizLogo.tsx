@@ -46,7 +46,7 @@ export default function GizLogo({ size = 36, className = "", style }: GizLogoPro
       className={className}
       style={style}
       role="img"
-      aria-label="GizApp"
+      aria-label="BrasUX Shopping"
     >
       <defs>
         {/*
@@ -55,8 +55,8 @@ export default function GizLogo({ size = 36, className = "", style }: GizLogoPro
           at the same viewport positions → perfect background match.
         */}
         <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
-          <stop offset="0%"   stopColor="#8b5cf6" />
-          <stop offset="40%"  stopColor="#7c3aed" />
+          <stop offset="0%"   stopColor="#22c55e" />
+          <stop offset="40%"  stopColor="#16a34a" />
           <stop offset="100%" stopColor="#1d4ed8" />
         </linearGradient>
 

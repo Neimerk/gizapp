@@ -93,8 +93,8 @@ export default function OrdersPage() {
   if (!auth) {
     return (
       <div className="flex flex-col items-center justify-center pt-24 px-4 text-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#7c3aed]/10">
-          <ReceiptText size={40} className="text-[#7c3aed]" />
+        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
+          <ReceiptText size={40} className="text-[#16a34a]" />
         </div>
         <h2 className="mt-6 text-xl font-black text-[#0f172a]">Entre para ver seus pedidos</h2>
         <p className="mt-2 text-sm text-[#64748b]">
@@ -103,7 +103,7 @@ export default function OrdersPage() {
         <Link
           to="/login"
           state={{ from: "/pedidos" }}
-          className="mt-6 flex items-center gap-2 rounded-2xl bg-[#7c3aed] px-6 py-3 text-sm font-black text-white"
+          className="mt-6 flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
         >
           <LogIn size={16} /> Entrar na conta
         </Link>
@@ -122,8 +122,8 @@ export default function OrdersPage() {
             <ArrowLeft size={18} className="text-white" />
           </button>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
-              GizApp
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
+              BrasUX
             </p>
             <h1 className="text-xl font-black text-[#0f172a]">Meus pedidos</h1>
           </div>
@@ -153,8 +153,8 @@ export default function OrdersPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center pt-16 text-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#7c3aed]/10">
-              <ReceiptText size={40} className="text-[#7c3aed]" />
+            <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
+              <ReceiptText size={40} className="text-[#16a34a]" />
             </div>
             <h2 className="mt-6 text-xl font-black text-[#0f172a]">Nenhum pedido ainda</h2>
             <p className="mt-2 text-sm text-[#64748b]">
@@ -188,22 +188,22 @@ function StatusTimeline({ status }: { status: number }) {
                 className={`h-3 w-3 shrink-0 rounded-full border-2 transition-all ${
                   isCompleted
                     ? isCurrent
-                      ? "scale-125 border-[#7c3aed] bg-[#7c3aed]"
-                      : "border-[#7c3aed] bg-[#7c3aed]"
+                      ? "scale-125 border-[#16a34a] bg-[#16a34a]"
+                      : "border-[#16a34a] bg-[#16a34a]"
                     : "border-[#e2e8f0] bg-white"
                 }`}
               />
               {!isLast && (
                 <div
                   className={`h-0.5 flex-1 transition-colors ${
-                    status > step.status ? "bg-[#7c3aed]" : "bg-[#e2e8f0]"
+                    status > step.status ? "bg-[#16a34a]" : "bg-[#e2e8f0]"
                   }`}
                 />
               )}
             </div>
             <p
               className={`mt-1.5 text-[9px] font-black uppercase tracking-wide ${
-                isCompleted ? "text-[#7c3aed]" : "text-[#cbd5e1]"
+                isCompleted ? "text-[#16a34a]" : "text-[#cbd5e1]"
               }`}
             >
               {step.label}
@@ -222,7 +222,7 @@ function OrderCard({ order }: { order: Order }) {
   return (
     <div className="overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-[#7c3aed] to-[#2563eb] p-4">
+      <div className="bg-gradient-to-r from-[#16a34a] to-[#2563eb] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
@@ -264,7 +264,7 @@ function OrderCard({ order }: { order: Order }) {
           </div>
           <button
             onClick={() => setOpen((v) => !v)}
-            className="text-xs font-black text-[#7c3aed]"
+            className="text-xs font-black text-[#16a34a]"
           >
             {open ? "Ocultar detalhes" : "Ver detalhes"}
           </button>
@@ -292,7 +292,7 @@ function OrderCard({ order }: { order: Order }) {
                       {item.quantity}× {formatBRL(item.unitPrice)}
                     </p>
                   </div>
-                  <span className="text-sm font-black text-[#7c3aed] shrink-0">
+                  <span className="text-sm font-black text-[#16a34a] shrink-0">
                     {formatBRL(item.totalPrice)}
                   </span>
                 </div>
@@ -331,7 +331,7 @@ function OrderCard({ order }: { order: Order }) {
               </div>
               <div className="flex justify-between border-t border-[#f1f5f9] pt-1.5">
                 <span className="text-sm font-black text-[#0f172a]">Total</span>
-                <span className="text-base font-black text-[#7c3aed]">
+                <span className="text-base font-black text-[#16a34a]">
                   {formatBRL(order.total)}
                 </span>
               </div>

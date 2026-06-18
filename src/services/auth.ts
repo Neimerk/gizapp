@@ -1,4 +1,4 @@
-export const AUTH_STORAGE_KEY = "gizapp-client-auth";
+export const AUTH_STORAGE_KEY = "brasux-auth";
 
 export type AuthUser = {
   id: string;

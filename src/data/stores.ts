@@ -8,7 +8,7 @@ export const stores = [
     deliveryTime: "12-20 min",
     deliveryFee: "Grátis",
     rating: 4.9,
-    color: "from-[#8b5cf6] to-[#6d28d9]",
+    color: "from-[#22c55e] to-[#15803d]",
   },
   {
     id: 2,

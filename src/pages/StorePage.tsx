@@ -33,6 +33,11 @@ function matchesSlug(productCategory: string, slug: string): boolean {
 
 export default function StorePage() {
   const { storeId } = useParams();
+  return <StorePageContent key={storeId ?? ""} />;
+}
+
+function StorePageContent() {
+  const { storeId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const currentStoreId = storeId || DEFAULT_STORE_ID;
@@ -51,12 +56,6 @@ export default function StorePage() {
   });
 
   const loading = loadingStore || loadingProducts;
-
-  // Reset tab and search when navigating to a different store
-  useEffect(() => {
-    setActiveSlug("");
-    setSearch("");
-  }, [currentStoreId]);
 
   // Build tab list: declared store types (from store.category) + any extra product categories
   const tabs = useMemo(() => {
@@ -163,7 +162,7 @@ export default function StorePage() {
               className="flex h-full w-full items-center justify-center text-7xl"
               style={{
                 background:
-                  "radial-gradient(circle at 70% 30%, rgba(124,58,237,0.5), transparent 55%), linear-gradient(135deg, #0f172a, #1e293b)",
+                  "radial-gradient(circle at 70% 30%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a, #1e293b)",
               }}
             >
               🏪
@@ -173,7 +172,7 @@ export default function StorePage() {
 
           <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#a855f7]">
+              <p className="text-xs font-bold uppercase tracking-widest text-[#4ade80]">
                 {primaryCategoryName}
               </p>
               <h1 className="mt-1 text-3xl font-black text-white md:text-4xl">{store.name}</h1>
@@ -198,7 +197,7 @@ export default function StorePage() {
       {/* ── STORE INFO ── */}
       <div className="grid grid-cols-3 gap-3 md:grid-cols-6 md:gap-4">
         {[
-          { icon: <Clock3 size={16} className="text-[#7c3aed]" />, label: "Entrega", value: `${store.deliveryTimeMin}–${store.deliveryTimeMax}min` },
+          { icon: <Clock3 size={16} className="text-[#16a34a]" />, label: "Entrega", value: `${store.deliveryTimeMin}–${store.deliveryTimeMax}min` },
           { icon: <Bike size={16} className="text-[#2563eb]" />, label: "Taxa", value: deliveryFeeText },
           { icon: <Star size={16} className="text-[#f59e0b]" />, label: "Avaliação", value: `⭐ ${Number(store.rating).toFixed(1)}` },
         ].map((s) => (
@@ -223,7 +222,7 @@ export default function StorePage() {
       )}
 
       {/* ── SEARCH BAR ── */}
-      <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm transition-colors focus-within:border-[#7c3aed]/40 focus-within:ring-2 focus-within:ring-[#7c3aed]/10">
+      <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm transition-colors focus-within:border-[#16a34a]/40 focus-within:ring-2 focus-within:ring-[#16a34a]/10">
         <Search size={17} className="shrink-0 text-[#94a3b8]" />
         <input
           value={search}
@@ -339,7 +338,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
                 </p>
               </>
             ) : (
-              <p className="text-base font-black text-[#7c3aed]">
+              <p className="text-base font-black text-[#16a34a]">
                 {formatBRL(Number(product.price))}
               </p>
             )}
@@ -352,7 +351,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
           ) : !cartItem ? (
             <button
               onClick={handleAdd}
-              className="rounded-xl bg-[#0f172a] px-4 py-2 text-xs font-black text-white transition-colors hover:bg-[#7c3aed]"
+              className="rounded-xl bg-[#0f172a] px-4 py-2 text-xs font-black text-white transition-colors hover:bg-[#16a34a]"
             >
               + Adicionar
             </button>

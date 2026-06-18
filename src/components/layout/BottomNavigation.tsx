@@ -37,7 +37,7 @@ export default function BottomNavigation() {
               {({ isActive }) => (
                 <div
                   className="relative flex flex-col items-center gap-0.5 rounded-[22px] px-4 py-2.5 transition-all duration-200"
-                  style={isActive ? { background: "#7c3aed" } : {}}
+                  style={isActive ? { background: "#16a34a" } : {}}
                 >
                   <div className="relative">
                     <Icon
@@ -46,7 +46,7 @@ export default function BottomNavigation() {
                       className={isActive ? "text-white" : "text-white/45"}
                     />
                     {isCart && totalItems > 0 && (
-                      <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[8px] font-black text-[#7c3aed]">
+                      <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[8px] font-black text-[#16a34a]">
                         {totalItems > 9 ? "9+" : totalItems}
                       </span>
                     )}

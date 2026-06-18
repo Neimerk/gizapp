@@ -39,13 +39,13 @@ export default function StoresPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <p className="text-xs font-black uppercase tracking-widest text-[#7c3aed]">GizApp</p>
+        <p className="text-xs font-black uppercase tracking-widest text-[#16a34a]">BrasUX</p>
         <h1 className="mt-0.5 text-3xl font-black text-[#0f172a]">Lojas próximas</h1>
       </div>
 
       {/* Search + Sort */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm transition-colors focus-within:border-[#7c3aed]/40">
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm transition-colors focus-within:border-[#16a34a]/40">
           <Search size={16} className="shrink-0 text-[#94a3b8]" />
           <input
             value={search}
@@ -84,7 +84,7 @@ export default function StoresPage() {
             key={cat}
             onClick={() => setCategory(cat)}
             className={`rounded-full px-4 py-2 text-sm font-black transition-colors ${
-              category === cat ? "bg-[#7c3aed] text-white" : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
+              category === cat ? "bg-[#16a34a] text-white" : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
             }`}
           >
             {cat}
@@ -137,7 +137,7 @@ function StoreCard({ store }: { store: Store }) {
       <div
         className="relative h-28"
         style={{
-          background: "radial-gradient(circle at 80% 30%, rgba(124,58,237,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          background: "radial-gradient(circle at 80% 30%, rgba(22,163,74,0.5), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
         }}
       >
         <span
@@ -152,8 +152,8 @@ function StoreCard({ store }: { store: Store }) {
         <span
           className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
           style={{
-            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-            boxShadow: "0 4px 16px rgba(124,58,237,0.45)",
+            background: "linear-gradient(135deg, #16a34a, #166534)",
+            boxShadow: "0 4px 16px rgba(22,163,74,0.45)",
           }}
         >
           <StoreLogo logoUrl={store.logoUrl} name={store.name} />

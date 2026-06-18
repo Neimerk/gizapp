@@ -73,13 +73,13 @@ export default function SearchPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-xs font-black uppercase tracking-widest text-[#7c3aed]">GizApp</p>
+        <p className="text-xs font-black uppercase tracking-widest text-[#16a34a]">BrasUX</p>
         <h1 className="mt-0.5 text-3xl font-black text-[#0f172a]">Buscar produtos</h1>
       </div>
 
       {/* Search bar */}
-      <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm transition-colors focus-within:border-[#7c3aed]/40">
-        <Search size={18} className="shrink-0 text-[#7c3aed]" />
+      <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm transition-colors focus-within:border-[#16a34a]/40">
+        <Search size={18} className="shrink-0 text-[#16a34a]" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -117,7 +117,7 @@ export default function SearchPage() {
                 to={`/lojas/${s.id}`}
                 className="flex items-center gap-4 rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#7c3aed] text-sm font-black text-white">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#16a34a] text-sm font-black text-white">
                   {s.logoUrl ? (
                     <img
                       src={getProductImageUrl(s.logoUrl)}
@@ -220,11 +220,11 @@ function SearchProductCard({ product }: { product: Product }) {
           {product.name}
         </h3>
         {product.price != null && (
-          <p className="mt-2 text-sm font-black text-[#7c3aed]">
+          <p className="mt-2 text-sm font-black text-[#16a34a]">
             {formatBRL(Number(product.price))}
           </p>
         )}
-        <div className="mt-2 flex items-center justify-center gap-1 rounded-xl bg-[#0f172a] py-1.5 text-[10px] font-black text-white transition-colors group-hover:bg-[#7c3aed]">
+        <div className="mt-2 flex items-center justify-center gap-1 rounded-xl bg-[#0f172a] py-1.5 text-[10px] font-black text-white transition-colors group-hover:bg-[#16a34a]">
           <StoreIcon size={11} /> Ver loja
         </div>
       </div>

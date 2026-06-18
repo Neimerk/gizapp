@@ -11,7 +11,7 @@ html {
 
 body {
   margin: 0;
-  background: #f0f4ff;
+  background: #f0fdf4;
   color: #111827;
   font-family: "Inter", system-ui, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -41,7 +41,7 @@ button {
 
 /* Consistent focus ring */
 :focus-visible {
-  outline: 2px solid #7c3aed;
+  outline: 2px solid #16a34a;
   outline-offset: 2px;
 }
 
@@ -77,5 +77,5 @@ button {
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 48px -8px rgba(124, 58, 237, 0.18), 0 4px 12px -4px rgba(0,0,0,0.1);
+  box-shadow: 0 16px 48px -8px rgba(22, 163, 74, 0.18), 0 4px 12px -4px rgba(0,0,0,0.1);
 }

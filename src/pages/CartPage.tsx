@@ -27,8 +27,8 @@ export default function CartPage() {
               <ArrowLeft size={18} className="text-white" />
             </button>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#7c3aed]">
-                GizApp
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
+                BrasUX
               </p>
               <h1 className="text-xl font-black text-[#0f172a]">Carrinho</h1>
             </div>
@@ -47,8 +47,8 @@ export default function CartPage() {
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center px-4 pt-20 text-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#7c3aed]/10">
-            <ShoppingCart size={40} className="text-[#7c3aed]" />
+          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
+            <ShoppingCart size={40} className="text-[#16a34a]" />
           </div>
           <h2 className="mt-6 text-xl font-black text-[#0f172a]">
             Seu carrinho está vazio
@@ -58,7 +58,7 @@ export default function CartPage() {
           </p>
           <Link
             to="/"
-            className="mt-6 rounded-2xl bg-[#7c3aed] px-6 py-3 text-sm font-black text-white"
+            className="mt-6 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
           >
             Explorar lojas
           </Link>
@@ -88,7 +88,7 @@ export default function CartPage() {
                       {item.description}
                     </p>
                   )}
-                  <p className="mt-1 text-sm font-black text-[#7c3aed]">
+                  <p className="mt-1 text-sm font-black text-[#16a34a]">
                     {formatBRL(item.promotionalPrice ?? item.price)}
                   </p>
                 </div>
@@ -149,7 +149,7 @@ export default function CartPage() {
 
             <Link
               to="/checkout"
-              className="mt-4 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#7c3aed] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#7c3aed]/30"
+              className="mt-4 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
             >
               Finalizar compra
             </Link>

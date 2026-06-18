@@ -43,13 +43,13 @@ export default function CategoryPage() {
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-4xl shadow-md"
           style={{
             background:
-              "radial-gradient(circle at 70% 30%, rgba(124,58,237,0.5), transparent 60%), linear-gradient(135deg,#0f172a,#1e293b)",
+              "radial-gradient(circle at 70% 30%, rgba(22,163,74,0.5), transparent 60%), linear-gradient(135deg,#0f172a,#1e293b)",
           }}
         >
           {icon}
         </div>
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-[#7c3aed]">Categoria</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[#16a34a]">Categoria</p>
           <h1 className="mt-0.5 text-3xl font-black text-[#0f172a]">{label}</h1>
           {!loading && (
             <p className="mt-0.5 text-sm text-[#64748b]">
@@ -81,7 +81,7 @@ export default function CategoryPage() {
           </p>
           <Link
             to="/lojas"
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#7c3aed] px-5 py-2.5 text-sm font-black text-white"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-5 py-2.5 text-sm font-black text-white"
           >
             Ver todas as lojas <ArrowRight size={15} />
           </Link>
@@ -120,7 +120,7 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
         className="relative h-28"
         style={{
           background:
-            "radial-gradient(circle at 80% 30%, rgba(124,58,237,0.4), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+            "radial-gradient(circle at 80% 30%, rgba(22,163,74,0.4), transparent 55%), linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
         }}
       >
         {store.bannerUrl ? (
@@ -147,8 +147,8 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
         <span
           className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
           style={{
-            background: "linear-gradient(135deg, #7c3aed, #5b21b6)",
-            boxShadow: "0 4px 16px rgba(124,58,237,0.45)",
+            background: "linear-gradient(135deg, #16a34a, #166534)",
+            boxShadow: "0 4px 16px rgba(22,163,74,0.45)",
           }}
         >
           <StoreLogo logoUrl={store.logoUrl} name={store.name} />

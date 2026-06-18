@@ -55,7 +55,7 @@ export default function CategoryScroll({
         onClick={() => scroll("left")}
         aria-hidden={!canLeft}
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
-          canLeft ? "opacity-100 hover:border-[#7c3aed]/30 hover:text-[#7c3aed]" : "pointer-events-none opacity-0"
+          canLeft ? "opacity-100 hover:border-[#16a34a]/30 hover:text-[#16a34a]" : "pointer-events-none opacity-0"
         }`}
       >
         <ChevronLeft size={16} />
@@ -92,7 +92,7 @@ export default function CategoryScroll({
             onClick={() => onSelect(tab.slug)}
             className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition-colors ${
               activeSlug === tab.slug
-                ? "bg-[#7c3aed] text-white"
+                ? "bg-[#16a34a] text-white"
                 : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
             }`}
           >
@@ -115,7 +115,7 @@ export default function CategoryScroll({
         onClick={() => scroll("right")}
         aria-hidden={!canRight}
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
-          canRight ? "opacity-100 hover:border-[#7c3aed]/30 hover:text-[#7c3aed]" : "pointer-events-none opacity-0"
+          canRight ? "opacity-100 hover:border-[#16a34a]/30 hover:text-[#16a34a]" : "pointer-events-none opacity-0"
         }`}
       >
         <ChevronRight size={16} />

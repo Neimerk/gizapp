@@ -41,7 +41,7 @@ const categoryIcons: Record<string, string> = {
 };
 
 const PALETTES = [
-  "bg-gradient-to-br from-[#7c3aed] to-[#6d28d9]",
+  "bg-gradient-to-br from-[#16a34a] to-[#15803d]",
   "bg-gradient-to-br from-[#2563eb] to-[#1d4ed8]",
   "bg-gradient-to-br from-[#0f172a] to-[#1e293b]",
   "bg-gradient-to-br from-[#ec4899] to-[#db2777]",
@@ -62,16 +62,16 @@ export default function CategoriesPage() {
       {/* HEADER */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-[#7c3aed]">GizApp</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[#16a34a]">BrasUX</p>
           <h1 className="mt-0.5 text-3xl font-black text-[#0f172a]">Categorias</h1>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5">
-            <span className="text-base font-black text-[#7c3aed]">{categories.length}</span>
+            <span className="text-base font-black text-[#16a34a]">{categories.length}</span>
             <span className="text-xs font-semibold text-[#64748b]">categorias</span>
           </div>
-          <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 focus-within:border-[#7c3aed]/40 sm:min-w-56">
+          <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 focus-within:border-[#16a34a]/40 sm:min-w-56">
             <Search size={15} className="shrink-0 text-[#94a3b8]" />
             <input
               value={search}
