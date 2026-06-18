@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { ArrowRight, ExternalLink, Search, Store as StoreIcon } from "lucide-react";
+import { ArrowRight, ExternalLink, Search, SlidersHorizontal, Store as StoreIcon, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
@@ -32,6 +32,8 @@ export default function SearchPage() {
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(1);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
 
   const debouncedSearch = useDebounce(search, 400);
 
@@ -56,8 +58,8 @@ export default function SearchPage() {
     placeholderData: keepPreviousData,
   });
 
-  // Reset page when search or filter changes
-  useEffect(() => { setPage(1); }, [debouncedSearch, filter]);
+  // Reset page when search, category or price filter changes
+  useEffect(() => { setPage(1); }, [debouncedSearch, filter, minPrice, maxPrice]);
 
   const filteredStores = useMemo(() => {
     if (!search.trim()) return [];
@@ -70,6 +72,20 @@ export default function SearchPage() {
   const products = result?.items ?? [];
   const totalItems = result?.totalItems ?? 0;
   const totalPages = result?.totalPages ?? 1;
+
+  const priceFilterActive = minPrice !== "" || maxPrice !== "";
+
+  const visibleProducts = useMemo(() => {
+    if (!priceFilterActive) return products;
+    const min = minPrice ? parseFloat(minPrice.replace(",", ".")) : null;
+    const max = maxPrice ? parseFloat(maxPrice.replace(",", ".")) : null;
+    return products.filter((p) => {
+      const price = Number(p.price ?? 0);
+      if (min !== null && price < min) return false;
+      if (max !== null && price > max) return false;
+      return true;
+    });
+  }, [products, minPrice, maxPrice, priceFilterActive]);
 
   return (
     <div className="space-y-6">
@@ -104,6 +120,46 @@ export default function SearchPage() {
         activeSlug={filter}
         onSelect={setFilter}
       />
+
+      {/* Price filter */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#94a3b8]">
+          <SlidersHorizontal size={13} /> Preço
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 shadow-sm focus-within:border-[#16a34a]/40">
+            <span className="text-xs font-bold text-[#94a3b8]">R$</span>
+            <input
+              type="number"
+              min="0"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              placeholder="Mín"
+              className="w-16 bg-transparent text-sm font-bold text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            />
+          </div>
+          <span className="text-xs text-[#94a3b8]">—</span>
+          <div className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 shadow-sm focus-within:border-[#16a34a]/40">
+            <span className="text-xs font-bold text-[#94a3b8]">R$</span>
+            <input
+              type="number"
+              min="0"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder="Máx"
+              className="w-16 bg-transparent text-sm font-bold text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            />
+          </div>
+        </div>
+        {priceFilterActive && (
+          <button
+            onClick={() => { setMinPrice(""); setMaxPrice(""); }}
+            className="flex items-center gap-1 rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-3 py-2 text-xs font-black text-[#e11d48]"
+          >
+            <X size={12} /> Limpar preço
+          </button>
+        )}
+      </div>
 
       {/* Store results (only when searching) */}
       {filteredStores.length > 0 && (
@@ -177,7 +233,9 @@ export default function SearchPage() {
             )}
             {!loadingProducts && totalItems > 0 && (
               <span className="text-xs font-bold text-[#64748b]">
-                {totalItems} {totalItems === 1 ? "resultado" : "resultados"}
+                {priceFilterActive
+                  ? `${visibleProducts.length} de ${products.length} nesta página`
+                  : `${totalItems} ${totalItems === 1 ? "resultado" : "resultados"}`}
               </span>
             )}
           </div>
@@ -194,15 +252,17 @@ export default function SearchPage() {
               </div>
             ))}
           </div>
-        ) : !loadingProducts && products.length === 0 ? (
+        ) : !loadingProducts && visibleProducts.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-[#e2e8f0] bg-white p-16 text-center">
             <p className="text-lg font-black text-[#0f172a]">Nenhum produto encontrado</p>
-            <p className="mt-1 text-sm text-[#64748b]">Tente outra busca ou categoria.</p>
+            <p className="mt-1 text-sm text-[#64748b]">
+              {priceFilterActive ? "Tente ajustar o filtro de preço." : "Tente outra busca ou categoria."}
+            </p>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-              {products.map((p) => (
+              {visibleProducts.map((p) => (
                 <SearchProductCard key={p.id} product={p} />
               ))}
             </div>
