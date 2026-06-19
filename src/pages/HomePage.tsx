@@ -22,8 +22,8 @@ import {
 } from "../services/gizApi";
 import { categories } from "../data/categories";
 
-const SELLER_URL = "https://gizapp-vendedor.vercel.app/";
-const DELIVERY_URL = "https://brasux-entregas.vercel.app/";
+const SELLER_URL = "https://lojas.brasux.com.br";
+const DELIVERY_URL = "https://entregas.brasux.com.br";
 import { categoryIcons } from "../data/categoryIcons";
 import { formatBRL } from "../utils/format";
 import ProductImage from "../components/ui/ProductImage";
