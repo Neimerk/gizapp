@@ -153,7 +153,7 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
                       >
                         <div
                           className="flex aspect-square items-center justify-center p-2"
-                          style={{ background: img.thumbHue ? `${img.thumbHue}22` : "#f8fafc" }}
+                          style={{ background: "#f8fafc" }}
                         >
                           <img
                             src={img.imageUrl}
