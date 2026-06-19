@@ -22,7 +22,7 @@ import {
 } from "../services/gizApi";
 import { categories } from "../data/categories";
 
-const SELLER_URL = (import.meta.env.VITE_SELLER_URL as string | undefined) ?? "https://gizapp-vendedor.vercel.app/";
+const SELLER_URL = "https://gizapp-vendedor.vercel.app/";
 import { categoryIcons } from "../data/categoryIcons";
 import { formatBRL } from "../utils/format";
 import ProductImage from "../components/ui/ProductImage";
