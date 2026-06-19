@@ -437,7 +437,7 @@ export default function SellerPage() {
     try {
       await deleteStoreProduct(id);
       setProducts((ps) => ps.filter((p) => p.id !== id));
-      showToast("Produto removido.", "info");
+      showToast("Produto removido.", "success");
     } catch {
       showToast("Erro ao remover produto.", "error");
     } finally {
