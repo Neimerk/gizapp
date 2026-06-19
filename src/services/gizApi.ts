@@ -733,6 +733,263 @@ export async function adminUpdateOrderStatus(id: string, status: number): Promis
   if (error) throw new Error("Erro ao atualizar status.");
 }
 
+/* ── SELLER: STORE MANAGEMENT ────────────────────────────── */
+
+export type StorePayload = {
+  name: string;
+  slug: string;
+  category: string;
+  description?: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  deliveryFee?: number;
+  deliveryTimeMin?: number;
+  deliveryTimeMax?: number;
+  isOpen?: boolean;
+  active?: boolean;
+};
+
+export async function getMyStore(): Promise<Store | null> {
+  const user = useAuthStore.getState().user;
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("stores")
+    .select("*")
+    .eq("owner_id", user.id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return mapStore(data);
+}
+
+export async function createStore(payload: StorePayload): Promise<Store> {
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Não autenticado.");
+  const { data, error } = await supabase
+    .from("stores")
+    .insert({
+      name: payload.name,
+      slug: payload.slug,
+      category: payload.category,
+      description: payload.description,
+      logo_url: payload.logoUrl,
+      banner_url: payload.bannerUrl,
+      phone: payload.phone,
+      whatsapp: payload.whatsapp,
+      email: payload.email,
+      address: payload.address,
+      number: payload.number,
+      complement: payload.complement,
+      neighborhood: payload.neighborhood,
+      city: payload.city,
+      state: payload.state,
+      zip_code: payload.zipCode,
+      delivery_fee: payload.deliveryFee ?? 0,
+      delivery_time_min: payload.deliveryTimeMin ?? 30,
+      delivery_time_max: payload.deliveryTimeMax ?? 60,
+      is_open: payload.isOpen ?? true,
+      active: payload.active ?? true,
+      owner_id: user.id,
+    })
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message || "Erro ao criar loja.");
+  return mapStore(data);
+}
+
+export async function updateStore(storeId: string, payload: Partial<StorePayload>): Promise<Store> {
+  const { data, error } = await supabase
+    .from("stores")
+    .update({
+      ...(payload.name !== undefined && { name: payload.name }),
+      ...(payload.slug !== undefined && { slug: payload.slug }),
+      ...(payload.category !== undefined && { category: payload.category }),
+      ...(payload.description !== undefined && { description: payload.description }),
+      ...(payload.logoUrl !== undefined && { logo_url: payload.logoUrl }),
+      ...(payload.bannerUrl !== undefined && { banner_url: payload.bannerUrl }),
+      ...(payload.phone !== undefined && { phone: payload.phone }),
+      ...(payload.whatsapp !== undefined && { whatsapp: payload.whatsapp }),
+      ...(payload.email !== undefined && { email: payload.email }),
+      ...(payload.address !== undefined && { address: payload.address }),
+      ...(payload.number !== undefined && { number: payload.number }),
+      ...(payload.complement !== undefined && { complement: payload.complement }),
+      ...(payload.neighborhood !== undefined && { neighborhood: payload.neighborhood }),
+      ...(payload.city !== undefined && { city: payload.city }),
+      ...(payload.state !== undefined && { state: payload.state }),
+      ...(payload.zipCode !== undefined && { zip_code: payload.zipCode }),
+      ...(payload.deliveryFee !== undefined && { delivery_fee: payload.deliveryFee }),
+      ...(payload.deliveryTimeMin !== undefined && { delivery_time_min: payload.deliveryTimeMin }),
+      ...(payload.deliveryTimeMax !== undefined && { delivery_time_max: payload.deliveryTimeMax }),
+      ...(payload.isOpen !== undefined && { is_open: payload.isOpen }),
+      ...(payload.active !== undefined && { active: payload.active }),
+    })
+    .eq("id", storeId)
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message || "Erro ao atualizar loja.");
+  return mapStore(data);
+}
+
+/* ── SELLER: PRODUCT MANAGEMENT ─────────────────────────── */
+
+export type StoreProductPayload = {
+  name: string;
+  slug: string;
+  category: string;
+  subCategory?: string;
+  brand?: string;
+  description?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  price: number;
+  promotionalPrice?: number | null;
+  stock?: number;
+  available?: boolean;
+};
+
+export async function getMyStoreProducts(storeId: string): Promise<StoreProduct[]> {
+  const { data, error } = await supabase
+    .from("store_products")
+    .select("*")
+    .eq("store_id", storeId)
+    .order("name");
+  if (error) throw new Error("Erro ao buscar produtos.");
+  return (data ?? []).map(mapStoreProduct);
+}
+
+export async function createStoreProduct(storeId: string, payload: StoreProductPayload): Promise<StoreProduct> {
+  const { data, error } = await supabase
+    .from("store_products")
+    .insert({
+      store_id: storeId,
+      name: payload.name,
+      slug: payload.slug,
+      category: payload.category,
+      sub_category: payload.subCategory ?? null,
+      brand: payload.brand ?? null,
+      description: payload.description ?? null,
+      image_url: payload.imageUrl ?? null,
+      image_alt: payload.imageAlt ?? null,
+      price: payload.price,
+      promotional_price: payload.promotionalPrice ?? null,
+      stock: payload.stock ?? 0,
+      available: payload.available ?? true,
+    })
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message || "Erro ao criar produto.");
+  return mapStoreProduct(data);
+}
+
+export async function updateStoreProduct(productId: string, payload: Partial<StoreProductPayload>): Promise<StoreProduct> {
+  const { data, error } = await supabase
+    .from("store_products")
+    .update({
+      ...(payload.name !== undefined && { name: payload.name }),
+      ...(payload.slug !== undefined && { slug: payload.slug }),
+      ...(payload.category !== undefined && { category: payload.category }),
+      ...(payload.subCategory !== undefined && { sub_category: payload.subCategory }),
+      ...(payload.brand !== undefined && { brand: payload.brand }),
+      ...(payload.description !== undefined && { description: payload.description }),
+      ...(payload.imageUrl !== undefined && { image_url: payload.imageUrl }),
+      ...(payload.imageAlt !== undefined && { image_alt: payload.imageAlt }),
+      ...(payload.price !== undefined && { price: payload.price }),
+      ...(payload.promotionalPrice !== undefined && { promotional_price: payload.promotionalPrice }),
+      ...(payload.stock !== undefined && { stock: payload.stock }),
+      ...(payload.available !== undefined && { available: payload.available }),
+    })
+    .eq("id", productId)
+    .select()
+    .single();
+  if (error || !data) throw new Error(error?.message || "Erro ao atualizar produto.");
+  return mapStoreProduct(data);
+}
+
+export async function deleteStoreProduct(productId: string): Promise<void> {
+  const { error } = await supabase.from("store_products").delete().eq("id", productId);
+  if (error) throw new Error("Erro ao remover produto.");
+}
+
+export async function uploadProductImage(file: File, storeId: string): Promise<string> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${storeId}/${Date.now()}.${ext}`;
+  const { data, error } = await supabase.storage
+    .from("product-images")
+    .upload(path, file, { upsert: false, contentType: file.type });
+  if (error || !data) throw new Error("Erro ao fazer upload da imagem.");
+  const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(data.path);
+  return publicUrl;
+}
+
+/* ── IMAGE API: BANCO DE IMAGENS ────────────────────────── */
+
+export type CatalogImage = {
+  id: string;
+  slug: string;
+  name: string;
+  brand: string;
+  category: string;
+  subcategory?: string;
+  imageUrl: string;
+  thumbHue?: string;
+};
+
+export type CatalogResult = {
+  products: CatalogImage[];
+  total: number;
+  totalPages: number;
+};
+
+const IMAGE_API = (import.meta.env.VITE_IMAGE_API_URL as string) || "";
+
+export async function searchImageCatalog(params: {
+  search?: string;
+  category?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<CatalogResult> {
+  if (!IMAGE_API) return { products: [], total: 0, totalPages: 0 };
+  const q = new URLSearchParams();
+  if (params.search) q.set("search", params.search);
+  if (params.category) q.set("category", params.category);
+  q.set("page", String(params.page ?? 1));
+  q.set("pageSize", String(params.pageSize ?? 24));
+  const res = await fetch(`${IMAGE_API}/v1/catalog/products?${q}`);
+  if (!res.ok) throw new Error("ImageAPI indisponível");
+  const json = await res.json();
+  return {
+    products: (json.products ?? []).map((p: Record<string, unknown>) => ({
+      id: p.id as string,
+      slug: p.slug as string,
+      name: p.name as string,
+      brand: p.brand as string,
+      category: p.category as string,
+      subcategory: p.subcategory as string | undefined,
+      imageUrl: p.image_url as string,
+      thumbHue: p.thumb_hue as string | undefined,
+    })),
+    total: (json.pagination as { total: number }).total ?? 0,
+    totalPages: (json.pagination as { totalPages: number }).totalPages ?? 0,
+  };
+}
+
+export async function getImageApiCategories(): Promise<{ category: string; count: number }[]> {
+  if (!IMAGE_API) return [];
+  const res = await fetch(`${IMAGE_API}/v1/catalog/categories`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.categories ?? [];
+}
+
 /* ── QUERY KEYS ──────────────────────────────────────────── */
 
 export const queryKeys = {

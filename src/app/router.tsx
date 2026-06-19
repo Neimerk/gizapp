@@ -21,6 +21,7 @@ import FavoritesPage from "../pages/FavoritesPage";
 import ComparePage from "../pages/ComparePage";
 import ChatPage from "../pages/ChatPage";
 import ServicesPage from "../pages/ServicesPage";
+import SellerPage from "../pages/SellerPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initialized } = useAuthStore();
@@ -87,6 +88,14 @@ export const router = createBrowserRouter([
       { path: "comparar", element: <ComparePage /> },
       { path: "lojas/:storeId/chat", element: <ChatPage /> },
       { path: "servicos", element: <ServicesPage /> },
+      {
+        path: "minha-loja",
+        element: (
+          <ProtectedRoute>
+            <SellerPage />
+          </ProtectedRoute>
+        ),
+      },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

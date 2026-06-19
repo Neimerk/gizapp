@@ -8,6 +8,7 @@ import {
   ReceiptText,
   Search,
   ShoppingCart,
+  Store as StoreIcon,
   Sun,
   User,
 } from "lucide-react";
@@ -21,9 +22,10 @@ import Toast from "../ui/Toast";
 import { useCartStore } from "../../stores/cartStore";
 import { useThemeStore } from "../../stores/themeStore";
 import { useVoiceSearch } from "../../hooks/useVoiceSearch";
+import { useAuthStore } from "../../stores/authStore";
 import { formatBRL } from "../../utils/format";
 
-const navLinks = [
+const baseNavLinks = [
   { label: "Início", path: "/", icon: Home },
   { label: "Lojas", path: "/lojas", icon: ShoppingCart },
   { label: "Serviços", path: "/servicos", icon: Briefcase },
@@ -32,6 +34,12 @@ const navLinks = [
 ];
 
 export default function AppLayout() {
+  const authUser = useAuthStore((s) => s.user);
+  const isSellerOrAdmin = authUser?.role === "Seller" || authUser?.role === "Admin";
+  const navLinks = isSellerOrAdmin
+    ? [...baseNavLinks.slice(0, 4), { label: "Minha Loja", path: "/minha-loja", icon: StoreIcon }, baseNavLinks[4]]
+    : baseNavLinks;
+
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
