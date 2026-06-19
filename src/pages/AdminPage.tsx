@@ -10,8 +10,9 @@ import { useNavigate } from "react-router-dom";
 import { getAuth, logout } from "../services/auth";
 import {
   adminGetUsers, adminToggleUserActive, adminGetAllOrders, adminUpdateOrderStatus, getStores,
-  queryKeys, type Order,
+  queryKeys,
 } from "../services/gizApi";
+import type { Order } from "../services/gizApi";
 import { useToastStore } from "../stores/toastStore";
 import { formatBRL } from "../utils/format";
 

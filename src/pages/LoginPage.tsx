@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, Mail } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import BrasUXLogo from "../components/ui/BrasUXLogo";
 import { useNavigate, useLocation } from "react-router-dom";
 
