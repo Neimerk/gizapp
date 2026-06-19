@@ -12,7 +12,6 @@ import {
   adminGetUsers, adminToggleUserActive, adminGetAllOrders, adminUpdateOrderStatus, getStores,
   queryKeys,
 } from "../services/gizApi";
-import type { Order } from "../services/gizApi";
 import { useToastStore } from "../stores/toastStore";
 import { formatBRL } from "../utils/format";
 
