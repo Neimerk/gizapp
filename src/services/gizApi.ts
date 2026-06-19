@@ -1,39 +1,11 @@
-import { getAuthToken, logout } from "./auth";
+import { supabase } from "../lib/supabase";
+import { useAuthStore } from "../stores/authStore";
 
-function handleUnauthorized() {
-  logout();
-  window.location.replace("/login");
-}
+const IMAGE_BASE_URL =
+  import.meta.env.VITE_IMAGE_BASE_URL ||
+  "https://cbyufprmiuwvhsxsxttn.supabase.co/storage/v1/object/public";
 
-async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = getAuthToken();
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
-    },
-  });
-  if (res.status === 401) {
-    handleUnauthorized();
-    throw new Error("Sessão expirada. Faça login novamente.");
-  }
-  return res;
-}
-
-export const GIZ_API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5003";
-
-// Base URL para imagens — pode ser o Supabase CDN, CDN própria ou o mesmo API_URL.
-// Em produção, defina VITE_IMAGE_BASE_URL no painel do Vercel.
-const IMAGE_BASE_URL: string =
-  import.meta.env.VITE_IMAGE_BASE_URL || GIZ_API_URL;
-
-export const DEFAULT_STORE_ID =
-  "b5c148b0-a07b-4532-aca3-e66c12f389af";
-
-/* AUTH */
+/* ── AUTH TYPES ─────────────────────────────────────────── */
 
 export type AuthResponse = {
   id: string;
@@ -44,10 +16,7 @@ export type AuthResponse = {
   token: string;
 };
 
-export type LoginPayload = {
-  email: string;
-  password: string;
-};
+export type LoginPayload = { email: string; password: string };
 
 export type RegisterPayload = {
   name: string;
@@ -57,49 +26,52 @@ export type RegisterPayload = {
   storeId?: null;
 };
 
-export async function loginCustomer(
-  payload: LoginPayload
-): Promise<AuthResponse> {
-  const response = await fetch(`${GIZ_API_URL}/api/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
+export async function loginCustomer(_payload: LoginPayload): Promise<AuthResponse> {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: _payload.email,
+    password: _payload.password,
   });
+  if (error || !data.user) throw new Error("Email ou senha inválidos.");
 
-  if (!response.ok) {
-    throw new Error("Email ou senha inválidos.");
-  }
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, role, store_id")
+    .eq("id", data.user.id)
+    .single();
 
-  return response.json();
+  const roleMap: Record<string, AuthResponse["role"]> = {
+    admin: "Admin", customer: "Customer", seller: "Seller", courier: "Courier",
+  };
+
+  return {
+    id: data.user.id,
+    name: profile?.name ?? "",
+    email: data.user.email ?? "",
+    role: roleMap[profile?.role ?? "customer"] ?? "Customer",
+    storeId: profile?.store_id ?? null,
+    token: data.session?.access_token ?? "",
+  };
 }
 
-export async function registerCustomer(
-  payload: RegisterPayload
-): Promise<AuthResponse> {
-  const response = await fetch(`${GIZ_API_URL}/api/auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      ...payload,
-      role: "Customer",
-      storeId: null,
-    }),
+export async function registerCustomer(payload: RegisterPayload): Promise<AuthResponse> {
+  const { data, error } = await supabase.auth.signUp({
+    email: payload.email,
+    password: payload.password,
+    options: { data: { name: payload.name, role: "customer" } },
   });
+  if (error || !data.user) throw new Error(error?.message || "Erro ao cadastrar cliente.");
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-
-    throw new Error(error?.message || "Erro ao cadastrar cliente.");
-  }
-
-  return response.json();
+  return {
+    id: data.user.id,
+    name: payload.name,
+    email: payload.email,
+    role: "Customer",
+    storeId: null,
+    token: data.session?.access_token ?? "",
+  };
 }
 
-/* STORES */
+/* ── STORE TYPES ─────────────────────────────────────────── */
 
 export type Store = {
   id: string;
@@ -130,7 +102,38 @@ export type Store = {
   updatedAt: string;
 };
 
-/* PRODUCT BASE */
+function mapStore(row: Record<string, unknown>): Store {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    category: row.category as string,
+    description: row.description as string | undefined,
+    logoUrl: row.logo_url as string | undefined,
+    bannerUrl: row.banner_url as string | undefined,
+    phone: row.phone as string | undefined,
+    whatsapp: row.whatsapp as string | undefined,
+    email: row.email as string | undefined,
+    address: row.address as string | undefined,
+    number: row.number as string | undefined,
+    complement: row.complement as string | undefined,
+    neighborhood: row.neighborhood as string | undefined,
+    city: row.city as string | undefined,
+    state: row.state as string | undefined,
+    zipCode: row.zip_code as string | undefined,
+    deliveryFee: Number(row.delivery_fee),
+    deliveryTimeMin: Number(row.delivery_time_min),
+    deliveryTimeMax: Number(row.delivery_time_max),
+    rating: Number(row.rating),
+    isOpen: row.is_open as boolean,
+    active: row.active as boolean,
+    featured: row.featured as boolean,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
+
+/* ── PRODUCT TYPES ───────────────────────────────────────── */
 
 export type Product = {
   id: string;
@@ -170,8 +173,6 @@ export type ProductQuery = {
   maxPrice?: number;
 };
 
-/* STORE PRODUCTS */
-
 export type StoreProduct = {
   id: string;
   storeId: string;
@@ -202,12 +203,34 @@ export type StoreProductsQuery = {
   available?: boolean;
 };
 
-/* ORDERS */
+function mapStoreProduct(row: Record<string, unknown>): StoreProduct {
+  return {
+    id: row.id as string,
+    storeId: row.store_id as string,
+    productId: row.id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    category: row.category as string,
+    subCategory: row.sub_category as string | undefined,
+    brand: row.brand as string | undefined,
+    description: row.description as string | undefined,
+    seoTitle: row.seo_title as string | undefined,
+    seoDescription: row.seo_description as string | undefined,
+    keywords: row.keywords as string | undefined,
+    imageUrl: row.image_url as string | undefined,
+    imageAlt: row.image_alt as string | undefined,
+    price: Number(row.price),
+    promotionalPrice: row.promotional_price != null ? Number(row.promotional_price) : null,
+    stock: Number(row.stock),
+    available: row.available as boolean,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  };
+}
 
-export type CreateOrderItem = {
-  storeProductId: string;
-  quantity: number;
-};
+/* ── ORDER TYPES ─────────────────────────────────────────── */
+
+export type CreateOrderItem = { storeProductId: string; quantity: number };
 
 export type CreateOrderPayload = {
   storeId: string;
@@ -253,202 +276,316 @@ export type Order = {
   items: OrderItem[];
 };
 
-/* STORES API */
+type OrderRow = {
+  id: string;
+  store_id: string;
+  customer_id?: string;
+  customer_name: string;
+  customer_phone: string;
+  delivery_address: string;
+  delivery_number?: string;
+  delivery_complement?: string;
+  delivery_neighborhood: string;
+  payment_method: string;
+  delivery_fee: number;
+  subtotal: number;
+  total: number;
+  status: number;
+  created_at: string;
+  updated_at: string;
+  stores?: { name: string } | null;
+  order_items?: Array<{
+    id: string;
+    order_id: string;
+    store_product_id: string;
+    product_name: string;
+    image_url?: string;
+    unit_price: number;
+    quantity: number;
+    total_price: number;
+  }>;
+};
+
+function mapOrder(row: OrderRow): Order {
+  return {
+    id: row.id,
+    storeId: row.store_id,
+    storeName: row.stores?.name,
+    customerId: row.customer_id,
+    customerName: row.customer_name,
+    customerPhone: row.customer_phone,
+    deliveryAddress: row.delivery_address,
+    deliveryNumber: row.delivery_number ?? "",
+    deliveryComplement: row.delivery_complement ?? "",
+    deliveryNeighborhood: row.delivery_neighborhood,
+    paymentMethod: row.payment_method,
+    deliveryFee: Number(row.delivery_fee),
+    subtotal: Number(row.subtotal),
+    total: Number(row.total),
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    items: (row.order_items ?? []).map((i) => ({
+      id: i.id,
+      orderId: i.order_id,
+      storeProductId: i.store_product_id,
+      productName: i.product_name,
+      imageUrl: i.image_url,
+      unitPrice: Number(i.unit_price),
+      quantity: i.quantity,
+      totalPrice: Number(i.total_price),
+    })),
+  };
+}
+
+/* ── STORES API ──────────────────────────────────────────── */
 
 export async function getStores(): Promise<Store[]> {
-  const response = await fetch(`${GIZ_API_URL}/api/stores`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar lojas");
-  }
-
-  return response.json();
+  const { data, error } = await supabase
+    .from("stores")
+    .select("*")
+    .order("featured", { ascending: false })
+    .order("name");
+  if (error) throw new Error("Erro ao buscar lojas");
+  return data.map(mapStore);
 }
 
 export async function getStoreById(storeId: string): Promise<Store> {
-  const response = await fetch(`${GIZ_API_URL}/api/stores/${storeId}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar loja");
-  }
-
-  return response.json();
+  const { data, error } = await supabase
+    .from("stores")
+    .select("*")
+    .eq("id", storeId)
+    .single();
+  if (error || !data) throw new Error("Erro ao buscar loja");
+  return mapStore(data);
 }
 
-/* PRODUCTS API */
+/* ── STORE PRODUCTS API ──────────────────────────────────── */
 
-export async function getProducts(params?: ProductQuery): Promise<PagedProducts> {
-  const query = new URLSearchParams();
+export async function getStoreProducts(params?: StoreProductsQuery): Promise<StoreProduct[]> {
+  let query = supabase.from("store_products").select("*");
 
-  if (params?.category) query.append("category", params.category);
-  if (params?.search) query.append("search", params.search);
-  if (params?.available !== undefined) {
-    query.append("available", String(params.available));
-  }
-  if (params?.page) query.append("page", String(params.page));
-  if (params?.pageSize) query.append("pageSize", String(params.pageSize));
-  if (params?.minPrice !== undefined) query.append("minPrice", String(params.minPrice));
-  if (params?.maxPrice !== undefined) query.append("maxPrice", String(params.maxPrice));
-
-  const url = `${GIZ_API_URL}/api/products${
-    query.toString() ? `?${query.toString()}` : ""
-  }`;
-
-  const response = await fetch(url, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar produtos da API");
-  }
-
-  return response.json();
-}
-
-export async function getProductBySlug(slug: string): Promise<Product> {
-  const response = await fetch(`${GIZ_API_URL}/api/products/slug/${slug}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar produto da API");
-  }
-
-  return response.json();
-}
-
-/* STORE PRODUCTS API */
-
-export async function getStoreProducts(
-  params?: StoreProductsQuery
-): Promise<StoreProduct[]> {
-  const storeId = params?.storeId || DEFAULT_STORE_ID;
-
-  const response = await fetch(`${GIZ_API_URL}/api/storeproducts/${storeId}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar produtos da loja");
-  }
-
-  let data: StoreProduct[] = await response.json();
-
-  if (params?.category) {
-    data = data.filter((product) => product.category === params.category);
-  }
-
+  if (params?.storeId) query = query.eq("store_id", params.storeId);
+  if (params?.available !== false) query = query.eq("available", true);
+  if (params?.category) query = query.eq("category", params.category);
   if (params?.search) {
-    const search = params.search.toLowerCase();
-
-    data = data.filter((product) => {
-      return (
-        product.name.toLowerCase().includes(search) ||
-        product.category.toLowerCase().includes(search) ||
-        product.brand?.toLowerCase().includes(search) ||
-        product.description?.toLowerCase().includes(search)
-      );
-    });
+    const q = params.search.toLowerCase();
+    query = query.or(`name.ilike.%${q}%,category.ilike.%${q}%,brand.ilike.%${q}%`);
   }
 
-  if (params?.available !== false) {
-    data = data.filter((product) => product.available);
-  }
-
-  return data;
+  const { data, error } = await query.order("name");
+  if (error) throw new Error("Erro ao buscar produtos da loja");
+  return data.map(mapStoreProduct);
 }
 
 export async function getStoreProductsByCategory(
   category: string,
-  storeId: string = DEFAULT_STORE_ID
+  storeId?: string
 ): Promise<StoreProduct[]> {
-  const response = await fetch(
-    `${GIZ_API_URL}/api/storeproducts/${storeId}/category/${category}`,
-    {
-      cache: "no-store",
-    }
-  );
+  let query = supabase
+    .from("store_products")
+    .select("*")
+    .eq("category", category)
+    .eq("available", true);
 
-  if (!response.ok) {
-    throw new Error("Erro ao buscar categoria da loja");
-  }
+  if (storeId) query = query.eq("store_id", storeId);
 
-  return response.json();
+  const { data, error } = await query.order("name");
+  if (error) throw new Error("Erro ao buscar categoria da loja");
+  return data.map(mapStoreProduct);
 }
 
-/* ORDERS API */
+/* ── PRODUCTS API (global) ───────────────────────────────── */
+
+export async function getProducts(params?: ProductQuery): Promise<PagedProducts> {
+  const page = params?.page ?? 1;
+  const pageSize = params?.pageSize ?? 20;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase.from("store_products").select("*", { count: "exact" });
+
+  if (params?.available !== false) query = query.eq("available", true);
+  if (params?.category) query = query.eq("category", params.category);
+  if (params?.search) {
+    const q = params.search.toLowerCase();
+    query = query.or(`name.ilike.%${q}%,category.ilike.%${q}%,brand.ilike.%${q}%`);
+  }
+  if (params?.minPrice !== undefined) query = query.gte("price", params.minPrice);
+  if (params?.maxPrice !== undefined) query = query.lte("price", params.maxPrice);
+
+  const { data, error, count } = await query.range(from, to).order("name");
+  if (error) throw new Error("Erro ao buscar produtos");
+
+  const totalItems = count ?? 0;
+  const products = data.map((row) => ({
+    id: row.id as string,
+    storeId: row.store_id as string,
+    name: row.name as string,
+    slug: row.slug as string,
+    category: row.category as string,
+    subCategory: row.sub_category as string | undefined,
+    brand: row.brand as string | undefined,
+    description: row.description as string | undefined,
+    imageUrl: row.image_url as string | undefined,
+    imageAlt: row.image_alt as string | undefined,
+    price: Number(row.price),
+    available: row.available as boolean,
+    createdAt: row.created_at as string,
+    updatedAt: row.updated_at as string,
+  }));
+
+  return {
+    items: products,
+    page,
+    pageSize,
+    totalItems,
+    totalPages: Math.ceil(totalItems / pageSize),
+  };
+}
+
+export async function getProductBySlug(slug: string): Promise<Product> {
+  const { data, error } = await supabase
+    .from("store_products")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+  if (error || !data) throw new Error("Produto não encontrado");
+
+  return {
+    id: data.id as string,
+    storeId: data.store_id as string,
+    name: data.name as string,
+    slug: data.slug as string,
+    category: data.category as string,
+    imageUrl: data.image_url as string | undefined,
+    price: Number(data.price),
+    available: data.available as boolean,
+    createdAt: data.created_at as string,
+    updatedAt: data.updated_at as string,
+  };
+}
+
+/* ── ORDERS API ──────────────────────────────────────────── */
 
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  const response = await authFetch(`${GIZ_API_URL}/api/orders`, {
-    method: "POST",
-    body: JSON.stringify(payload),
+  const user = useAuthStore.getState().user;
+
+  const { data: store, error: storeErr } = await supabase
+    .from("stores")
+    .select("id, name, delivery_fee")
+    .eq("id", payload.storeId)
+    .single();
+  if (storeErr || !store) throw new Error("Loja não encontrada.");
+
+  const productIds = payload.items.map((i) => i.storeProductId);
+  const { data: products, error: prodErr } = await supabase
+    .from("store_products")
+    .select("id, name, price, promotional_price, image_url")
+    .in("id", productIds);
+  if (prodErr) throw new Error("Erro ao buscar produtos.");
+
+  const enriched = payload.items.map((item) => {
+    const p = products.find((x) => x.id === item.storeProductId);
+    if (!p) throw new Error(`Produto ${item.storeProductId} não encontrado.`);
+    const unitPrice = Number(p.promotional_price ?? p.price);
+    return { ...item, unitPrice, totalPrice: unitPrice * item.quantity, productName: p.name, imageUrl: p.image_url };
   });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => null);
-    throw new Error(error?.message || "Erro ao criar pedido");
-  }
+  const deliveryFee = Number(store.delivery_fee);
+  const subtotal = enriched.reduce((s, i) => s + i.totalPrice, 0);
+  const total = subtotal + deliveryFee;
 
-  return response.json();
+  const { data: order, error: orderErr } = await supabase
+    .from("orders")
+    .insert({
+      store_id: payload.storeId,
+      customer_id: user?.id ?? null,
+      customer_name: payload.customerName,
+      customer_phone: payload.customerPhone,
+      delivery_address: payload.deliveryAddress,
+      delivery_number: payload.deliveryNumber,
+      delivery_complement: payload.deliveryComplement,
+      delivery_neighborhood: payload.deliveryNeighborhood,
+      payment_method: payload.paymentMethod,
+      delivery_fee: deliveryFee,
+      subtotal,
+      total,
+      status: 0,
+    })
+    .select()
+    .single();
+  if (orderErr || !order) throw new Error("Erro ao criar pedido.");
+
+  const { error: itemsErr } = await supabase.from("order_items").insert(
+    enriched.map((i) => ({
+      order_id: order.id,
+      store_product_id: i.storeProductId,
+      product_name: i.productName,
+      image_url: i.imageUrl,
+      unit_price: i.unitPrice,
+      quantity: i.quantity,
+      total_price: i.totalPrice,
+    }))
+  );
+  if (itemsErr) throw new Error("Erro ao registrar itens do pedido.");
+
+  return {
+    id: order.id,
+    storeId: order.store_id,
+    storeName: store.name,
+    customerId: order.customer_id ?? undefined,
+    customerName: order.customer_name,
+    customerPhone: order.customer_phone,
+    deliveryAddress: order.delivery_address,
+    deliveryNumber: order.delivery_number ?? "",
+    deliveryComplement: order.delivery_complement ?? "",
+    deliveryNeighborhood: order.delivery_neighborhood,
+    paymentMethod: order.payment_method,
+    deliveryFee,
+    subtotal,
+    total,
+    status: 0,
+    createdAt: order.created_at,
+    updatedAt: order.updated_at,
+    items: enriched.map((i, idx) => ({
+      id: `${order.id}-${idx}`,
+      orderId: order.id,
+      storeProductId: i.storeProductId,
+      productName: i.productName,
+      imageUrl: i.imageUrl,
+      unitPrice: i.unitPrice,
+      quantity: i.quantity,
+      totalPrice: i.totalPrice,
+    })),
+  };
 }
 
 export async function getMyOrders(): Promise<Order[]> {
-  const response = await authFetch(`${GIZ_API_URL}/api/orders/my`, {
-    cache: "no-store",
-  });
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Não autenticado.");
 
-  if (!response.ok) {
-    throw new Error("Erro ao buscar pedidos");
-  }
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, stores(name), order_items(*)")
+    .eq("customer_id", user.id)
+    .order("created_at", { ascending: false });
 
-  return response.json();
+  if (error) throw new Error("Erro ao buscar pedidos.");
+  return data.map((row) => mapOrder(row as OrderRow));
 }
 
 export async function getOrderById(id: string): Promise<Order> {
-  const response = await authFetch(`${GIZ_API_URL}/api/orders/${id}`, {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error("Erro ao buscar pedido");
-  }
-
-  return response.json();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, stores(name), order_items(*)")
+    .eq("id", id)
+    .single();
+  if (error || !data) throw new Error("Pedido não encontrado.");
+  return mapOrder(data as OrderRow);
 }
 
-/* QUERY KEYS */
-
-export const queryKeys = {
-  adminOrders: () => ["admin", "orders"] as const,
-  stores: () => ["stores"] as const,
-  store: (id: string) => ["stores", id] as const,
-  storeProducts: (storeId: string) => ["storeProducts", storeId] as const,
-  products: (params: ProductQuery) => ["products", params] as const,
-  myOrders: () => ["orders", "my"] as const,
-};
-
-/* IMAGES */
-
-export function getProductImageUrl(imageUrl?: string) {
-  if (!imageUrl) {
-    return "/placeholder.png";
-  }
-
-  // URL completa (http/https) — retorna sem modificação
-  if (imageUrl.startsWith("http")) {
-    return imageUrl;
-  }
-
-  // Path relativo — monta a partir do IMAGE_BASE_URL
-  const base = IMAGE_BASE_URL.replace(/\/$/, "");
-  const path = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
-  return `${base}${path}`;
-}
-/* ── PROFILE API ── */
+/* ── PROFILE API ─────────────────────────────────────────── */
 
 export type UpdateProfilePayload = {
   name?: string;
@@ -476,18 +613,43 @@ export type ProfileResponse = {
 };
 
 export async function updateMyProfile(payload: UpdateProfilePayload): Promise<ProfileResponse> {
-  const res = await authFetch(`${GIZ_API_URL}/api/auth/me`, {
-    method: "PUT",
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => null);
-    throw new Error(err?.message || "Erro ao atualizar perfil.");
-  }
-  return res.json();
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Não autenticado.");
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({
+      ...(payload.name !== undefined && { name: payload.name }),
+      ...(payload.phone !== undefined && { phone: payload.phone }),
+      ...(payload.cpf !== undefined && { cpf: payload.cpf }),
+      ...(payload.zipCode !== undefined && { zip_code: payload.zipCode }),
+      ...(payload.address !== undefined && { address: payload.address }),
+      ...(payload.addressNumber !== undefined && { address_number: payload.addressNumber }),
+      ...(payload.addressComplement !== undefined && { address_complement: payload.addressComplement }),
+      ...(payload.neighborhood !== undefined && { neighborhood: payload.neighborhood }),
+    })
+    .eq("id", user.id)
+    .select()
+    .single();
+
+  if (error || !data) throw new Error("Erro ao atualizar perfil.");
+
+  return {
+    id: data.id,
+    name: data.name,
+    email: user.email,
+    phone: data.phone,
+    cpf: data.cpf,
+    zipCode: data.zip_code,
+    address: data.address,
+    addressNumber: data.address_number,
+    addressComplement: data.address_complement,
+    neighborhood: data.neighborhood,
+    updatedAt: data.updated_at,
+  };
 }
 
-/* ── ADMIN API ── */
+/* ── ADMIN API ───────────────────────────────────────────── */
 
 export type AdminUser = {
   id: string;
@@ -501,31 +663,71 @@ export type AdminUser = {
 };
 
 export async function adminGetUsers(): Promise<AdminUser[]> {
-  const res = await authFetch(`${GIZ_API_URL}/api/auth/users`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error("Erro ao buscar usuários.");
-  return res.json();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, name, role, active, store_id, created_at, stores(id, name, category)")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error("Erro ao buscar usuários.");
+
+  const roleMap: Record<string, AdminUser["role"]> = {
+    admin: "Admin", customer: "Customer", seller: "Seller", courier: "Courier",
+  };
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: "",
+    role: roleMap[row.role] ?? "Customer",
+    active: row.active,
+    storeId: row.store_id ?? null,
+    store: row.stores
+      ? { id: (row.stores as { id: string; name: string; category: string }).id, name: (row.stores as { id: string; name: string; category: string }).name, category: (row.stores as { id: string; name: string; category: string }).category }
+      : null,
+    createdAt: row.created_at,
+  }));
 }
 
 export async function adminToggleUserActive(id: string, active: boolean): Promise<void> {
-  const res = await authFetch(`${GIZ_API_URL}/api/auth/users/${id}/active`, {
-    method: "PATCH",
-    body: JSON.stringify({ active }),
-  });
-  if (!res.ok) throw new Error("Erro ao atualizar usuário.");
+  const { error } = await supabase.from("profiles").update({ active }).eq("id", id);
+  if (error) throw new Error("Erro ao atualizar usuário.");
 }
 
 export async function adminGetAllOrders(): Promise<Order[]> {
-  const res = await authFetch(`${GIZ_API_URL}/api/orders/admin`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Erro ao buscar pedidos.");
-  return res.json();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, stores(name), order_items(*)")
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error("Erro ao buscar pedidos.");
+  return (data ?? []).map((row) => mapOrder(row as OrderRow));
 }
 
 export async function adminUpdateOrderStatus(id: string, status: number): Promise<void> {
-  const res = await authFetch(`${GIZ_API_URL}/api/orders/${id}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ status }),
-  });
-  if (!res.ok) throw new Error("Erro ao atualizar status.");
+  const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+  if (error) throw new Error("Erro ao atualizar status.");
 }
+
+/* ── QUERY KEYS ──────────────────────────────────────────── */
+
+export const queryKeys = {
+  adminOrders: () => ["admin", "orders"] as const,
+  stores: () => ["stores"] as const,
+  store: (id: string) => ["stores", id] as const,
+  storeProducts: (storeId: string) => ["storeProducts", storeId] as const,
+  products: (params: ProductQuery) => ["products", params] as const,
+  myOrders: () => ["orders", "my"] as const,
+};
+
+/* ── IMAGES ──────────────────────────────────────────────── */
+
+export function getProductImageUrl(imageUrl?: string): string {
+  if (!imageUrl) return "/placeholder.png";
+  if (imageUrl.startsWith("http")) return imageUrl;
+  const base = IMAGE_BASE_URL.replace(/\/$/, "");
+  const path = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
+  return `${base}${path}`;
+}
+
+export const GIZ_API_URL = "";
+export const DEFAULT_STORE_ID = "";

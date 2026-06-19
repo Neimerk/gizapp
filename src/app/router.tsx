@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, useLocation } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
+import { useAuthStore } from "../stores/authStore";
 
 import HomePage from "../pages/HomePage";
 import StorePage from "../pages/StorePage";
@@ -20,13 +21,23 @@ import FavoritesPage from "../pages/FavoritesPage";
 import ComparePage from "../pages/ComparePage";
 import ChatPage from "../pages/ChatPage";
 import ServicesPage from "../pages/ServicesPage";
-import { getAuth } from "../services/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, initialized } = useAuthStore();
   const location = useLocation();
-  if (!getAuth()) {
+
+  if (!initialized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
+
   return <>{children}</>;
 }
 
@@ -38,48 +49,15 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <AppLayout />,
-
     children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
-
-      {
-        path: "buscar",
-        element: <SearchPage />,
-      },
-
-      {
-        path: "categorias",
-        element: <CategoriesPage />,
-      },
-
-      {
-        path: "categorias/:slug",
-        element: <CategoryPage />,
-      },
-
-      {
-        path: "lojas",
-        element: <StoresPage />,
-      },
-
-      {
-        path: "lojas/:storeId",
-        element: <StorePage />,
-      },
-
-      {
-        path: "lojas/:storeId/produto/:productId",
-        element: <ProductPage />,
-      },
-
-      {
-        path: "carrinho",
-        element: <CartPage />,
-      },
-
+      { index: true, element: <HomePage /> },
+      { path: "buscar", element: <SearchPage /> },
+      { path: "categorias", element: <CategoriesPage /> },
+      { path: "categorias/:slug", element: <CategoryPage /> },
+      { path: "lojas", element: <StoresPage /> },
+      { path: "lojas/:storeId", element: <StorePage /> },
+      { path: "lojas/:storeId/produto/:productId", element: <ProductPage /> },
+      { path: "carrinho", element: <CartPage /> },
       {
         path: "checkout",
         element: (
@@ -88,7 +66,6 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-
       {
         path: "pedidos",
         element: (
@@ -97,7 +74,6 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-
       {
         path: "conta",
         element: (
@@ -106,30 +82,12 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      {
-        path: "login",
-        element: <LoginPage />
-      },
-      {
-        path: "favoritos",
-        element: <FavoritesPage />,
-      },
-      {
-        path: "comparar",
-        element: <ComparePage />,
-      },
-      {
-        path: "lojas/:storeId/chat",
-        element: <ChatPage />,
-      },
-      {
-        path: "servicos",
-        element: <ServicesPage />,
-      },
-      {
-        path: "*",
-        element: <NotFoundPage />,
-      },
+      { path: "login", element: <LoginPage /> },
+      { path: "favoritos", element: <FavoritesPage /> },
+      { path: "comparar", element: <ComparePage /> },
+      { path: "lojas/:storeId/chat", element: <ChatPage /> },
+      { path: "servicos", element: <ServicesPage /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);

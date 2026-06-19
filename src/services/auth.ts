@@ -1,35 +1,18 @@
-export const AUTH_STORAGE_KEY = "brasux-auth";
+import { supabase } from "../lib/supabase";
+import { useAuthStore, type AuthUser } from "../stores/authStore";
 
-export type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: "Admin" | "Customer" | "Seller" | "Courier";
-  storeId?: string | null;
-  token: string;
-};
-
-export function saveAuth(user: AuthUser) {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-}
+export type { AuthUser };
 
 export function getAuth(): AuthUser | null {
-  const saved = localStorage.getItem(AUTH_STORAGE_KEY);
-
-  if (!saved) return null;
-
-  try {
-    return JSON.parse(saved) as AuthUser;
-  } catch {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    return null;
-  }
+  return useAuthStore.getState().user;
 }
 
-export function getAuthToken() {
-  return getAuth()?.token ?? "";
+export function getAuthToken(): string {
+  return "";
 }
 
-export function logout() {
-  localStorage.removeItem(AUTH_STORAGE_KEY);
+export function saveAuth(_user: AuthUser) {}
+
+export async function logout(): Promise<void> {
+  await supabase.auth.signOut();
 }

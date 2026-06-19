@@ -7,7 +7,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-import { getAuth, logout } from "../services/auth";
+import { logout } from "../services/auth";
+import { useAuthStore, type AuthUser } from "../stores/authStore";
 import {
   adminGetUsers, adminToggleUserActive, adminGetAllOrders, adminUpdateOrderStatus, getStores,
   queryKeys,
@@ -31,26 +32,33 @@ const ROLE_COLOR: Record<string, string> = {
 
 export default function AdminPage() {
   const navigate = useNavigate();
-  const auth = getAuth();
+  const { user: auth, initialized } = useAuthStore();
 
   useEffect(() => {
-    if (!auth || auth.role !== "Admin") {
-      logout();
+    if (initialized && (!auth || auth.role !== "Admin")) {
       navigate("/login", { state: { from: "/admin" }, replace: true });
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialized, auth, navigate]);
+
+  if (!initialized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
+      </div>
+    );
+  }
 
   if (!auth || auth.role !== "Admin") return null;
 
   return <AdminDashboard auth={auth} />;
 }
 
-function AdminDashboard({ auth }: { auth: NonNullable<ReturnType<typeof getAuth>> }) {
+function AdminDashboard({ auth }: { auth: AuthUser }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores">("overview");
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     navigate("/");
   }
 

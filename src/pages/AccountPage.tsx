@@ -135,8 +135,8 @@ export default function AccountPage() {
     setTimeout(() => setSaved(false), 2500);
   }
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     localStorage.removeItem("brasux-orders");
     navigate("/login");
   }
