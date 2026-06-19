@@ -4,7 +4,6 @@ import {
   Loader2, ToggleLeft, ToggleRight, Image as ImageIcon, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../stores/authStore";
 import {
   getMyStore, createStore, updateStore,
   getMyStoreProducts, createStoreProduct, updateStoreProduct, deleteStoreProduct,
@@ -403,7 +402,6 @@ function StoreForm({
 
 export default function SellerPage() {
   const navigate = useNavigate();
-  const auth = useAuthStore((s) => s.user);
   const showToast = useToastStore((s) => s.show);
 
   const [store, setStore] = useState<Store | null | undefined>(undefined);
