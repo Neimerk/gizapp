@@ -423,6 +423,7 @@ export async function getOrderById(id: string): Promise<Order> {
 /* QUERY KEYS */
 
 export const queryKeys = {
+  adminOrders: () => ["admin", "orders"] as const,
   stores: () => ["stores"] as const,
   store: (id: string) => ["stores", id] as const,
   storeProducts: (storeId: string) => ["storeProducts", storeId] as const,
@@ -513,4 +514,18 @@ export async function adminToggleUserActive(id: string, active: boolean): Promis
     body: JSON.stringify({ active }),
   });
   if (!res.ok) throw new Error("Erro ao atualizar usuário.");
+}
+
+export async function adminGetAllOrders(): Promise<Order[]> {
+  const res = await authFetch(`${GIZ_API_URL}/api/orders/admin`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Erro ao buscar pedidos.");
+  return res.json();
+}
+
+export async function adminUpdateOrderStatus(id: string, status: number): Promise<void> {
+  const res = await authFetch(`${GIZ_API_URL}/api/orders/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error("Erro ao atualizar status.");
 }

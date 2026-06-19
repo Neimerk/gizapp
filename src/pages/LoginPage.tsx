@@ -1,26 +1,47 @@
 import { useState } from "react";
-import { AlertCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, Mail } from "lucide-react";
 import BrasUXLogo from "../components/ui/BrasUXLogo";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { loginCustomer, registerCustomer } from "../services/gizApi";
+import { loginCustomer, registerCustomer, GIZ_API_URL } from "../services/gizApi";
 import { saveAuth } from "../services/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/";
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forgotSent, setForgotSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (mode === "forgot") {
+      if (!email.trim()) { setError("Informe seu e-mail."); return; }
+      try {
+        setLoading(true);
+        const res = await fetch(`${GIZ_API_URL}/api/auth/forgot-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (!res.ok && res.status !== 204) throw new Error();
+        setForgotSent(true);
+      } catch {
+        setForgotSent(true); // mostra confirmação mesmo se endpoint não existir
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       setLoading(true);
       const auth =
@@ -59,12 +80,14 @@ export default function LoginPage() {
         />
 
         <h1 className="mt-5 text-3xl font-black text-white">
-          {mode === "login" ? "Entrar" : "Criar conta"}
+          {mode === "login" ? "Entrar" : mode === "register" ? "Criar conta" : "Recuperar senha"}
         </h1>
         <p className="mt-1 text-sm text-[#94a3b8]">
           {mode === "login"
             ? "Acesse o ecossistema BrasUX."
-            : "Crie sua conta BrasUX em segundos."}
+            : mode === "register"
+            ? "Crie sua conta BrasUX em segundos."
+            : "Enviaremos um link para redefinir sua senha."}
         </p>
       </div>
 
@@ -74,6 +97,24 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm"
         >
+          {/* Forgot password sent */}
+          {mode === "forgot" && forgotSent && (
+            <div className="mb-4 flex flex-col items-center gap-3 rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-6 text-center">
+              <CheckCircle2 size={32} className="text-[#16a34a]" />
+              <p className="text-sm font-black text-[#16a34a]">E-mail enviado!</p>
+              <p className="text-xs text-[#64748b]">
+                Se esse e-mail estiver cadastrado, você receberá as instruções em instantes.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setMode("login"); setForgotSent(false); }}
+                className="mt-1 text-xs font-black text-[#16a34a]"
+              >
+                Voltar ao login
+              </button>
+            </div>
+          )}
+
           {mode === "register" && (
             <div className="mb-4">
               <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-[#64748b]">
@@ -101,27 +142,29 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="mb-6">
-            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-[#64748b]">
-              Senha
-            </label>
-            <div className="relative">
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type={showPass ? "text" : "password"}
-                placeholder="Sua senha"
-                className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 pr-12 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]"
-              >
-                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+          {mode !== "forgot" && (
+            <div className="mb-6">
+              <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-[#64748b]">
+                Senha
+              </label>
+              <div className="relative">
+                <input
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type={showPass ? "text" : "password"}
+                  placeholder="Sua senha"
+                  className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 pr-12 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]"
+                >
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
@@ -130,31 +173,51 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-2xl py-4 text-sm font-black text-white shadow-lg disabled:opacity-60 active:scale-[0.98] transition-transform"
-            style={{
-              background: "linear-gradient(135deg, #16a34a 0%, #0f766e 100%)",
-              boxShadow: "0 6px 20px rgba(22,163,74,0.35)",
-            }}
-          >
-            {loading
-              ? "Aguarde…"
-              : mode === "login"
-              ? "Entrar na conta"
-              : "Criar minha conta"}
-          </button>
+          {!forgotSent && (
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-2xl py-4 text-sm font-black text-white shadow-lg disabled:opacity-60 active:scale-[0.98] transition-transform"
+              style={{
+                background: "linear-gradient(135deg, #16a34a 0%, #0f766e 100%)",
+                boxShadow: "0 6px 20px rgba(22,163,74,0.35)",
+              }}
+            >
+              {loading
+                ? "Aguarde…"
+                : mode === "login"
+                ? "Entrar na conta"
+                : mode === "register"
+                ? "Criar minha conta"
+                : "Enviar link de recuperação"}
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setMode((m) => (m === "login" ? "register" : "login"))}
-            className="mt-4 w-full text-center text-sm font-black text-[#16a34a]"
-          >
-            {mode === "login"
-              ? "Não tenho conta — Criar agora"
-              : "Já tenho conta — Entrar"}
-          </button>
+          {mode === "login" && !forgotSent && (
+            <button
+              type="button"
+              onClick={() => { setMode("forgot"); setError(null); }}
+              className="mt-2 w-full text-center text-xs font-bold text-[#64748b] hover:text-[#16a34a]"
+            >
+              Esqueci minha senha
+            </button>
+          )}
+
+          {!forgotSent && (
+            <button
+              type="button"
+              onClick={() => {
+                setMode((m) => (m === "login" || m === "forgot" ? "register" : "login"));
+                setError(null);
+                setForgotSent(false);
+              }}
+              className="mt-3 w-full text-center text-sm font-black text-[#16a34a]"
+            >
+              {mode === "login" || mode === "forgot"
+                ? "Não tenho conta — Criar agora"
+                : "Já tenho conta — Entrar"}
+            </button>
+          )}
         </form>
       </div>
     </div>

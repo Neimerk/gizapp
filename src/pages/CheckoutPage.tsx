@@ -8,6 +8,7 @@ import {
   QrCode,
   ReceiptText,
   ShoppingBag,
+  Star,
   Tag,
   Trash2,
   X,
@@ -102,6 +103,9 @@ export default function CheckoutPage() {
   // Coupon
   const { coupon, error: couponError, apply: applyCoupon, remove: removeCoupon, discount } = useCoupon();
   const earnPoints = usePointsStore((s) => s.earn);
+  const spendPoints = usePointsStore((s) => s.spend);
+  const availablePoints = usePointsStore((s) => s.points);
+  const [pointsToUse, setPointsToUse] = useState(0);
   const [couponInput, setCouponInput] = useState(coupon?.code ?? "");
 
   // Payment
@@ -116,7 +120,10 @@ export default function CheckoutPage() {
 
   const deliveryFee = store ? Number(store.deliveryFee) : 0;
   const discountAmount = discount(subtotal, deliveryFee);
-  const total = subtotal + deliveryFee - discountAmount;
+  const afterCoupon = subtotal + deliveryFee - discountAmount;
+  const maxPoints = Math.min(availablePoints, Math.floor(afterCoupon));
+  const pointsDiscount = Math.min(pointsToUse, maxPoints);
+  const total = Math.max(0, afterCoupon - pointsDiscount);
 
   const cardValid =
     paymentMethod === "pix" ||
@@ -180,6 +187,7 @@ export default function CheckoutPage() {
         items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
       });
       saveOrderId(order.id);
+      if (pointsDiscount > 0) spendPoints(pointsDiscount, `Desconto no pedido #${order.id.slice(0, 8)}`);
       earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
       clearCart();
       removeCoupon();
@@ -353,6 +361,71 @@ export default function CheckoutPage() {
           )}
         </div>
 
+        {/* ── PONTOS ── */}
+        {availablePoints > 0 && (
+          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f59e0b]/10">
+                <Star size={15} className="text-[#f59e0b]" />
+              </div>
+              <h2 className="text-sm font-black text-[#0f172a]">Usar pontos BrasUX</h2>
+            </div>
+
+            <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-[#64748b]">Saldo disponível</p>
+                  <p className="text-lg font-black text-[#f59e0b]">{availablePoints.toLocaleString("pt-BR")} pts</p>
+                  <p className="text-[10px] text-[#94a3b8]">1 ponto = R$ 1,00 de desconto</p>
+                </div>
+                {pointsDiscount > 0 && (
+                  <div className="text-right">
+                    <p className="text-[10px] text-[#64748b]">Desconto</p>
+                    <p className="text-base font-black text-[#16a34a]">-{formatBRL(pointsDiscount)}</p>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={maxPoints}
+                  value={pointsToUse}
+                  onChange={(e) => setPointsToUse(Number(e.target.value))}
+                  className="flex-1 accent-[#f59e0b]"
+                />
+                <div className="flex items-center gap-1 rounded-xl border border-[#e2e8f0] bg-white px-3 py-1.5">
+                  <input
+                    type="number"
+                    min={0}
+                    max={maxPoints}
+                    value={pointsToUse}
+                    onChange={(e) => setPointsToUse(Math.min(maxPoints, Math.max(0, Number(e.target.value))))}
+                    className="w-16 bg-transparent text-right text-sm font-black text-[#0f172a] outline-none"
+                  />
+                  <span className="text-xs text-[#94a3b8]">pts</span>
+                </div>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => setPointsToUse(maxPoints)}
+                  className="rounded-xl bg-[#f59e0b]/10 px-3 py-1.5 text-xs font-black text-[#b45309]"
+                >
+                  Usar todos
+                </button>
+                {pointsToUse > 0 && (
+                  <button
+                    onClick={() => setPointsToUse(0)}
+                    className="rounded-xl bg-[#f1f5f9] px-3 py-1.5 text-xs font-black text-[#64748b]"
+                  >
+                    Remover
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── PAGAMENTO ── */}
         <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
@@ -495,6 +568,14 @@ export default function CheckoutPage() {
                   <Tag size={11} /> {coupon.code}
                 </span>
                 <strong>−{formatBRL(discountAmount)}</strong>
+              </div>
+            )}
+            {pointsDiscount > 0 && (
+              <div className="flex justify-between text-xs text-[#f59e0b]">
+                <span className="flex items-center gap-1">
+                  <Star size={11} /> {pointsDiscount} pontos
+                </span>
+                <strong>−{formatBRL(pointsDiscount)}</strong>
               </div>
             )}
             <div className="flex justify-between pt-1">

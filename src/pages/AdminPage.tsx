@@ -3,15 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Store as StoreIcon, Package, ShoppingBag,
   Shield, ToggleLeft, ToggleRight, Search, ChevronDown,
-  LogOut, ArrowLeft,
+  LogOut, ArrowLeft, RefreshCw, Clock3,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import { getAuth, logout } from "../services/auth";
 import {
-  adminGetUsers, adminToggleUserActive, getStores,
+  adminGetUsers, adminToggleUserActive, adminGetAllOrders, adminUpdateOrderStatus, getStores,
+  queryKeys, type Order,
 } from "../services/gizApi";
 import { useToastStore } from "../stores/toastStore";
+import { formatBRL } from "../utils/format";
 
 const ROLE_LABEL: Record<string, string> = {
   Admin: "Admin",
@@ -45,7 +47,7 @@ export default function AdminPage() {
 
 function AdminDashboard({ auth }: { auth: NonNullable<ReturnType<typeof getAuth>> }) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"overview" | "users" | "stores">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores">("overview");
 
   function handleLogout() {
     logout();
@@ -100,7 +102,7 @@ function AdminDashboard({ auth }: { auth: NonNullable<ReturnType<typeof getAuth>
 
         {/* Tabs */}
         <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-0 md:px-8">
-          {(["overview", "users", "stores"] as const).map((t) => (
+          {(["overview", "orders", "users", "stores"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -110,7 +112,7 @@ function AdminDashboard({ auth }: { auth: NonNullable<ReturnType<typeof getAuth>
                   : "border-transparent text-[#64748b] hover:text-[#0f172a]"
               }`}
             >
-              {t === "overview" ? "Visão Geral" : t === "users" ? "Usuários" : "Lojas"}
+              {t === "overview" ? "Visão Geral" : t === "orders" ? "Pedidos" : t === "users" ? "Usuários" : "Lojas"}
             </button>
           ))}
         </div>
@@ -118,6 +120,7 @@ function AdminDashboard({ auth }: { auth: NonNullable<ReturnType<typeof getAuth>
 
       <main className="mx-auto max-w-7xl px-4 py-8 md:px-8">
         {tab === "overview" && <OverviewTab />}
+        {tab === "orders"   && <OrdersTab />}
         {tab === "users"    && <UsersTab />}
         {tab === "stores"   && <StoresTab />}
       </main>
@@ -226,6 +229,172 @@ function OverviewTab() {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ORDERS ── */
+const ORDER_STATUS_LABEL: Record<number, string> = {
+  0: "Recebido", 1: "Aceito", 2: "Preparando", 3: "Saiu p/ entrega", 4: "Entregue", 5: "Cancelado",
+};
+const ORDER_STATUS_COLOR: Record<number, string> = {
+  0: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  1: "bg-purple-50 text-purple-700 border-purple-200",
+  2: "bg-blue-50 text-blue-700 border-blue-200",
+  3: "bg-orange-50 text-orange-700 border-orange-200",
+  4: "bg-green-50 text-green-700 border-green-200",
+  5: "bg-red-50 text-red-600 border-red-200",
+};
+const NEXT_STATUS: Record<number, number> = { 0: 1, 1: 2, 2: 3, 3: 4 };
+const NEXT_LABEL: Record<number, string> = {
+  0: "Aceitar", 1: "Preparando", 2: "Saiu p/ entrega", 3: "Confirmar entrega",
+};
+
+function OrdersTab() {
+  const queryClient = useQueryClient();
+  const show = useToastStore((s) => s.show);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  const { data: orders = [], isLoading, isFetching, refetch } = useQuery({
+    queryKey: queryKeys.adminOrders(),
+    queryFn: adminGetAllOrders,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: number }) => adminUpdateOrderStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminOrders() });
+      show("Status atualizado.", "success");
+    },
+    onError: () => show("Erro ao atualizar status.", "error"),
+  });
+
+  const filtered = orders.filter((o) => {
+    const matchStatus = statusFilter === "all" || o.status === Number(statusFilter);
+    const q = search.toLowerCase();
+    const matchSearch = !q || o.id.toLowerCase().includes(q) ||
+      (o.storeName ?? "").toLowerCase().includes(q) ||
+      o.deliveryAddress.toLowerCase().includes(q);
+    return matchStatus && matchSearch;
+  });
+
+  const gmv = orders.filter((o) => o.status === 4).reduce((s, o) => s + Number(o.total), 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Stats strip */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Total de pedidos", value: orders.length, color: "#002776" },
+          { label: "Em andamento", value: orders.filter((o) => o.status < 4 && o.status !== 5).length, color: "#f59e0b" },
+          { label: "Entregues", value: orders.filter((o) => o.status === 4).length, color: "#16a34a" },
+          { label: "GMV", value: formatBRL(gmv), color: "#7c3aed" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <p className="text-xl font-black" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-xs text-[#64748b]">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 shadow-sm min-w-48 focus-within:border-[#002776]/30">
+          <Search size={15} className="shrink-0 text-[#94a3b8]" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por ID, loja, endereço…"
+            className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+          />
+        </div>
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="appearance-none rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 pr-8 text-sm font-bold text-[#0f172a] shadow-sm outline-none"
+          >
+            <option value="all">Todos os status</option>
+            {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+        </div>
+        <button
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="flex items-center gap-1.5 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 text-sm font-bold text-[#64748b] shadow-sm hover:bg-[#f8fafc] disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} /> Atualizar
+        </button>
+        <span className="flex items-center rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 text-sm font-bold text-[#64748b] shadow-sm">
+          {filtered.length} pedido{filtered.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando pedidos…</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center text-sm text-[#94a3b8]">
+            {orders.length === 0 ? "Nenhum pedido ainda." : "Nenhum pedido encontrado."}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#f1f5f9]">
+                  {["Pedido", "Loja", "Valor", "Pagamento", "Endereço", "Data", "Status", "Ação"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f8fafc]">
+                {filtered.map((o) => (
+                  <tr key={o.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-mono text-xs font-black text-[#0f172a]">#{o.id.slice(0, 8)}</p>
+                      <p className="text-[10px] text-[#94a3b8]">{o.items.length} item{o.items.length !== 1 ? "s" : ""}</p>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-bold text-[#0f172a]">{o.storeName ?? "—"}</td>
+                    <td className="px-4 py-3 text-sm font-black text-[#16a34a]">{formatBRL(Number(o.total))}</td>
+                    <td className="px-4 py-3 text-xs text-[#64748b] uppercase">{o.paymentMethod}</td>
+                    <td className="px-4 py-3">
+                      <p className="text-xs text-[#0f172a]">{o.deliveryAddress}, {o.deliveryNumber}</p>
+                      <p className="text-[10px] text-[#94a3b8]">{o.deliveryNeighborhood}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1 text-[10px] text-[#94a3b8]">
+                        <Clock3 size={10} />
+                        {new Date(o.createdAt).toLocaleDateString("pt-BR")}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black ${ORDER_STATUS_COLOR[o.status]}`}>
+                        {ORDER_STATUS_LABEL[o.status] ?? o.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {NEXT_STATUS[o.status] !== undefined && (
+                        <button
+                          onClick={() => updateMutation.mutate({ id: o.id, status: NEXT_STATUS[o.status] })}
+                          disabled={updateMutation.isPending}
+                          className="rounded-xl border border-[#002776]/20 bg-[#002776]/5 px-3 py-1.5 text-[11px] font-black text-[#002776] hover:bg-[#002776]/10 disabled:opacity-50"
+                        >
+                          {NEXT_LABEL[o.status]}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
