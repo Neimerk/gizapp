@@ -665,7 +665,7 @@ export type AdminUser = {
 export async function adminGetUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, role, active, store_id, created_at, stores(id, name, category)")
+    .select("id, name, role, active, store_id, created_at")
     .order("created_at", { ascending: false });
 
   if (error) throw new Error("Erro ao buscar usuários.");
@@ -681,9 +681,7 @@ export async function adminGetUsers(): Promise<AdminUser[]> {
     role: roleMap[row.role] ?? "Customer",
     active: row.active,
     storeId: row.store_id ?? null,
-    store: row.stores
-      ? { id: (row.stores as { id: string; name: string; category: string }).id, name: (row.stores as { id: string; name: string; category: string }).name, category: (row.stores as { id: string; name: string; category: string }).category }
-      : null,
+    store: null,
     createdAt: row.created_at,
   }));
 }

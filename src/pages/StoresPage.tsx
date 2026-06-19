@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
-import { getStores, queryKeys, type Store } from "../services/gizApi";
+import { getStores, queryKeys } from "../services/gizApi";
 import StoreCard from "../components/store/StoreCard";
 
 const CATEGORIES = ["Todas", "Restaurante", "Mercearia", "Bebidas", "Farmácia", "Pet Shop", "Padaria", "Hortifruti", "Conveniência"];

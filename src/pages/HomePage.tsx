@@ -16,7 +16,6 @@ import { Link } from "react-router-dom";
 import {
   getStores,
   queryKeys,
-  type Store,
 } from "../services/gizApi";
 import { getFeaturedByStore } from "../services/shoppingSupabase";
 import FeaturedCarousel from "../components/ui/FeaturedCarousel";
