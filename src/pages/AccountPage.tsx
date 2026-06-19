@@ -12,13 +12,13 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useCepLookup } from "../hooks/useCepLookup";
 
-import { getAuth, logout, saveAuth } from "../services/auth";
-import { updateMyProfile, getProductImageUrl } from "../services/gizApi";
+import { getAuth, logout } from "../services/auth";
+import { updateMyProfile, getMyProfile, getProductImageUrl } from "../services/gizApi";
 import { useFavoritesStore } from "../stores/favoritesStore";
 import { usePointsStore } from "../stores/pointsStore";
 import { formatBRL } from "../utils/format";
@@ -84,6 +84,27 @@ export default function AccountPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
 
+  // Carrega dados do Supabase ao montar e mescla com localStorage
+  useEffect(() => {
+    getMyProfile().then((profile) => {
+      if (!profile) return;
+      const local = load();
+      setForm((prev) => ({
+        ...prev,
+        name: profile.name || prev.name,
+        email: profile.email || prev.email,
+        phone: profile.phone ? fmtPhone(profile.phone) : prev.phone,
+        cpf: profile.cpf ? fmtCPF(profile.cpf) : prev.cpf,
+        cep: profile.zipCode ? fmtCEP(profile.zipCode) : prev.cep,
+        address: profile.address || prev.address,
+        number: profile.addressNumber || prev.number,
+        complement: profile.addressComplement || prev.complement,
+        neighborhood: profile.neighborhood || prev.neighborhood,
+        pixKey: local.pixKey || prev.pixKey,
+      }));
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function update(key: keyof AccountForm, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -121,9 +142,10 @@ export default function AccountPage() {
           addressComplement: form.complement || undefined,
           neighborhood: form.neighborhood || undefined,
         });
-        // Keep the auth token in sync if name changed
-        if (updated.name && updated.name !== auth.name) {
-          saveAuth({ ...auth, name: updated.name });
+        // atualiza nome no authStore se mudou
+        if (updated.name !== auth.name) {
+          const { useAuthStore } = await import("../stores/authStore");
+          useAuthStore.setState((s) => s.user ? { user: { ...s.user, name: updated.name } } : {});
         }
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : "Erro ao salvar no servidor.");

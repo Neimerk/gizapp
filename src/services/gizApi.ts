@@ -612,6 +612,33 @@ export type ProfileResponse = {
   updatedAt: string;
 };
 
+export async function getMyProfile(): Promise<ProfileResponse | null> {
+  const user = useAuthStore.getState().user;
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, name, phone, cpf, zip_code, address, address_number, address_complement, neighborhood, updated_at")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    name: data.name,
+    email: user.email,
+    phone: data.phone ?? null,
+    cpf: data.cpf ?? null,
+    zipCode: data.zip_code ?? null,
+    address: data.address ?? null,
+    addressNumber: data.address_number ?? null,
+    addressComplement: data.address_complement ?? null,
+    neighborhood: data.neighborhood ?? null,
+    updatedAt: data.updated_at,
+  };
+}
+
 export async function updateMyProfile(payload: UpdateProfilePayload): Promise<ProfileResponse> {
   const user = useAuthStore.getState().user;
   if (!user) throw new Error("Não autenticado.");

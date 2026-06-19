@@ -22,33 +22,50 @@ export const useAuthStore = create<AuthStore>(() => ({
   initialized: false,
 }));
 
+const roleMap: Record<string, UserRole> = {
+  admin: "Admin",
+  customer: "Customer",
+  seller: "Seller",
+  courier: "Courier",
+};
+
 async function fetchProfile(supabaseUser: User): Promise<AuthUser | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, name, role, store_id")
-    .eq("id", supabaseUser.id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, name, role, store_id")
+      .eq("id", supabaseUser.id)
+      .single();
 
-  if (error || !data) return null;
+    if (error || !data) return null;
 
-  const roleMap: Record<string, UserRole> = {
-    admin: "Admin",
-    customer: "Customer",
-    seller: "Seller",
-    courier: "Courier",
-  };
-
-  return {
-    id: data.id,
-    name: data.name,
-    email: supabaseUser.email ?? "",
-    role: roleMap[data.role] ?? "Customer",
-    storeId: data.store_id ?? null,
-  };
+    return {
+      id: data.id,
+      name: data.name,
+      email: supabaseUser.email ?? "",
+      role: roleMap[data.role] ?? "Customer",
+      storeId: data.store_id ?? null,
+    };
+  } catch {
+    return null;
+  }
 }
 
-// Escuta mudanças de sessão (incluindo INITIAL_SESSION na inicialização)
-supabase.auth.onAuthStateChange(async (_event, session) => {
+// Inicializa lendo a sessão atual imediatamente (não depende só do listener)
+supabase.auth.getSession().then(async ({ data: { session } }) => {
+  if (session?.user) {
+    const user = await fetchProfile(session.user);
+    useAuthStore.setState({ user, initialized: true });
+  } else {
+    useAuthStore.setState({ user: null, initialized: true });
+  }
+});
+
+// Mantém sincronizado com mudanças posteriores (login, logout, refresh)
+supabase.auth.onAuthStateChange(async (event, session) => {
+  // INITIAL_SESSION já foi tratado pelo getSession acima — evita dupla chamada
+  if (event === "INITIAL_SESSION") return;
+
   if (session?.user) {
     const user = await fetchProfile(session.user);
     useAuthStore.setState({ user, initialized: true });
