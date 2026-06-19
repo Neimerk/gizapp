@@ -73,7 +73,7 @@ function ProductModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const addToast = useToastStore((s) => s.add);
+  const showToast = useToastStore((s) => s.show);
 
   function set(key: keyof ProductFormData, value: string | boolean) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -102,10 +102,10 @@ function ProductModal({
     try {
       if (product) {
         await updateStoreProduct(product.id, payload);
-        addToast("Produto atualizado!", "success");
+        showToast("Produto atualizado!", "success");
       } else {
         await createStoreProduct(storeId, payload);
-        addToast("Produto adicionado!", "success");
+        showToast("Produto adicionado!", "success");
       }
       onSave();
       onClose();
@@ -275,7 +275,7 @@ function StoreForm({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const addToast = useToastStore((s) => s.add);
+  const showToast = useToastStore((s) => s.show);
 
   function set(key: keyof typeof form, val: string | boolean) {
     setForm((f) => ({ ...f, [key]: val }));
@@ -303,7 +303,7 @@ function StoreForm({
       const saved = store
         ? await updateStore(store.id, payload)
         : await createStore(payload);
-      addToast(store ? "Loja atualizada!" : "Loja criada!", "success");
+      showToast(store ? "Loja atualizada!" : "Loja criada!", "success");
       onSave(saved);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar.");
@@ -404,7 +404,7 @@ function StoreForm({
 export default function SellerPage() {
   const navigate = useNavigate();
   const auth = useAuthStore((s) => s.user);
-  const addToast = useToastStore((s) => s.add);
+  const showToast = useToastStore((s) => s.show);
 
   const [store, setStore] = useState<Store | null | undefined>(undefined);
   const [products, setProducts] = useState<StoreProduct[]>([]);
@@ -437,9 +437,9 @@ export default function SellerPage() {
     try {
       await deleteStoreProduct(id);
       setProducts((ps) => ps.filter((p) => p.id !== id));
-      addToast("Produto removido.", "info");
+      showToast("Produto removido.", "info");
     } catch {
-      addToast("Erro ao remover produto.", "error");
+      showToast("Erro ao remover produto.", "error");
     } finally {
       setDeletingId(null);
     }
@@ -450,7 +450,7 @@ export default function SellerPage() {
       const updated = await updateStoreProduct(p.id, { available: !p.available });
       setProducts((ps) => ps.map((x) => (x.id === p.id ? updated : x)));
     } catch {
-      addToast("Erro ao atualizar.", "error");
+      showToast("Erro ao atualizar.", "error");
     }
   }
 
