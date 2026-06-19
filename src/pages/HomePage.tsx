@@ -544,6 +544,103 @@ export default function HomePage() {
         </Link>
       </section>
 
+      {/* ── PROMO LANDING PAGE ── */}
+      <section>
+        <a
+          href="https://produtos.brasux.com.br"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
+          style={{ background: "linear-gradient(135deg, #0c0a00 0%, #1c1400 40%, #0f1a00 100%)" }}
+        >
+          {/* Blobs */}
+          <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#f59e0b] opacity-20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#84cc16] opacity-15 blur-3xl" />
+
+          {/* Grid overlay */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
+              backgroundSize: "32px 32px",
+            }}
+          />
+
+          <div className="relative z-10 flex flex-1 flex-col gap-4 p-8 md:p-10">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f59e0b]/30 bg-[#f59e0b]/10 px-3 py-1.5">
+                <span className="text-sm">🌐</span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-[#fcd34d]">
+                  BrasUX Web
+                </span>
+              </div>
+              <div
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5"
+                style={{
+                  background: "linear-gradient(135deg, #f59e0b, #84cc16)",
+                  boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
+                }}
+              >
+                <span className="text-[11px] font-black text-[#0c0a00]">apenas R$ 499</span>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-3xl font-black text-white md:text-4xl">
+                Landing Page +{" "}
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: "linear-gradient(135deg, #fcd34d, #84cc16)" }}
+                >
+                  botão WhatsApp.
+                </span>
+              </h2>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
+                Site profissional, responsivo e pronto para converter — com botão direto pro seu WhatsApp. Entrega em até 5 dias úteis.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-[#0c0a00] transition-all group-hover:scale-[1.03]"
+                style={{
+                  background: "linear-gradient(135deg, #f59e0b, #84cc16)",
+                  boxShadow: "0 8px 24px rgba(245,158,11,0.45)",
+                }}
+              >
+                Quero minha landing page <ArrowRight size={15} />
+              </span>
+              <span className="text-xs text-[#64748b]">produtos.brasux.com.br</span>
+            </div>
+          </div>
+
+          {/* Right icon */}
+          <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
+            <div className="flex flex-col items-center gap-3">
+              <span
+                className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
+                style={{
+                  background: "rgba(245,158,11,0.12)",
+                  border: "1px solid rgba(245,158,11,0.25)",
+                }}
+              >
+                🌐
+              </span>
+              <div
+                className="flex items-center gap-2 rounded-2xl px-4 py-2"
+                style={{
+                  background: "rgba(37,211,102,0.12)",
+                  border: "1px solid rgba(37,211,102,0.25)",
+                }}
+              >
+                <span className="text-lg">💬</span>
+                <span className="text-sm font-black text-[#25d166]">WhatsApp</span>
+              </div>
+            </div>
+          </div>
+        </a>
+      </section>
+
       {/* ── CTAs ── */}
       <section className="grid gap-4 md:grid-cols-2">
         {/* Seller CTA */}
