@@ -23,6 +23,7 @@ import {
 import { categories } from "../data/categories";
 
 const SELLER_URL = "https://gizapp-vendedor.vercel.app/";
+const DELIVERY_URL = "https://brasux-entregas.vercel.app/";
 import { categoryIcons } from "../data/categoryIcons";
 import { formatBRL } from "../utils/format";
 import ProductImage from "../components/ui/ProductImage";
@@ -691,7 +692,7 @@ export default function HomePage() {
               Qualquer veículo — a pé, bike, moto, carro. Receba por PIX a cada corrida.
             </p>
             <a
-              href={SELLER_URL}
+              href={DELIVERY_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#0f172a] px-5 py-2.5 text-sm font-black text-white transition-transform hover:scale-[1.03]"
