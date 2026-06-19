@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Search, Upload, Link as LinkIcon, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { searchImageCatalog, uploadProductImage, type CatalogImage } from "../../services/gizApi";
+import { searchImageCatalog, uploadProductImage, GIZ_API_URL, type CatalogImage } from "../../services/gizApi";
 import { useDebounce } from "../../hooks/useDebounce";
 
 type Mode = "catalog" | "upload" | "url";
@@ -11,8 +11,6 @@ interface Props {
   onChange: (url: string, alt?: string) => void;
   onClose: () => void;
 }
-
-const IMAGE_API_URL = import.meta.env.VITE_IMAGE_API_URL as string;
 
 export default function ImagePicker({ storeId, value, onChange, onClose }: Props) {
   const [mode, setMode] = useState<Mode>("catalog");
@@ -30,8 +28,8 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
   const debouncedSearch = useDebounce(search, 400);
 
   const fetchCatalog = useCallback(async (q: string, p: number) => {
-    if (!IMAGE_API_URL) {
-      setCatalogError("VITE_IMAGE_API_URL não configurada. Defina o endereço da BrasUX ImageAPI.");
+    if (!GIZ_API_URL) {
+      setCatalogError("VITE_API_URL não configurada. Configure o endereço da api-gizapp.");
       setResults([]);
       return;
     }

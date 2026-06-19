@@ -5,6 +5,9 @@ const IMAGE_BASE_URL =
   import.meta.env.VITE_IMAGE_BASE_URL ||
   "https://cbyufprmiuwvhsxsxttn.supabase.co/storage/v1/object/public";
 
+// api-gizapp deployada no Render — usada apenas para o banco de imagens (catálogo)
+export const GIZ_API_URL = (import.meta.env.VITE_API_URL as string) || "";
+
 /* ── AUTH TYPES ─────────────────────────────────────────── */
 
 export type AuthResponse = {
@@ -930,17 +933,16 @@ export async function uploadProductImage(file: File, storeId: string): Promise<s
   return publicUrl;
 }
 
-/* ── IMAGE API: BANCO DE IMAGENS ────────────────────────── */
+/* ── IMAGE API: BANCO DE IMAGENS (api-gizapp no Render) ─── */
 
 export type CatalogImage = {
   id: string;
   slug: string;
   name: string;
-  brand: string;
+  brand?: string;
   category: string;
   subcategory?: string;
   imageUrl: string;
-  thumbHue?: string;
 };
 
 export type CatalogResult = {
@@ -949,45 +951,42 @@ export type CatalogResult = {
   totalPages: number;
 };
 
-const IMAGE_API = (import.meta.env.VITE_IMAGE_API_URL as string) || "";
-
 export async function searchImageCatalog(params: {
   search?: string;
   category?: string;
   page?: number;
   pageSize?: number;
 }): Promise<CatalogResult> {
-  if (!IMAGE_API) return { products: [], total: 0, totalPages: 0 };
+  if (!GIZ_API_URL) return { products: [], total: 0, totalPages: 0 };
   const q = new URLSearchParams();
   if (params.search) q.set("search", params.search);
   if (params.category) q.set("category", params.category);
   q.set("page", String(params.page ?? 1));
   q.set("pageSize", String(params.pageSize ?? 24));
-  const res = await fetch(`${IMAGE_API}/v1/catalog/products?${q}`);
-  if (!res.ok) throw new Error("ImageAPI indisponível");
+  const res = await fetch(`${GIZ_API_URL}/api/products?${q}`);
+  if (!res.ok) throw new Error("Catálogo indisponível");
   const json = await res.json();
   return {
-    products: (json.products ?? []).map((p: Record<string, unknown>) => ({
-      id: p.id as string,
+    products: (json.items ?? []).map((p: Record<string, unknown>) => ({
+      id: String(p.id),
       slug: p.slug as string,
       name: p.name as string,
-      brand: p.brand as string,
+      brand: p.brand as string | undefined,
       category: p.category as string,
-      subcategory: p.subcategory as string | undefined,
-      imageUrl: p.image_url as string,
-      thumbHue: p.thumb_hue as string | undefined,
-    })),
-    total: (json.pagination as { total: number }).total ?? 0,
-    totalPages: (json.pagination as { totalPages: number }).totalPages ?? 0,
+      subcategory: p.subCategory as string | undefined,
+      imageUrl: p.imageUrl as string,
+    })).filter((p: CatalogImage) => !!p.imageUrl),
+    total: (json.totalItems as number) ?? 0,
+    totalPages: (json.totalPages as number) ?? 0,
   };
 }
 
 export async function getImageApiCategories(): Promise<{ category: string; count: number }[]> {
-  if (!IMAGE_API) return [];
-  const res = await fetch(`${IMAGE_API}/v1/catalog/categories`);
+  if (!GIZ_API_URL) return [];
+  const res = await fetch(`${GIZ_API_URL}/api/categories`);
   if (!res.ok) return [];
-  const json = await res.json();
-  return json.categories ?? [];
+  const categories: string[] = await res.json();
+  return categories.map((c) => ({ category: c, count: 0 }));
 }
 
 /* ── QUERY KEYS ──────────────────────────────────────────── */
@@ -1011,5 +1010,4 @@ export function getProductImageUrl(imageUrl?: string): string {
   return `${base}${path}`;
 }
 
-export const GIZ_API_URL = "";
 export const DEFAULT_STORE_ID = "";
