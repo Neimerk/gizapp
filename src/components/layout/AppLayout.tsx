@@ -1,4 +1,4 @@
-import { Outlet, Link, NavLink, useNavigate } from "react-router-dom";
+import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   Mic,
@@ -10,7 +10,7 @@ import {
   Sun,
   User,
 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import BottomNavigation from "./BottomNavigation";
 import BrasUXLogo from "../ui/BrasUXLogo";
 import ErrorBoundary from "./ErrorBoundary";
@@ -32,6 +32,11 @@ export default function AppLayout() {
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   const { theme, toggle: toggleTheme } = useThemeStore();
   const isDark = theme === "dark";
