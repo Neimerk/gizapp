@@ -19,6 +19,7 @@ import NotFoundPage from "../pages/NotFoundPage";
 import FavoritesPage from "../pages/FavoritesPage";
 import ComparePage from "../pages/ComparePage";
 import ChatPage from "../pages/ChatPage";
+import ServicesPage from "../pages/ServicesPage";
 import { getAuth } from "../services/auth";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -112,6 +113,10 @@ export const router = createBrowserRouter([
       {
         path: "lojas/:storeId/chat",
         element: <ChatPage />,
+      },
+      {
+        path: "servicos",
+        element: <ServicesPage />,
       },
       {
         path: "*",
