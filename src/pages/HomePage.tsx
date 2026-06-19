@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import {
   Bike,
   Clock3,
@@ -47,14 +47,21 @@ export default function HomePage() {
     select: (data) => data.filter((s) => s.active),
   });
 
-  const firstStoreId = stores[0]?.id;
+  const topStoreIds = stores.slice(0, 3).map((s) => s.id);
 
-  const { data: products = [], isLoading: loadingProducts } = useQuery({
-    queryKey: queryKeys.storeProducts(firstStoreId ?? ""),
-    queryFn: () => getStoreProducts({ storeId: firstStoreId! }),
-    enabled: !!firstStoreId,
-    select: (data) => data.slice(0, 12),
+  const storeProductQueries = useQueries({
+    queries: topStoreIds.map((storeId) => ({
+      queryKey: queryKeys.storeProducts(storeId),
+      queryFn: () => getStoreProducts({ storeId }),
+      enabled: topStoreIds.length > 0,
+    })),
   });
+
+  const products = storeProductQueries
+    .flatMap((q) => q.data ?? [])
+    .slice(0, 12);
+
+  const loadingProducts = loadingStores || storeProductQueries.some((q) => q.isLoading);
 
   return (
     <div className="space-y-10">
@@ -748,10 +755,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
       className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
-      <div
-        className="flex h-40 items-center justify-center p-3"
-        style={{ background: "linear-gradient(135deg, #f8fafc, #f1f5f9)" }}
-      >
+      <div className="product-img-bg flex h-40 items-center justify-center p-3">
         <ProductImage
           imageUrl={product.imageUrl}
           alt={product.imageAlt || product.name}
@@ -865,7 +869,7 @@ function StoreCard({ store }: { store: Store }) {
 
 function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-[#f8fafc] px-2 py-2" style={{ border: "1px solid #f1f5f9" }}>
+    <div className="rounded-xl border border-[#f1f5f9] bg-[#f8fafc] px-2 py-2">
       <div className="flex items-center gap-1 text-[#94a3b8]">
         {icon}
         <span className="text-[9px] font-bold uppercase tracking-wide">{label}</span>

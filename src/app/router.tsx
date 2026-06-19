@@ -91,12 +91,20 @@ export const router = createBrowserRouter([
 
       {
         path: "pedidos",
-        element: <OrdersPage />,
+        element: (
+          <ProtectedRoute>
+            <OrdersPage />
+          </ProtectedRoute>
+        ),
       },
 
       {
         path: "conta",
-        element: <AccountPage />,
+        element: (
+          <ProtectedRoute>
+            <AccountPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: "login",

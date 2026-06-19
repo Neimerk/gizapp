@@ -167,10 +167,7 @@ export default function ProductPage() {
       {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Image */}
-        <div
-          className="flex min-h-[280px] items-center justify-center rounded-3xl bg-white p-8 shadow-sm"
-          style={{ background: "linear-gradient(135deg, #f8fafc, #f1f5f9)" }}
-        >
+        <div className="product-img-bg flex min-h-[280px] items-center justify-center rounded-3xl p-8 shadow-sm">
           <ProductImage
             imageUrl={product.imageUrl}
             alt={product.imageAlt || product.name}

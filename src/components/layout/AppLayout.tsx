@@ -1,5 +1,6 @@
 import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
+  Briefcase,
   Home,
   Mic,
   MicOff,
@@ -20,10 +21,12 @@ import Toast from "../ui/Toast";
 import { useCartStore } from "../../stores/cartStore";
 import { useThemeStore } from "../../stores/themeStore";
 import { useVoiceSearch } from "../../hooks/useVoiceSearch";
+import { formatBRL } from "../../utils/format";
 
 const navLinks = [
   { label: "Início", path: "/", icon: Home },
   { label: "Lojas", path: "/lojas", icon: ShoppingCart },
+  { label: "Serviços", path: "/servicos", icon: Briefcase },
   { label: "Pedidos", path: "/pedidos", icon: ReceiptText },
   { label: "Conta", path: "/conta", icon: User },
 ];
@@ -200,7 +203,7 @@ export default function AppLayout() {
                 {totalItems} {totalItems === 1 ? "item" : "itens"} no carrinho
               </p>
               <p className="text-sm font-black text-white">
-                R$ {totalPrice.toFixed(2).replace(".", ",")}
+                {formatBRL(totalPrice)}
               </p>
             </div>
           </div>
@@ -232,7 +235,7 @@ export default function AppLayout() {
                 {totalItems} {totalItems === 1 ? "item" : "itens"}
               </p>
               <p className="text-sm font-black text-white">
-                R$ {totalPrice.toFixed(2).replace(".", ",")}
+                {formatBRL(totalPrice)}
               </p>
             </div>
             <span className="rounded-xl bg-white px-3 py-1.5 text-xs font-black text-[#16a34a]">
