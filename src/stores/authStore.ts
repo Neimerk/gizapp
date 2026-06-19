@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { supabase } from "../lib/supabase";
-import type { User } from "@supabase/supabase-js";
 
 export type UserRole = "Admin" | "Customer" | "Seller" | "Courier";
 
