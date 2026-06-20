@@ -1,4 +1,4 @@
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bike,
   Clock3,
@@ -15,7 +15,6 @@ import { Link } from "react-router-dom";
 
 import {
   getStores,
-  getStoreProducts,
   queryKeys,
   type Store,
   type StoreProduct,
@@ -48,22 +47,6 @@ export default function HomePage() {
     queryFn: getStores,
     select: (data) => data.filter((s) => s.active),
   });
-
-  const topStoreIds = stores.slice(0, 3).map((s) => s.id);
-
-  const storeProductQueries = useQueries({
-    queries: topStoreIds.map((storeId) => ({
-      queryKey: queryKeys.storeProducts(storeId),
-      queryFn: () => getStoreProducts({ storeId }),
-      enabled: topStoreIds.length > 0,
-    })),
-  });
-
-  const products = storeProductQueries
-    .flatMap((q) => q.data ?? [])
-    .slice(0, 12);
-
-  void (loadingStores || storeProductQueries.some((q) => q.isLoading)); // kept for future use
 
   const { data: featuredByStore = [], isLoading: loadingFeatured } = useQuery({
     queryKey: ["featuredByStore"],
@@ -211,47 +194,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── PRODUTOS EM DESTAQUE (um card por loja com carousel interno) ── */}
-      {(loadingFeatured || featuredByStore.length > 0) && (
-        <section>
-          <SectionHeader
-            label="em destaque"
-            title="Produtos em destaque"
-            linkTo="/buscar"
-            linkLabel="Ver mais"
-            color="#16a34a"
-          />
-          {loadingFeatured ? (
-            <div className="mt-5 space-y-4">
-              <div className="h-52 animate-pulse rounded-3xl bg-white shadow-sm" />
-            </div>
-          ) : (
-            <div className="mt-5 space-y-4">
-              {featuredByStore.map(({ store, products: fps }) => (
-                <FeaturedCarousel key={store.id} store={store} products={fps} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── TODOS OS PRODUTOS ── */}
-      {products.length > 0 && (
-        <section>
-          <SectionHeader
-            label="catálogo"
-            title="Produtos disponíveis"
-            linkTo="/buscar"
-            linkLabel="Ver mais"
-            color="#0f766e"
-          />
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} />
+      {/* ── PRODUTOS EM DESTAQUE — substitui grade de produtos ── */}
+      <section>
+        <SectionHeader
+          label="ofertas"
+          title="Produtos em destaque"
+          linkTo="/buscar"
+          linkLabel="Ver mais"
+          color="#16a34a"
+        />
+        {loadingFeatured ? (
+          <div className="mt-5 space-y-4">
+            <div className="h-52 animate-pulse rounded-3xl bg-white shadow-sm" />
+          </div>
+        ) : featuredByStore.length === 0 ? (
+          <p className="mt-4 text-sm text-[#64748b]">Nenhum produto em destaque no momento.</p>
+        ) : (
+          <div className="mt-5 space-y-4">
+            {featuredByStore.map(({ store, products: fps }) => (
+              <FeaturedCarousel key={store.id} store={store} products={fps} />
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* ── LOJAS ── */}
       <section>
@@ -768,7 +733,8 @@ function SectionHeader({
   );
 }
 
-function ProductCard({ product }: { product: StoreProduct }) {
+// ProductCard mantido para uso em outras páginas (SearchPage, etc.)
+export function ProductCard({ product }: { product: StoreProduct }) {
   return (
     <Link
       to={`/lojas/${product.storeId}/produto/${product.id}`}
