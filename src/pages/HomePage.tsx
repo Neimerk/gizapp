@@ -20,6 +20,8 @@ import {
   type Store,
   type StoreProduct,
 } from "../services/gizApi";
+import { getFeaturedByStore } from "../services/shoppingSupabase";
+import FeaturedCarousel from "../components/ui/FeaturedCarousel";
 import { categories } from "../data/categories";
 
 const SELLER_URL = "https://lojas.brasux.com.br";
@@ -61,7 +63,13 @@ export default function HomePage() {
     .flatMap((q) => q.data ?? [])
     .slice(0, 12);
 
-  const loadingProducts = loadingStores || storeProductQueries.some((q) => q.isLoading);
+  void (loadingStores || storeProductQueries.some((q) => q.isLoading)); // kept for future use
+
+  const { data: featuredByStore = [], isLoading: loadingFeatured } = useQuery({
+    queryKey: ["featuredByStore"],
+    queryFn: getFeaturedByStore,
+    staleTime: 30_000,
+  });
 
   return (
     <div className="space-y-10">
@@ -203,35 +211,49 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── PRODUTOS EM DESTAQUE ── */}
-      <section>
-        <SectionHeader
-          label="ofertas"
-          title="Produtos em destaque"
-          linkTo="/buscar"
-          linkLabel="Ver mais"
-          color="#16a34a"
-        />
-        {loadingProducts ? (
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse rounded-3xl bg-white p-4 shadow-sm">
-                <div className="h-32 rounded-2xl bg-[#f1f5f9]" />
-                <div className="mt-3 h-3 w-3/4 rounded bg-[#f1f5f9]" />
-                <div className="mt-2 h-4 w-1/2 rounded bg-[#f1f5f9]" />
-              </div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <p className="mt-4 text-sm text-[#64748b]">Nenhum produto disponível.</p>
-        ) : (
+      {/* ── PRODUTOS EM DESTAQUE (carousel por loja) ── */}
+      {(loadingFeatured || featuredByStore.length > 0) && (
+        <section>
+          <SectionHeader
+            label="ofertas"
+            title="Produtos em destaque"
+            linkTo="/buscar"
+            linkLabel="Ver mais"
+            color="#16a34a"
+          />
+          {loadingFeatured ? (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2].map((i) => (
+                <div key={i} className="h-52 animate-pulse rounded-3xl bg-white shadow-sm" />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredByStore.map(({ store, products: fps }) => (
+                <FeaturedCarousel key={store.id} store={store} products={fps} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── TODOS OS PRODUTOS ── */}
+      {products.length > 0 && (
+        <section>
+          <SectionHeader
+            label="catálogo"
+            title="Produtos disponíveis"
+            linkTo="/buscar"
+            linkLabel="Ver mais"
+            color="#0f766e"
+          />
           <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {products.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* ── LOJAS ── */}
       <section>
