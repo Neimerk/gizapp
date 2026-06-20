@@ -211,24 +211,22 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── PRODUTOS EM DESTAQUE (carousel por loja) ── */}
+      {/* ── PRODUTOS EM DESTAQUE (um card por loja com carousel interno) ── */}
       {(loadingFeatured || featuredByStore.length > 0) && (
         <section>
           <SectionHeader
-            label="ofertas"
+            label="em destaque"
             title="Produtos em destaque"
             linkTo="/buscar"
             linkLabel="Ver mais"
             color="#16a34a"
           />
           {loadingFeatured ? (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-52 animate-pulse rounded-3xl bg-white shadow-sm" />
-              ))}
+            <div className="mt-5 space-y-4">
+              <div className="h-52 animate-pulse rounded-3xl bg-white shadow-sm" />
             </div>
           ) : (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-5 space-y-4">
               {featuredByStore.map(({ store, products: fps }) => (
                 <FeaturedCarousel key={store.id} store={store} products={fps} />
               ))}
