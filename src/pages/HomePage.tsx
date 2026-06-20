@@ -210,7 +210,7 @@ export default function HomePage() {
         ) : featuredByStore.length === 0 ? (
           <p className="mt-4 text-sm text-[#64748b]">Nenhum produto em destaque no momento.</p>
         ) : (
-          <div className="mt-5 space-y-4">
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {featuredByStore.map(({ store, products: fps }) => (
               <FeaturedCarousel key={store.id} store={store} products={fps} />
             ))}
