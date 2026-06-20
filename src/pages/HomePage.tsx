@@ -51,7 +51,8 @@ export default function HomePage() {
   const { data: featuredByStore = [], isLoading: loadingFeatured } = useQuery({
     queryKey: ["featuredByStore"],
     queryFn: getFeaturedByStore,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchInterval: 60_000,
   });
 
   return (

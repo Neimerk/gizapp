@@ -48,6 +48,7 @@ export async function getFeaturedByStore(): Promise<
         .eq("store_id", store.id)
         .eq("featured", true)
         .eq("available", true)
+        .order("name")
         .limit(3);
 
       return { store, products: products ?? [] };
