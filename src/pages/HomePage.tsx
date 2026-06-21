@@ -34,7 +34,7 @@ import { useAuthStore } from "../stores/authStore";
 import { categories } from "../data/categories";
 import { formatBRL } from "../utils/format";
 
-const SELLER_URL = "https://lojas.brasux.com.br";
+const SELLER_URL = "https://brasux.store";
 const DELIVERY_URL = "https://entregas.brasux.com.br";
 import { categoryIcons } from "../data/categoryIcons";
 import PromoCard from "../components/ui/PromoCard";
