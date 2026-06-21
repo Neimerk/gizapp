@@ -36,7 +36,7 @@ import CookieBanner from "../ui/CookieBanner";
 const baseNavLinks = [
   { label: "Início", path: "/", icon: Home },
   { label: "Lojas", path: "/lojas", icon: ShoppingCart },
-  { label: "Serviços", path: "/servicos", icon: Briefcase },
+  { label: "TI", path: "/servicos", icon: Briefcase },
   { label: "Pedidos", path: "/pedidos", icon: ReceiptText },
   { label: "Conta", path: "/conta", icon: User },
 ];
