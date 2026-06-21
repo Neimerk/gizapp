@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Bike,
-  Briefcase,
+  Heart,
   Home,
   Mic,
   MicOff,
@@ -36,7 +36,7 @@ import CookieBanner from "../ui/CookieBanner";
 const baseNavLinks = [
   { label: "Início", path: "/", icon: Home },
   { label: "Lojas", path: "/lojas", icon: ShoppingCart },
-  { label: "TI", path: "/servicos", icon: Briefcase },
+  { label: "Favoritos", path: "/favoritos", icon: Heart },
   { label: "Pedidos", path: "/pedidos", icon: ReceiptText },
   { label: "Conta", path: "/conta", icon: User },
 ];
