@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { reportReactError } from "../../hooks/useErrorMonitor";
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -9,6 +10,10 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { error };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    reportReactError(error, info.componentStack);
   }
 
   reset = () => this.setState({ error: null });

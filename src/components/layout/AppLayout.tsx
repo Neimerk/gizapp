@@ -31,6 +31,7 @@ import { useVoiceSearch } from "../../hooks/useVoiceSearch";
 import { useAuthStore, initAuth } from "../../stores/authStore";
 import { formatBRL } from "../../utils/format";
 import { prefetchCart, prefetchCheckout, prefetchOrders } from "../../utils/prefetch";
+import { useErrorMonitor } from "../../hooks/useErrorMonitor";
 
 const baseNavLinks = [
   { label: "Início", path: "/", icon: Home },
@@ -41,6 +42,7 @@ const baseNavLinks = [
 ];
 
 export default function AppLayout() {
+  useErrorMonitor();
   const authUser = useAuthStore((s) => s.user);
   const isSellerOrAdmin = authUser?.role === "Seller" || authUser?.role === "Admin";
   const isCourier       = authUser?.role === "Courier";

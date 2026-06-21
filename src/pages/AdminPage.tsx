@@ -5,7 +5,7 @@ import {
   Shield, ToggleLeft, ToggleRight, Search, ChevronDown,
   LogOut, ArrowLeft, RefreshCw, Clock3, Image as ImageIcon,
   Plus, Pencil, Trash2, Loader2, ExternalLink,
-  Tag, Wallet, CheckCircle2, XCircle,
+  Tag, Wallet, CheckCircle2, XCircle, AlertTriangle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -62,7 +62,7 @@ export default function AdminPage() {
 
 function AdminDashboard({ auth }: { auth: AuthUser }) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores" | "banners" | "coupons" | "withdrawals">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores" | "banners" | "coupons" | "withdrawals" | "errors">("overview");
 
   async function handleLogout() {
     await logout();
@@ -125,6 +125,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
             { key: "banners",      label: "Banners"     },
             { key: "coupons",      label: "Cupons"      },
             { key: "withdrawals",  label: "Saques"      },
+            { key: "errors",       label: "Erros"       },
           ] as const).map((t) => (
             <button
               key={t.key}
@@ -149,6 +150,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
         {tab === "banners"     && <BannersTab />}
         {tab === "coupons"     && <CouponsTab />}
         {tab === "withdrawals" && <WithdrawalsTab />}
+        {tab === "errors"      && <ErrorsTab />}
       </main>
     </div>
   );
@@ -1477,6 +1479,173 @@ function StoresTab() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── ERRORS ── */
+
+type ErrorLog = {
+  id: string;
+  created_at: string;
+  error_type: "uncaught" | "unhandledrejection" | "react";
+  message: string;
+  stack?: string;
+  url?: string;
+  user_id?: string;
+  user_agent?: string;
+  extra?: Record<string, unknown>;
+};
+
+const ERROR_TYPE_COLOR: Record<string, string> = {
+  uncaught:            "bg-red-50 text-red-700 border-red-200",
+  unhandledrejection:  "bg-orange-50 text-orange-700 border-orange-200",
+  react:               "bg-purple-50 text-purple-700 border-purple-200",
+};
+
+function ErrorsTab() {
+  const [errors, setErrors]     = useState<ErrorLog[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"all" | ErrorLog["error_type"]>("all");
+
+  async function load() {
+    setLoading(true);
+    const { supabase } = await import("../lib/supabase");
+    const { data } = await supabase
+      .from("error_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setErrors((data ?? []) as ErrorLog[]);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const filtered = typeFilter === "all" ? errors : errors.filter((e) => e.error_type === typeFilter);
+
+  const counts = {
+    uncaught:            errors.filter((e) => e.error_type === "uncaught").length,
+    unhandledrejection:  errors.filter((e) => e.error_type === "unhandledrejection").length,
+    react:               errors.filter((e) => e.error_type === "react").length,
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Total (últimos 100)", value: errors.length,             color: "#0f172a" },
+          { label: "JS (uncaught)",        value: counts.uncaught,           color: "#dc2626" },
+          { label: "Promises rejeitadas",  value: counts.unhandledrejection,  color: "#ea580c" },
+          { label: "React (boundaries)",   value: counts.react,              color: "#9333ea" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-xs text-[#64748b]">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        {([
+          { key: "all",                label: "Todos"   },
+          { key: "uncaught",           label: "JS"      },
+          { key: "unhandledrejection", label: "Promise" },
+          { key: "react",              label: "React"   },
+        ] as const).map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setTypeFilter(f.key)}
+            className={`rounded-xl px-3 py-1.5 text-xs font-black transition-colors ${
+              typeFilter === f.key ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+        <button onClick={load} className="ml-auto rounded-xl border border-[#e2e8f0] bg-white p-2 text-[#64748b] hover:text-[#0f172a]">
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 size={24} className="animate-spin text-[#002776]" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 p-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#f0fdf4]">
+              <AlertTriangle size={28} className="text-[#16a34a]" />
+            </div>
+            <p className="font-black text-[#0f172a]">Nenhum erro registrado</p>
+            <p className="text-sm text-[#64748b]">Erros de JavaScript e React aparecem aqui em tempo real.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#f1f5f9]">
+            {filtered.map((e) => (
+              <div key={e.id} className="p-4">
+                <div
+                  className="flex cursor-pointer items-start gap-3"
+                  onClick={() => setExpanded(expanded === e.id ? null : e.id)}
+                >
+                  <span className={`mt-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${ERROR_TYPE_COLOR[e.error_type]}`}>
+                    {e.error_type}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-black text-[#0f172a]">{e.message}</p>
+                    <div className="mt-0.5 flex items-center gap-3 text-[10px] text-[#94a3b8]">
+                      <span className="flex items-center gap-1">
+                        <Clock3 size={10} />
+                        {new Date(e.created_at).toLocaleString("pt-BR")}
+                      </span>
+                      {e.url && (
+                        <span className="max-w-[200px] truncate">
+                          {e.url.replace(/^https?:\/\/[^/]+/, "")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronDown
+                    size={14}
+                    className={`mt-1 shrink-0 text-[#94a3b8] transition-transform ${expanded === e.id ? "rotate-180" : ""}`}
+                  />
+                </div>
+
+                {expanded === e.id && (
+                  <div className="mt-3 space-y-2 pl-20">
+                    {e.stack && (
+                      <pre className="overflow-x-auto rounded-xl bg-[#0f172a] p-3 text-[10px] leading-relaxed text-[#94a3b8] whitespace-pre-wrap">
+                        {e.stack}
+                      </pre>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      {e.user_id && (
+                        <div className="rounded-xl bg-[#f8fafc] p-2">
+                          <p className="font-black text-[#64748b]">Usuário</p>
+                          <p className="font-mono text-[#0f172a]">{e.user_id.slice(0, 16)}…</p>
+                        </div>
+                      )}
+                      {e.user_agent && (
+                        <div className="rounded-xl bg-[#f8fafc] p-2">
+                          <p className="font-black text-[#64748b]">Browser</p>
+                          <p className="truncate text-[#0f172a]">{e.user_agent.split(" ").slice(-1)[0]}</p>
+                        </div>
+                      )}
+                    </div>
+                    {e.extra && (
+                      <pre className="overflow-x-auto rounded-xl bg-[#f8fafc] p-3 text-[10px] text-[#64748b]">
+                        {JSON.stringify(e.extra, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
