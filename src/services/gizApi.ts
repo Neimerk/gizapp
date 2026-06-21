@@ -1949,7 +1949,24 @@ export async function adminGetBanners(): Promise<AdminBanner[]> {
   return (data ?? []).map(mapAdminBanner);
 }
 
+const BANNER_ALLOWED_DOMAINS = ["brasux.com.br", "shopping.brasux.com.br"];
+
+function validateBannerLink(link: string | undefined): void {
+  if (!link) return;
+  if (link.startsWith("/")) return;
+  try {
+    const host = new URL(link).hostname;
+    if (!BANNER_ALLOWED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`))) {
+      throw new Error(`Link de banner inválido: domínio não permitido (${host}).`);
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("Link de banner")) throw e;
+    throw new Error("Link de banner inválido.");
+  }
+}
+
 export async function adminCreateBanner(payload: BannerPayload): Promise<void> {
+  validateBannerLink(payload.link);
   const { error } = await supabase.from("banners").insert({
     title: payload.title,
     description: payload.description ?? null,
@@ -1966,6 +1983,7 @@ export async function adminCreateBanner(payload: BannerPayload): Promise<void> {
 }
 
 export async function adminUpdateBanner(id: string, patch: Partial<BannerPayload>): Promise<void> {
+  validateBannerLink(patch.link);
   const update: Record<string, unknown> = {};
   if (patch.title       !== undefined) update.title       = patch.title;
   if (patch.description !== undefined) update.description = patch.description ?? null;

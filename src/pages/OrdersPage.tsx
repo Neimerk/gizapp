@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getMyOrders, getProductImageUrl, queryKeys, upsertReview, type Order } from "../services/gizApi";
+import { logger } from "../utils/logger";
 import type { CourierPosition } from "../components/ui/MapTrack";
 import { ordersConnection, startOrdersConnection } from "../services/signalr";
 import { formatBRL } from "../utils/format";
@@ -134,7 +135,7 @@ export default function OrdersPage() {
           }
         });
       } catch (e) {
-        console.error("SignalR:", e);
+        logger.error("SignalR:", e);
       }
     }
     setupSignalR();

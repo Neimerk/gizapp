@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { logger } from "../utils/logger";
 
 // supabase importado de forma lazy — não deve estar no bundle inicial (CWV)
 const getSupabase = () => import("../lib/supabase").then((m) => m.supabase);
@@ -60,7 +61,7 @@ export function usePushNotifications() {
       setStatus("subscribed");
       return true;
     } catch (e) {
-      console.warn("[push] subscribe error:", e);
+      logger.warn("[push] subscribe error:", e);
       return false;
     }
   }, []);
@@ -75,7 +76,7 @@ export function usePushNotifications() {
       }
       setStatus("default");
     } catch (e) {
-      console.warn("[push] unsubscribe error:", e);
+      logger.warn("[push] unsubscribe error:", e);
     }
   }, []);
 
@@ -90,7 +91,7 @@ export function usePushNotifications() {
         setStatus("subscribed");
       }
     } catch (e) {
-      console.warn("[push] syncExisting error:", e);
+      logger.warn("[push] syncExisting error:", e);
     }
   }, []);
 

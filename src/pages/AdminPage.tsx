@@ -601,9 +601,28 @@ function BannerModal({
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  const ALLOWED_LINK_DOMAINS = ["brasux.com.br", "shopping.brasux.com.br"];
+
+  function validateLink(link: string | undefined): boolean {
+    if (!link) return true;
+    // Relativo (começa com /) → sempre permitido
+    if (link.startsWith("/")) return true;
+    // Absoluto → verificar domínio
+    try {
+      const host = new URL(link).hostname;
+      return ALLOWED_LINK_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`));
+    } catch {
+      return false;
+    }
+  }
+
   async function handleSave() {
     if (!form.title.trim()) { setError("Título é obrigatório."); return; }
     if (!form.imageUrl.trim()) { setError("URL da imagem é obrigatória."); return; }
+    if (form.link && !validateLink(form.link)) {
+      setError("Link inválido. Use um caminho relativo (/lojas) ou domínio brasux.com.br.");
+      return;
+    }
     setSaving(true); setError(null);
     const payload: BannerPayload = {
       ...form,
