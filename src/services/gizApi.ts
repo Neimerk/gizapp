@@ -1638,14 +1638,8 @@ export async function getAvailableDeliveries(): Promise<AvailableDelivery[]> {
 export async function acceptDelivery(orderId: string): Promise<Delivery> {
   const user = useAuthStore.getState().user;
   if (!user) throw new Error("Não autenticado.");
-  // earnings calculado pelo servidor via RPC — nunca aceitar do cliente
   const { data, error } = await supabase
     .rpc("accept_delivery_safe", { p_order_id: orderId, p_courier_id: user.id });
-  if (error) {
-    if (error.code === "23505") throw new Error("Esta entrega já foi aceita por outro entregador.");
-    throw new Error("Erro ao aceitar entrega.");
-  }
-  return mapDelivery(data as Record<string, unknown>);
   if (error) {
     if (error.code === "23505") throw new Error("Esta entrega já foi aceita por outro entregador.");
     throw new Error("Erro ao aceitar entrega.");
