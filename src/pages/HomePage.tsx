@@ -574,6 +574,7 @@ export default function HomePage() {
           ctaBackground="linear-gradient(135deg, #34d399, #10b981)"
           ctaShadow="0 8px 24px rgba(16,185,129,0.45)"
           ctaTextColor="#022c22"
+          imageUrl="/card-pdv.webp"
           illustration={<IllustrationPDV />}
           domainLabel="caixa.brasux.com.br"
         />
@@ -597,6 +598,7 @@ export default function HomePage() {
           ctaLabel="Ver todos os serviços"
           ctaBackground="linear-gradient(135deg, #7c3aed, #4f46e5)"
           ctaShadow="0 8px 24px rgba(124,58,237,0.45)"
+          imageUrl="/card-ti.webp"
           illustration={<IllustrationServicos />}
         />
       </section>
