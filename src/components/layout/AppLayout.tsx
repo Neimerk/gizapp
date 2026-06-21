@@ -44,6 +44,14 @@ const baseNavLinks = [
 
 export default function AppLayout() {
   useErrorMonitor();
+
+  // brasux.store é o portal de lojistas — redireciona para /parceiro
+  useEffect(() => {
+    if (window.location.hostname === "brasux.store" && window.location.pathname === "/") {
+      window.location.replace("/parceiro");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const authUser = useAuthStore((s) => s.user);
   const isSellerOrAdmin = authUser?.role === "Seller" || authUser?.role === "Admin";
   const isCourier       = authUser?.role === "Courier";
