@@ -46,11 +46,23 @@ export async function loginCustomer(_payload: LoginPayload): Promise<AuthRespons
     admin: "Admin", customer: "Customer", seller: "Seller", courier: "Courier",
   };
 
+  const role = roleMap[profile?.role ?? "customer"] ?? "Customer";
+
+  // Auditoria: login de admin registrado no banco
+  if (role === "Admin") {
+    supabase.from("audit_logs").insert({
+      user_id:    data.user.id,
+      action:     "ADMIN_LOGIN",
+      table_name: "auth",
+      extra:      { email: data.user.email, ua: navigator.userAgent.slice(0, 200) },
+    }).then(() => null);
+  }
+
   return {
     id: data.user.id,
     name: profile?.name ?? "",
     email: data.user.email ?? "",
-    role: roleMap[profile?.role ?? "customer"] ?? "Customer",
+    role,
     storeId: profile?.store_id ?? null,
     token: data.session?.access_token ?? "",
   };

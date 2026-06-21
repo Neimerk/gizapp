@@ -32,6 +32,7 @@ import { useAuthStore, initAuth } from "../../stores/authStore";
 import { formatBRL } from "../../utils/format";
 import { prefetchCart, prefetchCheckout, prefetchOrders } from "../../utils/prefetch";
 import { useErrorMonitor } from "../../hooks/useErrorMonitor";
+import CookieBanner from "../ui/CookieBanner";
 
 const baseNavLinks = [
   { label: "Início", path: "/", icon: Home },
@@ -262,6 +263,7 @@ export default function AppLayout() {
       )}
 
       <CompareBar />
+      <CookieBanner />
       <BottomNavigation />
 
       {/* ── DESKTOP CART BAR ── */}

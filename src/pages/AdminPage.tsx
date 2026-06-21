@@ -62,7 +62,7 @@ export default function AdminPage() {
 
 function AdminDashboard({ auth }: { auth: AuthUser }) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores" | "banners" | "coupons" | "withdrawals" | "errors">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores" | "banners" | "coupons" | "withdrawals" | "errors" | "audit">("overview");
 
   async function handleLogout() {
     await logout();
@@ -126,6 +126,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
             { key: "coupons",      label: "Cupons"      },
             { key: "withdrawals",  label: "Saques"      },
             { key: "errors",       label: "Erros"       },
+            { key: "audit",        label: "Auditoria"   },
           ] as const).map((t) => (
             <button
               key={t.key}
@@ -151,6 +152,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
         {tab === "coupons"     && <CouponsTab />}
         {tab === "withdrawals" && <WithdrawalsTab />}
         {tab === "errors"      && <ErrorsTab />}
+        {tab === "audit"       && <AuditTab />}
       </main>
     </div>
   );
@@ -1660,6 +1662,154 @@ function ErrorsTab() {
                       <pre className="overflow-x-auto rounded-xl bg-[#f8fafc] p-3 text-[10px] text-[#64748b]">
                         {JSON.stringify(e.extra, null, 2)}
                       </pre>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── AUDIT ── */
+
+type AuditLog = {
+  id: string;
+  created_at: string;
+  user_id?: string;
+  action: string;
+  table_name?: string;
+  record_id?: string;
+  old_data?: Record<string, unknown>;
+  new_data?: Record<string, unknown>;
+};
+
+const AUDIT_ACTION_COLOR: Record<string, string> = {
+  ADMIN_LOGIN:  "bg-blue-50 text-blue-700 border-blue-200",
+  DELETE:       "bg-red-50 text-red-700 border-red-200",
+  UPDATE:       "bg-yellow-50 text-yellow-700 border-yellow-200",
+  INSERT:       "bg-green-50 text-green-700 border-green-200",
+};
+
+function AuditTab() {
+  const [logs, setLogs]         = useState<AuditLog[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [actionFilter, setActionFilter] = useState("all");
+
+  async function load() {
+    setLoading(true);
+    const { supabase } = await import("../lib/supabase");
+    const { data } = await supabase
+      .from("audit_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setLogs((data ?? []) as AuditLog[]);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  const actions = [...new Set(logs.map((l) => l.action))];
+  const filtered = actionFilter === "all" ? logs : logs.filter((l) => l.action === actionFilter);
+
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: "Total de eventos", value: logs.length,                                              color: "#0f172a" },
+          { label: "Logins admin",     value: logs.filter((l) => l.action === "ADMIN_LOGIN").length,    color: "#2563eb" },
+          { label: "Deleções",         value: logs.filter((l) => l.action === "DELETE").length,         color: "#dc2626" },
+          { label: "Atualizações",     value: logs.filter((l) => l.action === "UPDATE").length,         color: "#d97706" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-xs text-[#64748b]">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setActionFilter("all")}
+          className={`rounded-xl px-3 py-1.5 text-xs font-black transition-colors ${
+            actionFilter === "all" ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+          }`}
+        >
+          Todos
+        </button>
+        {actions.map((a) => (
+          <button
+            key={a}
+            onClick={() => setActionFilter(a)}
+            className={`rounded-xl px-3 py-1.5 text-xs font-black transition-colors ${
+              actionFilter === a ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+            }`}
+          >
+            {a}
+          </button>
+        ))}
+        <button onClick={load} className="ml-auto rounded-xl border border-[#e2e8f0] bg-white p-2 text-[#64748b] hover:text-[#0f172a]">
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      {/* Lista */}
+      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 size={24} className="animate-spin text-[#002776]" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-16 text-center text-sm text-[#94a3b8]">Nenhum evento de auditoria registrado.</div>
+        ) : (
+          <div className="divide-y divide-[#f1f5f9]">
+            {filtered.map((l) => (
+              <div key={l.id} className="p-4">
+                <div
+                  className="flex cursor-pointer items-center gap-3"
+                  onClick={() => setExpanded(expanded === l.id ? null : l.id)}
+                >
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${AUDIT_ACTION_COLOR[l.action] ?? "bg-[#f8fafc] text-[#64748b] border-[#e2e8f0]"}`}>
+                    {l.action}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-[#0f172a]">
+                      {l.table_name ?? "—"}
+                      {l.record_id && <span className="ml-2 font-mono text-xs text-[#94a3b8]">#{l.record_id.slice(0, 8)}</span>}
+                    </p>
+                    <p className="text-[10px] text-[#94a3b8] flex items-center gap-2">
+                      <Clock3 size={10} />
+                      {new Date(l.created_at).toLocaleString("pt-BR")}
+                      {l.user_id && <span className="font-mono">· {l.user_id.slice(0, 8)}…</span>}
+                    </p>
+                  </div>
+                  <ChevronDown size={14} className={`shrink-0 text-[#94a3b8] transition-transform ${expanded === l.id ? "rotate-180" : ""}`} />
+                </div>
+
+                {expanded === l.id && (l.old_data || l.new_data) && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 pl-[calc(theme(space.3)+theme(space.16))]">
+                    {l.old_data && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-red-500">Antes</p>
+                        <pre className="overflow-x-auto rounded-xl bg-[#fef2f2] p-3 text-[10px] text-[#64748b]">
+                          {JSON.stringify(l.old_data, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                    {l.new_data && (
+                      <div>
+                        <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-green-600">Depois</p>
+                        <pre className="overflow-x-auto rounded-xl bg-[#f0fdf4] p-3 text-[10px] text-[#64748b]">
+                          {JSON.stringify(l.new_data, null, 2)}
+                        </pre>
+                      </div>
                     )}
                   </div>
                 )}

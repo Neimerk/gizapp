@@ -165,6 +165,35 @@ export default function AccountPage() {
     navigate("/login");
   }
 
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  async function handleDeleteAccount() {
+    if (!window.confirm("Tem certeza? Esta ação é irreversível. Seus dados serão apagados permanentemente.")) return;
+    if (!window.confirm("Confirme novamente: excluir conta e todos os seus dados?")) return;
+    setDeletingAccount(true);
+    try {
+      const { supabase } = await import("../lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${session?.access_token ?? ""}`,
+          },
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao excluir conta.");
+      localStorage.clear();
+      navigate("/");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao excluir conta.");
+    } finally {
+      setDeletingAccount(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -460,6 +489,24 @@ export default function AccountPage() {
             "Salvar cadastro"
           )}
         </button>
+
+        {/* LGPD — Exclusão de conta */}
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
+          <p className="text-xs font-black uppercase tracking-wide text-red-600">Zona de perigo</p>
+          <p className="mt-1 text-xs text-red-500">
+            A exclusão de conta é permanente. Seus dados pessoais serão anonimizados conforme a LGPD.{" "}
+            <Link to="/privacidade" className="underline underline-offset-2">Política de Privacidade</Link>
+          </p>
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="mt-3 flex items-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-xs font-black text-red-600 hover:bg-red-100 disabled:opacity-60"
+          >
+            {deletingAccount
+              ? <><Loader2 size={13} className="animate-spin" /> Excluindo…</>
+              : <><Trash2 size={13} /> Excluir minha conta</>}
+          </button>
+        </div>
 
       </div>
     </div>
