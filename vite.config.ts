@@ -64,6 +64,8 @@ export default defineConfig({
   ],
 
   build: {
+    // Nunca gerar source maps em produção — expõe código-fonte original
+    sourcemap: false,
     // Modernos browsers — output menor, sem polyfills desnecessários
     target: "esnext",
 

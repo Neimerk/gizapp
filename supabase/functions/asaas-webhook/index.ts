@@ -76,8 +76,14 @@ function paymentConfirmedHtml(customerName: string, orderId: string, total: numb
 
 serve(async (req) => {
   const token = req.headers.get("asaas-access-token");
-  if (WEBHOOK_TOKEN && token !== WEBHOOK_TOKEN) {
-    console.warn("[webhook] token inválido");
+
+  // Rejeitar se token não estiver configurado — nunca aceitar requests sem verificação
+  if (!WEBHOOK_TOKEN) {
+    console.error("[webhook] ASAAS_WEBHOOK_TOKEN não configurado — rejeitando todas as requisições");
+    return new Response("Service Unavailable", { status: 503 });
+  }
+  if (!token || token !== WEBHOOK_TOKEN) {
+    console.warn("[webhook] token inválido ou ausente");
     return new Response("Unauthorized", { status: 401 });
   }
 

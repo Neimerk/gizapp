@@ -137,11 +137,13 @@ create trigger orders_updated_at before update on orders
 create or replace function handle_new_user()
 returns trigger as $$
 begin
+  -- SEGURANÇA: nunca aceitar role do metadata — sempre iniciar como 'customer'
+  -- Impede privilege escalation onde o usuário envia role: "admin" no signup
   insert into public.profiles (id, name, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', ''),
-    coalesce(new.raw_user_meta_data->>'role', 'customer')
+    'customer'
   );
   return new;
 end;

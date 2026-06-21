@@ -24,7 +24,19 @@ dist-ssr
 *.sw?
 .vercel
 
-# Environment variables
+# Environment variables — NUNCA commitar secrets
 .env
 .env.local
 .env.*.local
+.env.production
+.env.production.local
+.env.staging
+.env.staging.local
+
+# Supabase — metadados locais do CLI, não devem ir para o repositório
+supabase/.temp/
+supabase/functions/.env
+
+# Vercel secrets
+.vercel/
+*.oidc-token

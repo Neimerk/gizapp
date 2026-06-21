@@ -271,11 +271,15 @@ export default function CheckoutPage() {
         paymentMethod,
         items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
         deliveryFeeOverride:  feeSource === "distance" ? deliveryFee : undefined,
+        // Cupom e pontos validados/debitados atomicamente no servidor:
+        couponCode:     coupon?.code,
+        pointsDiscount: pointsDiscount > 0 ? pointsDiscount : undefined,
       });
 
       saveOrderId(order.id);
       notifyOrderPlaced(order.id);
 
+      // Sincroniza estado local de pontos com o que o servidor debitou
       if (pointsDiscount > 0) {
         spendPoints(pointsDiscount, `Desconto no pedido #${order.id.slice(0, 8)}`);
       }

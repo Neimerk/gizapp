@@ -135,7 +135,7 @@ function ProductModal({
     };
     try {
       if (product) {
-        await updateStoreProduct(product.id, payload);
+        await updateStoreProduct(product.id, storeId, payload);
         showToast("Produto atualizado!", "success");
       } else {
         await createStoreProduct(storeId, payload);
@@ -1065,7 +1065,7 @@ function PedidosTab({
 
   const advanceMutation = useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: number; customerId?: string }) =>
-      sellerUpdateOrderStatus(orderId, status),
+      sellerUpdateOrderStatus(orderId, storeId, status),
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.storeOrders(storeId) });
       // Notifica comprador quando pedido sai para entrega ou é entregue
@@ -1083,7 +1083,7 @@ function PedidosTab({
   async function handleCancel(orderId: string) {
     setCancelling(orderId);
     try {
-      await sellerUpdateOrderStatus(orderId, 5);
+      await sellerUpdateOrderStatus(orderId, storeId, 5);
       queryClient.invalidateQueries({ queryKey: queryKeys.storeOrders(storeId) });
     } catch {
       showToast("Erro ao cancelar pedido.", "error");
@@ -1336,7 +1336,7 @@ export default function SellerPage() {
 
   const handleToggleAvailable = useCallback(async (p: StoreProduct) => {
     try {
-      await updateStoreProduct(p.id, { available: !p.available });
+      await updateStoreProduct(p.id, storeId, { available: !p.available });
       queryClient.invalidateQueries({ queryKey: queryKeys.myStoreProducts(storeId) });
     } catch {
       showToast("Erro ao atualizar.", "error");
@@ -1346,7 +1346,7 @@ export default function SellerPage() {
   const handleDeleteProduct = useCallback(async (id: string) => {
     setDeletingId(id);
     try {
-      await deleteStoreProduct(id);
+      await deleteStoreProduct(id, storeId);
       queryClient.invalidateQueries({ queryKey: queryKeys.myStoreProducts(storeId) });
       showToast("Produto removido.", "success");
     } catch {

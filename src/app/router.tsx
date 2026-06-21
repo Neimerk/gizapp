@@ -34,7 +34,7 @@ function PageSpinner() {
   );
 }
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: string }) {
   const { user, initialized } = useAuthStore();
   const location = useLocation();
 
@@ -50,6 +50,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
+  if (role && user.role !== role) {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -57,9 +61,11 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     element: (
-      <Suspense fallback={<PageSpinner />}>
-        <AdminPage />
-      </Suspense>
+      <ProtectedRoute role="Admin">
+        <Suspense fallback={<PageSpinner />}>
+          <AdminPage />
+        </Suspense>
+      </ProtectedRoute>
     ),
   },
   {

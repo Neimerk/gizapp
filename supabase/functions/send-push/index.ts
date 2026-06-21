@@ -98,11 +98,40 @@ serve(async (req) => {
     return json({ ok: false, error: "VAPID não configurado." });
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey     = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const authHeader  = req.headers.get("Authorization");
+
+  if (!authHeader) return json({ error: "Não autorizado." }, 401);
+
+  const admin = createClient(supabaseUrl, serviceKey);
+
+  // Aceita dois tipos de caller:
+  //   1. Funções internas (asaas-webhook, send-order-emails) — passam service role key
+  //   2. Sellers/admins autenticados — passam JWT de usuário válido
+  const isInternal = authHeader === `Bearer ${serviceKey}`;
+
+  if (!isInternal) {
+    // Valida JWT do usuário e verifica que é seller ou admin
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) return json({ error: "Não autorizado." }, 401);
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || !["seller", "admin"].includes(profile.role)) {
+      return json({ error: "Não autorizado." }, 401);
+    }
+  }
+
   try {
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
 
     const { userId, title, body, url } = await req.json() as {
       userId: string;

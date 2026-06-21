@@ -5,15 +5,27 @@ const RESEND_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM_EMAIL = Deno.env.get("EMAIL_FROM") ?? "BrasUX Shopping <noreply@brasux.com.br>";
 const APP_URL    = Deno.env.get("APP_URL") ?? "https://brasux.com.br";
 
-const CORS = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://shopping.brasux.com.br",
+  "https://brasux.com.br",
+  "https://brasux.vercel.app",
+];
 
-function json(data: unknown, status = 200) {
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") ?? "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin":  allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
+function json(data: unknown, status = 200, req?: Request) {
+  const cors = req ? corsHeaders(req) : { "Access-Control-Allow-Origin": ALLOWED_ORIGINS[0] };
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
@@ -274,7 +286,7 @@ function buyerPaymentConfirmedHtml(args: {
 // ── Serve ─────────────────────────────────────────────────────
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
 
   const supabaseUrl    = Deno.env.get("SUPABASE_URL")!;
   const anonKey        = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -282,7 +294,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Não autenticado." }, 401);
+    if (!authHeader) return json({ error: "Não autenticado." }, 401, req);
 
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -290,14 +302,14 @@ serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !user) return json({ error: "Token inválido." }, 401);
+    if (authErr || !user) return json({ error: "Token inválido." }, 401, req);
 
     const { orderId, type } = await req.json() as {
       orderId: string;
       type: "order_placed" | "payment_confirmed";
     };
 
-    if (!orderId) return json({ error: "orderId é obrigatório." }, 400);
+    if (!orderId) return json({ error: "orderId é obrigatório." }, 400, req);
 
     // Busca o pedido com itens e loja
     const { data: order, error: orderErr } = await admin
@@ -306,7 +318,7 @@ serve(async (req) => {
       .eq("id", orderId)
       .single();
 
-    if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404);
+    if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404, req);
 
     const store  = order.stores  as { name: string; email?: string; owner_id: string; delivery_time_max: number } | null;
     const items  = order.order_items as Array<{ product_name: string; quantity: number; unit_price: number; total_price: number }>;
@@ -376,9 +388,9 @@ serve(async (req) => {
       );
     }
 
-    return json({ ok: true });
+    return json({ ok: true }, 200, req);
   } catch (e) {
     console.error("[send-order-emails]", e);
-    return json({ error: "Erro ao enviar emails." }, 500);
+    return json({ error: "Erro ao enviar emails." }, 500, req);
   }
 });

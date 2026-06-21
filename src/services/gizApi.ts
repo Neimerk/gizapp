@@ -60,7 +60,9 @@ export async function registerCustomer(payload: RegisterPayload): Promise<AuthRe
   const { data, error } = await supabase.auth.signUp({
     email: payload.email,
     password: payload.password,
-    options: { data: { name: payload.name, role: "customer" } },
+    // Não passar 'role' no metadata — o trigger handle_new_user ignora qualquer role
+    // e sempre define 'customer'. Passar nome apenas.
+    options: { data: { name: payload.name } },
   });
   if (error || !data.user) throw new Error(error?.message || "Erro ao cadastrar cliente.");
 
@@ -269,8 +271,16 @@ export type CreateOrderPayload = {
   deliveryNeighborhood: string;
   paymentMethod: string;
   items: CreateOrderItem[];
-  /** Taxa calculada por distância. Se omitida, usa a taxa padrão da loja. */
+  /**
+   * Taxa calculada por distância pelo hook useDeliveryFee.
+   * O servidor valida que não é menor que store.delivery_fee nem maior que R$500.
+   * Se omitida, usa a taxa padrão da loja.
+   */
   deliveryFeeOverride?: number;
+  /** Código de cupom a aplicar. Validado atomicamente no servidor via use_coupon_atomic. */
+  couponCode?: string;
+  /** Pontos BrasUX a usar como desconto (1 ponto = R$1). Debitados no servidor. */
+  pointsDiscount?: number;
 };
 
 export type OrderItem = {
@@ -541,7 +551,20 @@ export async function getProductBySlug(slug: string): Promise<Product> {
 
 /* ── ORDERS API ──────────────────────────────────────────── */
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_PAYMENT_METHODS = new Set(["pix", "card", "boleto"]);
+
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
+  // Validação de entrada antes de qualquer query
+  if (!UUID_RE.test(payload.storeId)) throw new Error("Loja inválida.");
+  if (!payload.items?.length || payload.items.length > 50) throw new Error("Itens inválidos.");
+  if (!ALLOWED_PAYMENT_METHODS.has(payload.paymentMethod)) throw new Error("Método de pagamento inválido.");
+  if (!payload.deliveryAddress?.trim() || !payload.deliveryNeighborhood?.trim()) throw new Error("Endereço incompleto.");
+  for (const item of payload.items) {
+    if (!UUID_RE.test(item.storeProductId)) throw new Error("Produto inválido.");
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) throw new Error("Quantidade inválida.");
+  }
+
   const user = useAuthStore.getState().user;
 
   const { data: store, error: storeErr } = await supabase
@@ -565,9 +588,54 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
     return { ...item, unitPrice, totalPrice: unitPrice * item.quantity, productName: p.name, imageUrl: p.image_url };
   });
 
-  const deliveryFee = payload.deliveryFeeOverride ?? Number(store.delivery_fee);
+  const storeDefaultFee = Number(store.delivery_fee);
+  let deliveryFee: number;
+
+  if (payload.deliveryFeeOverride !== undefined) {
+    const raw = Number(payload.deliveryFeeOverride);
+    if (!isFinite(raw) || raw < 0) throw new Error("Taxa de entrega inválida.");
+    // Nunca abaixo da taxa mínima da loja, nunca acima de R$500
+    deliveryFee = Math.max(storeDefaultFee, Math.min(500, raw));
+  } else {
+    deliveryFee = storeDefaultFee;
+  }
+
   const subtotal = enriched.reduce((s, i) => s + i.totalPrice, 0);
-  const total = subtotal + deliveryFee;
+
+  // ── Cupom: validação atômica no servidor (resolve race condition) ──────────
+  let couponDiscount = 0;
+  if (payload.couponCode?.trim()) {
+    const { data: couponData, error: couponErr } = await supabase.rpc("use_coupon_atomic", {
+      p_code:    payload.couponCode.trim(),
+      p_user_id: user?.id ?? null,
+    });
+    if (couponErr) {
+      const msg = couponErr.message.includes("INVALID_COUPON")   ? "Cupom inválido ou expirado."
+                : couponErr.message.includes("EXPIRED_COUPON")   ? "Cupom expirado."
+                : couponErr.message.includes("EXHAUSTED_COUPON") ? "Cupom esgotado."
+                : couponErr.message.includes("ALREADY_USED")     ? "Você já utilizou este cupom."
+                : "Cupom inválido.";
+      throw new Error(msg);
+    }
+    const c = couponData as { type: string; value: number };
+    if (c.type === "percent")        couponDiscount = Math.round((subtotal * c.value) / 100 * 100) / 100;
+    else if (c.type === "fixed")     couponDiscount = Math.min(c.value, subtotal);
+    else if (c.type === "free_delivery") couponDiscount = deliveryFee;
+  }
+
+  // ── Pontos: debitar no servidor antes de criar o pedido ───────────────────
+  const pointsDiscount = Math.max(0, Math.floor(payload.pointsDiscount ?? 0));
+  if (pointsDiscount > 0 && user) {
+    const { data: ok, error: pointsErr } = await supabase.rpc("spend_points", {
+      p_user_id:    user.id,
+      p_amount:     pointsDiscount,
+      p_description: "Desconto em pedido",
+      p_order_id:   null,
+    });
+    if (pointsErr || !ok) throw new Error("Pontos insuficientes ou erro ao debitar.");
+  }
+
+  const total = Math.max(0.01, subtotal + deliveryFee - couponDiscount - pointsDiscount);
 
   const { data: order, error: orderErr } = await supabase
     .from("orders")
@@ -804,12 +872,23 @@ export async function getStoreOrders(storeId: string): Promise<Order[]> {
   return (data ?? []).map((row) => mapOrder(row as OrderRow));
 }
 
-export async function sellerUpdateOrderStatus(orderId: string, status: number): Promise<void> {
-  const { error } = await supabase
+const SELLER_ALLOWED_STATUSES = new Set([2, 3, 4, 5]); // preparando, saiu, entregue, cancelado
+
+export async function sellerUpdateOrderStatus(
+  orderId: string,
+  storeId: string,
+  status: number,
+): Promise<void> {
+  if (!SELLER_ALLOWED_STATUSES.has(status)) {
+    throw new Error("Status de pedido inválido.");
+  }
+  const { error, count } = await supabase
     .from("orders")
-    .update({ status })
-    .eq("id", orderId);
+    .update({ status }, { count: "exact" })
+    .eq("id", orderId)
+    .eq("store_id", storeId);   // defesa em profundidade — RLS também verifica owner_id
   if (error) throw new Error("Erro ao atualizar status do pedido.");
+  if (count === 0) throw new Error("Pedido não encontrado ou sem permissão.");
 }
 
 /* ── ADMIN ORDERS API ─────────────────────────────────────── */
@@ -994,7 +1073,11 @@ export async function createStoreProduct(storeId: string, payload: StoreProductP
   return mapStoreProduct(data);
 }
 
-export async function updateStoreProduct(productId: string, payload: Partial<StoreProductPayload>): Promise<StoreProduct> {
+export async function updateStoreProduct(
+  productId: string,
+  storeId: string,
+  payload: Partial<StoreProductPayload>,
+): Promise<StoreProduct> {
   const { data, error } = await supabase
     .from("store_products")
     .update({
@@ -1013,20 +1096,45 @@ export async function updateStoreProduct(productId: string, payload: Partial<Sto
       ...(payload.featured  !== undefined && { featured:  payload.featured  }),
     })
     .eq("id", productId)
+    .eq("store_id", storeId)   // defesa em profundidade — RLS também verifica owner_id
     .select()
     .single();
-  if (error || !data) throw new Error(error?.message || "Erro ao atualizar produto.");
+  if (error || !data) throw new Error(error?.message || "Produto não encontrado ou sem permissão.");
   return mapStoreProduct(data);
 }
 
-export async function deleteStoreProduct(productId: string): Promise<void> {
-  const { error } = await supabase.from("store_products").delete().eq("id", productId);
+export async function deleteStoreProduct(productId: string, storeId: string): Promise<void> {
+  const { error, count } = await supabase
+    .from("store_products")
+    .delete({ count: "exact" })
+    .eq("id", productId)
+    .eq("store_id", storeId);  // defesa em profundidade — RLS também verifica owner_id
   if (error) throw new Error("Erro ao remover produto.");
+  if (count === 0) throw new Error("Produto não encontrado ou sem permissão.");
 }
 
+const ALLOWED_IMAGE_TYPES: Record<string, { ext: string; magic: number[][] }> = {
+  "image/jpeg": { ext: "jpg",  magic: [[0xFF, 0xD8, 0xFF]] },
+  "image/png":  { ext: "png",  magic: [[0x89, 0x50, 0x4E, 0x47]] },
+  "image/webp": { ext: "webp", magic: [[0x52, 0x49, 0x46, 0x46]] },
+  "image/gif":  { ext: "gif",  magic: [[0x47, 0x49, 0x46, 0x38]] },
+};
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
+
 export async function uploadProductImage(file: File, storeId: string): Promise<string> {
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${storeId}/${Date.now()}.${ext}`;
+  const typeConfig = ALLOWED_IMAGE_TYPES[file.type];
+  if (!typeConfig) throw new Error("Formato não suportado. Use JPG, PNG, WebP ou GIF.");
+  if (file.size > MAX_IMAGE_SIZE) throw new Error("Arquivo muito grande. Máximo 5 MB.");
+
+  // Verifica magic bytes reais — impede spoofing do MIME type pelo browser
+  const header = await file.slice(0, 8).arrayBuffer();
+  const bytes = new Uint8Array(header);
+  const validMagic = typeConfig.magic.some((sig) =>
+    sig.every((byte, i) => bytes[i] === byte)
+  );
+  if (!validMagic) throw new Error("Arquivo inválido. O conteúdo não corresponde ao tipo de imagem.");
+
+  const path = `${storeId}/${crypto.randomUUID()}.${typeConfig.ext}`;
   const { data, error } = await supabase.storage
     .from("product-images")
     .upload(path, file, { upsert: false, contentType: file.type });
@@ -1527,14 +1635,17 @@ export async function getAvailableDeliveries(): Promise<AvailableDelivery[]> {
     });
 }
 
-export async function acceptDelivery(orderId: string, courierEarnings: number): Promise<Delivery> {
+export async function acceptDelivery(orderId: string): Promise<Delivery> {
   const user = useAuthStore.getState().user;
   if (!user) throw new Error("Não autenticado.");
+  // earnings calculado pelo servidor via RPC — nunca aceitar do cliente
   const { data, error } = await supabase
-    .from("deliveries")
-    .insert({ order_id: orderId, courier_id: user.id, status: "ACCEPTED", earnings: courierEarnings })
-    .select()
-    .single();
+    .rpc("accept_delivery_safe", { p_order_id: orderId, p_courier_id: user.id });
+  if (error) {
+    if (error.code === "23505") throw new Error("Esta entrega já foi aceita por outro entregador.");
+    throw new Error("Erro ao aceitar entrega.");
+  }
+  return mapDelivery(data as Record<string, unknown>);
   if (error) {
     if (error.code === "23505") throw new Error("Esta entrega já foi aceita por outro entregador.");
     throw new Error("Erro ao aceitar entrega.");

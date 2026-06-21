@@ -354,8 +354,8 @@ export default function CourierPage() {
   // ── Mutations ────────────────────────────────────────────
 
   const acceptMutation = useMutation({
-    mutationFn: ({ orderId, courierEarnings }: { orderId: string; courierEarnings: number }) =>
-      acceptDelivery(orderId, courierEarnings),
+    mutationFn: ({ orderId }: { orderId: string }) =>
+      acceptDelivery(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.availableDeliveries() });
       queryClient.invalidateQueries({ queryKey: queryKeys.myDeliveries() });
@@ -499,7 +499,7 @@ export default function CourierPage() {
                   key={d.orderId}
                   delivery={d}
                   loading={acceptMutation.isPending && acceptMutation.variables?.orderId === d.orderId}
-                  onAccept={() => acceptMutation.mutate({ orderId: d.orderId, courierEarnings: d.courierEarnings })}
+                  onAccept={() => acceptMutation.mutate({ orderId: d.orderId })}
                 />
               ))}
             </div>
