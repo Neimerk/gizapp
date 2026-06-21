@@ -1,10 +1,10 @@
 import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { SEO, canonicalUrl } from "../lib/seo";
 
-const APP_NAME = "BrasUX Shopping";
-const DEFAULT_DESCRIPTION =
-  "O Shopping Brasileiro de Soluções Tecnológicas. Educação, IA, Desenvolvimento, Gestão, Dados, APIs e muito mais.";
+type RobotsDirective = "index,follow" | "noindex,nofollow" | "noindex,follow" | "index,nofollow";
 
-function setMetaTag(attr: "name" | "property", key: string, value: string) {
+function setMeta(attr: "name" | "property", key: string, value: string) {
   let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
   if (!el) {
     el = document.createElement("meta");
@@ -14,37 +14,68 @@ function setMetaTag(attr: "name" | "property", key: string, value: string) {
   el.setAttribute("content", value);
 }
 
+function setLink(rel: string, href: string) {
+  let el = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+  if (!el) {
+    el = document.createElement("link");
+    el.setAttribute("rel", rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("href", href);
+}
+
+function removeMeta(attr: "name" | "property", key: string) {
+  document.querySelector(`meta[${attr}="${key}"]`)?.remove();
+}
+
 export function usePageMeta({
   title,
   description,
   imageUrl,
+  robots,
+  ogType,
+  canonical: explicitCanonical,
 }: {
   title?: string;
   description?: string;
   imageUrl?: string;
+  robots?: RobotsDirective;
+  ogType?: "website" | "product" | "article";
+  canonical?: string;
 } = {}) {
+  const { pathname } = useLocation();
+
   useEffect(() => {
-    const fullTitle = title ? `${title} — ${APP_NAME}` : APP_NAME;
-    const desc = description ?? DEFAULT_DESCRIPTION;
+    const fullTitle = title ? `${title} — ${SEO.site.name}` : SEO.site.name;
+    const desc = description ?? SEO.site.description;
+    const image = imageUrl ?? SEO.site.ogImage;
+    const canonical = explicitCanonical ?? canonicalUrl(pathname);
+    const type = ogType ?? "website";
+    const robotsContent = robots ?? "index,follow";
 
     document.title = fullTitle;
 
-    setMetaTag("name", "description", desc);
-    setMetaTag("property", "og:title", fullTitle);
-    setMetaTag("property", "og:description", desc);
-    setMetaTag("property", "og:type", "website");
-    setMetaTag("property", "og:site_name", APP_NAME);
-    setMetaTag("name", "twitter:card", "summary_large_image");
-    setMetaTag("name", "twitter:title", fullTitle);
-    setMetaTag("name", "twitter:description", desc);
+    setMeta("name", "description", desc);
+    setMeta("name", "robots", robotsContent);
+    setMeta("name", "twitter:card", "summary_large_image");
+    setMeta("name", "twitter:site", SEO.site.twitterHandle);
+    setMeta("name", "twitter:title", fullTitle);
+    setMeta("name", "twitter:description", desc);
+    setMeta("name", "twitter:image", image);
 
-    if (imageUrl) {
-      setMetaTag("property", "og:image", imageUrl);
-      setMetaTag("name", "twitter:image", imageUrl);
-    }
+    setMeta("property", "og:title", fullTitle);
+    setMeta("property", "og:description", desc);
+    setMeta("property", "og:type", type);
+    setMeta("property", "og:site_name", SEO.site.name);
+    setMeta("property", "og:image", image);
+    setMeta("property", "og:url", canonical);
+    setMeta("property", "og:locale", SEO.site.locale);
+
+    setLink("canonical", canonical);
 
     return () => {
-      document.title = APP_NAME;
+      document.title = SEO.site.name;
+      removeMeta("name", "robots");
     };
-  }, [title, description, imageUrl]);
+  }, [title, description, imageUrl, robots, ogType, explicitCanonical, pathname]);
 }

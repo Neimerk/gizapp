@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
-import { usePageMeta } from "../hooks/usePageMeta";
+import { usePageMeta } from "../hooks/usePageMeta"; // noindex via robots prop
 import { ArrowRight, Clock, ExternalLink, History, LayoutGrid, List, Search, SlidersHorizontal, X } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
@@ -48,6 +48,11 @@ const TRENDING_SEARCHES = [
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  usePageMeta({
+    title: search ? `Busca por "${search}"` : "Buscar produtos",
+    description: "Busque produtos, lojas e serviços no BrasUX Shopping.",
+    robots: "noindex,follow",
+  });
   const [filter, setFilter] = useState("");
   const [page, setPage] = useState(1);
   const [minPrice, setMinPrice] = useState("");

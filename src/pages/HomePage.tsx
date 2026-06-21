@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, useEffect } from "react";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { useJsonLd } from "../hooks/useJsonLd";
+import { buildOrganizationSchema, buildWebSiteSchema, buildFaqSchema, HOME_FAQS, canonicalUrl } from "../lib/seo";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { haversineKm } from "../utils/geo";
 import {
@@ -50,7 +52,19 @@ const catGradients = [
 ];
 
 export default function HomePage() {
-  usePageMeta();
+  usePageMeta({
+    title: "Shopping Brasileiro de Soluções Tecnológicas",
+    description:
+      "BrasUX Shopping — restaurantes, mercado, farmácia, eletrônicos, serviços e muito mais com entrega rápida em todo o Brasil.",
+    canonical: canonicalUrl("/"),
+  });
+
+  const homeSchemas = useMemo(
+    () => [buildOrganizationSchema(), buildWebSiteSchema(), buildFaqSchema([...HOME_FAQS])],
+    []
+  );
+  useJsonLd(homeSchemas);
+
   const { position } = useGeolocation();
 
   const { data: banners = [] } = useQuery({

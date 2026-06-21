@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
-import { supabase } from "../lib/supabase";
+
+// supabase importado de forma lazy — não deve estar no bundle inicial (CWV)
+const getSupabase = () => import("../lib/supabase").then((m) => m.supabase);
 
 const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
 
@@ -11,6 +13,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 async function saveSub(sub: PushSubscription): Promise<void> {
+  const supabase = await getSupabase();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
 
@@ -24,6 +27,7 @@ async function saveSub(sub: PushSubscription): Promise<void> {
 }
 
 async function deleteSub(endpoint: string): Promise<void> {
+  const supabase = await getSupabase();
   await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
 }
 
@@ -43,7 +47,6 @@ export function usePushNotifications() {
       setStatus("unsupported");
       return false;
     }
-
     try {
       const reg   = await navigator.serviceWorker.ready;
       const perm  = await Notification.requestPermission();
@@ -53,7 +56,6 @@ export function usePushNotifications() {
         userVisibleOnly:      true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) as unknown as ArrayBuffer,
       });
-
       await saveSub(sub);
       setStatus("subscribed");
       return true;
@@ -77,11 +79,9 @@ export function usePushNotifications() {
     }
   }, []);
 
-  /** Verifica se já existe subscrição ativa e a persiste no banco */
   const syncExisting = useCallback(async (): Promise<void> => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     if (Notification.permission !== "granted") return;
-
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();

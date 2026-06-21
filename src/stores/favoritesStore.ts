@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { getMyFavoriteIds, toggleFavoriteDB } from "../services/gizApi";
+
+// gizApi importado de forma lazy para não puxar supabase no bundle inicial
+const gizApi = () => import("../services/gizApi");
 
 export type FavoriteProduct = {
   id: string;
@@ -50,8 +52,9 @@ export const useFavoritesStore = create<FavoritesState>()(
             ? get().products.filter((p) => p.id !== product.id)
             : [...get().products, product],
         });
-        // Sync to DB in background (non-blocking)
-        toggleFavoriteDB("product", product.id).catch(() => null);
+        gizApi().then(({ toggleFavoriteDB }) =>
+          toggleFavoriteDB("product", product.id)
+        ).catch(() => null);
       },
 
       toggleStore: (store) => {
@@ -61,7 +64,9 @@ export const useFavoritesStore = create<FavoritesState>()(
             ? get().stores.filter((s) => s.id !== store.id)
             : [...get().stores, store],
         });
-        toggleFavoriteDB("store", store.id).catch(() => null);
+        gizApi().then(({ toggleFavoriteDB }) =>
+          toggleFavoriteDB("store", store.id)
+        ).catch(() => null);
       },
 
       isProductFavorite: (id) => get().products.some((p) => p.id === id),
@@ -73,19 +78,14 @@ export const useFavoritesStore = create<FavoritesState>()(
 
       loadFromDB: async () => {
         try {
+          const { getMyFavoriteIds } = await gizApi();
           const { productIds, storeIds } = await getMyFavoriteIds();
-          // Keep full objects from current local state that match DB IDs,
-          // and keep any extras already in local state that aren't in DB yet
-          // (optimistic adds before sync completes)
           const currentProducts = get().products;
           const currentStores = get().stores;
-
           const syncedProducts = currentProducts.filter((p) => productIds.includes(p.id));
           const syncedStores = currentStores.filter((s) => storeIds.includes(s.id));
-
           set({ products: syncedProducts, stores: syncedStores, synced: true });
         } catch {
-          // Keep local state as fallback
           set({ synced: true });
         }
       },

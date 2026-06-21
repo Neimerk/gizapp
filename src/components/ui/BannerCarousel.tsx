@@ -77,6 +77,10 @@ export default function BannerCarousel({ banners }: Props) {
             alt={b.title}
             className="h-full w-full object-cover"
             draggable={false}
+            loading={i === 0 ? "eager" : "lazy"}
+            decoding={i === 0 ? "sync" : "async"}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            fetchPriority={i === 0 ? ("high" as any) : undefined}
           />
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />

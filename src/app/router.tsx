@@ -24,6 +24,7 @@ const ChatPage = lazy(() => import("../pages/ChatPage"));
 const ServicesPage = lazy(() => import("../pages/ServicesPage"));
 const SellerPage   = lazy(() => import("../pages/SellerPage"));
 const CourierPage  = lazy(() => import("../pages/CourierPage"));
+const SobrePage    = lazy(() => import("../pages/SobrePage"));
 
 function PageSpinner() {
   return (
@@ -102,6 +103,7 @@ export const router = createBrowserRouter([
       { path: "comparar", element: <ComparePage /> },
       { path: "lojas/:storeId/chat", element: <ChatPage /> },
       { path: "servicos", element: <ServicesPage /> },
+      { path: "sobre", element: <SobrePage /> },
       {
         path: "minha-loja",
         element: (

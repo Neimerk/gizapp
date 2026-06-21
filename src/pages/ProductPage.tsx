@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { useJsonLd } from "../hooks/useJsonLd";
+import { buildProductSchema, buildBreadcrumbSchema, canonicalUrl } from "../lib/seo";
+import Breadcrumbs from "../components/seo/Breadcrumbs";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -75,7 +78,42 @@ export default function ProductPage() {
     title: product?.name,
     description: product?.description ?? undefined,
     imageUrl: product?.imageUrl ? getProductImageUrl(product.imageUrl) : undefined,
+    ogType: "product",
+    canonical: canonicalUrl(`/lojas/${storeId}/produto/${productId}`),
   });
+
+  const { stats } = useProductReviews(productId);
+
+  const productSchema = useMemo(() => {
+    if (!product || !store) return null;
+    return buildProductSchema({
+      id: product.id,
+      name: product.name,
+      description: product.description ?? undefined,
+      imageUrl: product.imageUrl ? getProductImageUrl(product.imageUrl) : undefined,
+      price: Number(product.price),
+      promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
+      brand: product.brand ?? undefined,
+      category: product.category,
+      stock: product.stock,
+      storeId: store.id,
+      storeName: store.name,
+      averageRating: stats.average > 0 ? stats.average : undefined,
+      reviewCount: stats.total > 0 ? stats.total : undefined,
+    });
+  }, [product, store, stats]);
+
+  const breadcrumbSchema = useMemo(() => {
+    if (!product || !store) return null;
+    return buildBreadcrumbSchema([
+      { name: "Início", path: "/" },
+      { name: "Lojas", path: "/lojas" },
+      { name: store.name, path: `/lojas/${storeId}` },
+      { name: product.name, path: `/lojas/${storeId}/produto/${productId}` },
+    ]);
+  }, [product, store, storeId, productId]);
+
+  useJsonLd(productSchema && breadcrumbSchema ? [productSchema, breadcrumbSchema] : null);
 
   function handleShare() {
     const url = window.location.href;
@@ -140,6 +178,17 @@ export default function ProductPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumbs */}
+      {store && product && (
+        <Breadcrumbs
+          items={[
+            { name: "Lojas", path: "/lojas" },
+            { name: store.name, path: `/lojas/${storeId}` },
+            { name: product.name, path: `/lojas/${storeId}/produto/${productId}` },
+          ]}
+        />
+      )}
+
       {/* Back + actions */}
       <div className="flex items-center justify-between">
         <Link
@@ -184,6 +233,8 @@ export default function ProductPage() {
             category={product.category}
             containerClassName="h-64 w-full rounded-2xl overflow-hidden"
             className="h-64 w-full object-contain"
+            fetchpriority="high"
+            eager
           />
         </div>
 

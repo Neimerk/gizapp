@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { getMyPoints, dbEarnPoints, dbSpendPoints } from "../services/gizApi";
+
+// gizApi importado de forma lazy para não puxar supabase no bundle inicial
+const gizApi = () => import("../services/gizApi");
 
 const RATE = 1; // 1 ponto por R$ 1,00
 
@@ -40,8 +42,9 @@ export const usePointsStore = create<PointsState>()(
           points: s.points + pts,
           history: [entry, ...s.history].slice(0, 100),
         }));
-        // Persist to DB in background
-        dbEarnPoints(amountBRL, description, orderId).catch(() => null);
+        gizApi().then(({ dbEarnPoints }) =>
+          dbEarnPoints(amountBRL, description, orderId)
+        ).catch(() => null);
       },
 
       spend: (points, description = "Resgate de pontos", orderId) => {
@@ -56,13 +59,15 @@ export const usePointsStore = create<PointsState>()(
           points: s.points - points,
           history: [entry, ...s.history].slice(0, 100),
         }));
-        // Persist to DB in background
-        dbSpendPoints(points, description, orderId).catch(() => null);
+        gizApi().then(({ dbSpendPoints }) =>
+          dbSpendPoints(points, description, orderId)
+        ).catch(() => null);
         return true;
       },
 
       loadFromDB: async () => {
         try {
+          const { getMyPoints } = await gizApi();
           const { balance, transactions } = await getMyPoints();
           set({
             points: balance,

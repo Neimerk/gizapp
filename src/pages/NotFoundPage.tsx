@@ -1,8 +1,14 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Home, SearchX } from "lucide-react";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function NotFoundPage() {
   const navigate = useNavigate();
+  usePageMeta({
+    title: "Página não encontrada",
+    description: "O endereço que você acessou não existe ou foi removido do BrasUX Shopping.",
+    robots: "noindex,nofollow",
+  });
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 py-12 text-center">

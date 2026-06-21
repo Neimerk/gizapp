@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import BottomNavigation from "./BottomNavigation";
+import Footer from "./Footer";
 import BrasUXLogo from "../ui/BrasUXLogo";
 import ErrorBoundary from "./ErrorBoundary";
 import CompareBar from "../ui/CompareBar";
@@ -27,7 +28,7 @@ import { useFavoritesStore } from "../../stores/favoritesStore";
 import { usePointsStore } from "../../stores/pointsStore";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { useVoiceSearch } from "../../hooks/useVoiceSearch";
-import { useAuthStore } from "../../stores/authStore";
+import { useAuthStore, initAuth } from "../../stores/authStore";
 import { formatBRL } from "../../utils/format";
 import { prefetchCart, prefetchCheckout, prefetchOrders } from "../../utils/prefetch";
 
@@ -52,6 +53,9 @@ export default function AppLayout() {
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
+
+  // Inicializa auth lazy — carrega Supabase apenas após primeiro render
+  useEffect(() => { initAuth(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync favorites, pontos e push subscription quando usuário loga/desloga
   const loadFavorites = useFavoritesStore((s) => s.loadFromDB);
@@ -208,11 +212,7 @@ export default function AppLayout() {
       <Toast />
 
       {/* ── MAIN CONTENT ── */}
-      <main
-        className={`mx-auto max-w-7xl px-4 py-6 md:px-8 md:pb-8 ${
-          totalItems > 0 ? "pb-44" : "pb-32"
-        }`}
-      >
+      <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:pb-8">
         <ErrorBoundary>
           <Suspense
             fallback={
@@ -225,6 +225,8 @@ export default function AppLayout() {
           </Suspense>
         </ErrorBoundary>
       </main>
+
+      <Footer />
 
       {/* ── FLOATING CART BAR (mobile) ── */}
       {totalItems > 0 && (

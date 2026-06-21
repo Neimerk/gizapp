@@ -1,5 +1,7 @@
 import { create } from "zustand";
-import { supabase } from "../lib/supabase";
+
+// supabase carregado de forma lazy — importado apenas quando initAuth() é chamado
+const getSupabase = () => import("../lib/supabase").then((m) => m.supabase);
 
 export type UserRole = "Admin" | "Customer" | "Seller" | "Courier";
 
@@ -28,7 +30,6 @@ const roleMap: Record<string, UserRole> = {
   courier: "Courier",
 };
 
-// Busca o perfil usando fetch direto com o token JWT (evita inicialização async do Supabase)
 async function fetchProfileWithToken(userId: string, email: string, accessToken: string): Promise<AuthUser | null> {
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -57,7 +58,6 @@ async function fetchProfileWithToken(userId: string, email: string, accessToken:
   }
 }
 
-// Lê sessão do localStorage sem depender do Supabase client
 function readStoredSession(): { userId: string; email: string; accessToken: string; refreshToken: string } | null {
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -77,10 +77,19 @@ function readStoredSession(): { userId: string; email: string; accessToken: stri
   }
 }
 
-async function init() {
+let _initDone = false;
+
+// Chamado pelo AppLayout no primeiro useEffect — garante que supabase não está no bundle inicial
+export async function initAuth(): Promise<void> {
+  if (_initDone) return;
+  _initDone = true;
+
   const stored = readStoredSession();
+
+  // Download lazy do supabase — só acontece aqui, após o primeiro render
+  const supabase = await getSupabase();
+
   if (stored) {
-    // Sincroniza o Supabase client sem network call (apenas seta na memória)
     await supabase.auth.setSession({
       access_token: stored.accessToken,
       refresh_token: stored.refreshToken,
@@ -91,22 +100,20 @@ async function init() {
   } else {
     useAuthStore.setState({ user: null, initialized: true });
   }
+
+  // Registra listener para login/logout/refresh futuros
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === "INITIAL_SESSION") return;
+
+    if (session?.user) {
+      const user = await fetchProfileWithToken(
+        session.user.id,
+        session.user.email ?? "",
+        session.access_token ?? ""
+      );
+      useAuthStore.setState({ user, initialized: true });
+    } else {
+      useAuthStore.setState({ user: null, initialized: true });
+    }
+  });
 }
-
-init();
-
-// Mantém sincronizado com eventos posteriores (login, logout, refresh)
-supabase.auth.onAuthStateChange(async (event, session) => {
-  if (event === "INITIAL_SESSION") return;
-
-  if (session?.user) {
-    const user = await fetchProfileWithToken(
-      session.user.id,
-      session.user.email ?? "",
-      session.access_token ?? ""
-    );
-    useAuthStore.setState({ user, initialized: true });
-  } else {
-    useAuthStore.setState({ user: null, initialized: true });
-  }
-});

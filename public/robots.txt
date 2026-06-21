@@ -1,0 +1,44 @@
+User-agent: *
+Allow: /
+
+# Páginas funcionais/privadas — sem valor para indexação
+Disallow: /carrinho
+Disallow: /checkout
+Disallow: /conta
+Disallow: /pedidos
+Disallow: /favoritos
+Disallow: /comparar
+Disallow: /admin
+Disallow: /entregador
+Disallow: /minha-loja
+Disallow: /login
+
+# Busca com query string duplicada
+Disallow: /buscar?*
+
+# Crawl delay amigável
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://shopping.brasux.com.br/sitemap-index.xml
+Sitemap: https://shopping.brasux.com.br/sitemap.xml
+
+# GPTBot (OpenAI) — permitir para citações AI
+User-agent: GPTBot
+Allow: /
+
+# Google-Extended (Gemini) — permitir para AI Overviews
+User-agent: Google-Extended
+Allow: /
+
+# PerplexityBot — permitir citações
+User-agent: PerplexityBot
+Allow: /
+
+# CCBot (Common Crawl / Claude) — permitir citações
+User-agent: CCBot
+Allow: /
+
+# Anthropic-AI — permitir citações
+User-agent: anthropic-ai
+Allow: /
