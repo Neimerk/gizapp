@@ -1,56 +1,104 @@
 import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getProductReviews,
+  getMyReview,
+  upsertReview,
+  deleteReview,
+  queryKeys,
+  type Review,
+} from "../services/gizApi";
+import { useAuthStore } from "../stores/authStore";
 
-export type ProductReview = {
-  productId: string;
-  stars: number;
-  comment?: string;
-  date: string;
+export type { Review };
+
+export type ReviewStats = {
+  total: number;
+  average: number;
+  distribution: Record<1 | 2 | 3 | 4 | 5, number>;
 };
 
-const KEY = "brasux-product-reviews";
-
-function loadAll(): Record<string, ProductReview> {
-  try {
-    const d = JSON.parse(localStorage.getItem(KEY) ?? "{}");
-    return typeof d === "object" && d !== null ? d : {};
-  } catch {
-    return {};
-  }
+function calcStats(reviews: Review[]): ReviewStats {
+  const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  reviews.forEach((r) => dist[r.stars]++);
+  const total = reviews.length;
+  const average = total > 0 ? reviews.reduce((s, r) => s + r.stars, 0) / total : 0;
+  return { total, average, distribution: dist as ReviewStats["distribution"] };
 }
 
-function persistAll(data: Record<string, ProductReview>) {
-  localStorage.setItem(KEY, JSON.stringify(data));
-}
+export function useProductReviews(storeProductId: string) {
+  const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
 
-export function getProductReview(productId: string): ProductReview | null {
-  return loadAll()[productId] ?? null;
-}
+  const [editStars, setEditStars] = useState(0);
+  const [editComment, setEditComment] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
-export function useProductReviews(productId: string) {
-  const [review, setReview] = useState<ProductReview | null>(() => getProductReview(productId));
+  const { data: allReviews = [] } = useQuery({
+    queryKey: queryKeys.productReviews(storeProductId),
+    queryFn: () => getProductReviews(storeProductId),
+    staleTime: 60_000,
+  });
+
+  const { data: myReview = null } = useQuery({
+    queryKey: queryKeys.myReview(storeProductId),
+    queryFn: () => getMyReview(storeProductId),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+
+  const stats = calcStats(allReviews);
+
+  const submitMutation = useMutation({
+    mutationFn: ({ stars, comment }: { stars: number; comment?: string }) =>
+      upsertReview(storeProductId, stars, comment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.productReviews(storeProductId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myReview(storeProductId) });
+      setIsEditing(false);
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: () => deleteReview(storeProductId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.productReviews(storeProductId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.myReview(storeProductId) });
+      setEditStars(0);
+      setEditComment("");
+    },
+  });
+
+  const startEdit = useCallback(() => {
+    setEditStars(myReview?.stars ?? 0);
+    setEditComment(myReview?.comment ?? "");
+    setIsEditing(true);
+  }, [myReview]);
+
+  const cancelEdit = useCallback(() => setIsEditing(false), []);
 
   const submit = useCallback(
-    (stars: number, comment?: string) => {
-      const newReview: ProductReview = {
-        productId,
-        stars,
-        comment: comment?.trim() || undefined,
-        date: new Date().toISOString(),
-      };
-      setReview(newReview);
-      const all = loadAll();
-      all[productId] = newReview;
-      persistAll(all);
-    },
-    [productId]
+    (stars: number, comment?: string) => submitMutation.mutate({ stars, comment }),
+    [submitMutation]
   );
 
-  const remove = useCallback(() => {
-    setReview(null);
-    const all = loadAll();
-    delete all[productId];
-    persistAll(all);
-  }, [productId]);
+  const remove = useCallback(() => removeMutation.mutate(), [removeMutation]);
 
-  return { review, submit, remove };
+  return {
+    allReviews,
+    myReview,
+    stats,
+    isEditing,
+    editStars,
+    editComment,
+    setEditStars,
+    setEditComment,
+    startEdit,
+    cancelEdit,
+    submit,
+    remove,
+    submitting: submitMutation.isPending,
+    removing: removeMutation.isPending,
+    error: submitMutation.error?.message ?? removeMutation.error?.message ?? null,
+  };
 }

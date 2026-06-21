@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
+  Bike,
   Briefcase,
   Home,
   Mic,
@@ -21,9 +23,13 @@ import Onboarding from "../ui/Onboarding";
 import Toast from "../ui/Toast";
 import { useCartStore } from "../../stores/cartStore";
 import { useThemeStore } from "../../stores/themeStore";
+import { useFavoritesStore } from "../../stores/favoritesStore";
+import { usePointsStore } from "../../stores/pointsStore";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { useVoiceSearch } from "../../hooks/useVoiceSearch";
 import { useAuthStore } from "../../stores/authStore";
 import { formatBRL } from "../../utils/format";
+import { prefetchCart, prefetchCheckout, prefetchOrders } from "../../utils/prefetch";
 
 const baseNavLinks = [
   { label: "Início", path: "/", icon: Home },
@@ -36,13 +42,28 @@ const baseNavLinks = [
 export default function AppLayout() {
   const authUser = useAuthStore((s) => s.user);
   const isSellerOrAdmin = authUser?.role === "Seller" || authUser?.role === "Admin";
-  const navLinks = isSellerOrAdmin
+  const isCourier       = authUser?.role === "Courier";
+  const navLinks = isCourier
+    ? [baseNavLinks[0], { label: "Entregas", path: "/entregador", icon: Bike }, baseNavLinks[3], baseNavLinks[4]]
+    : isSellerOrAdmin
     ? [...baseNavLinks.slice(0, 4), { label: "Minha Loja", path: "/minha-loja", icon: StoreIcon }, baseNavLinks[4]]
     : baseNavLinks;
 
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
+
+  // Sync favorites, pontos e push subscription quando usuário loga/desloga
+  const loadFavorites = useFavoritesStore((s) => s.loadFromDB);
+  const loadPoints    = usePointsStore((s) => s.loadFromDB);
+  const { syncExisting: syncPush } = usePushNotifications();
+  useEffect(() => {
+    if (authUser) {
+      loadFavorites();
+      loadPoints();
+      syncPush(); // persiste subscription existente no banco após login
+    }
+  }, [authUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -137,6 +158,11 @@ export default function AppLayout() {
                 key={item.path}
                 to={item.path}
                 end={item.path === "/"}
+                onMouseEnter={() => {
+                  if (item.path === "/carrinho") prefetchCart();
+                  if (item.path === "/pedidos")  prefetchOrders();
+                  if (item.path === "/checkout") prefetchCheckout();
+                }}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                     isActive
@@ -163,6 +189,7 @@ export default function AppLayout() {
           {/* Cart button */}
           <Link
             to="/carrinho"
+            onMouseEnter={prefetchCart}
             className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-all hover:border-[#16a34a]/40 hover:text-[#16a34a]"
           >
             <ShoppingCart size={18} />
@@ -187,7 +214,15 @@ export default function AppLayout() {
         }`}
       >
         <ErrorBoundary>
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex min-h-[60vh] items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
 
@@ -195,6 +230,7 @@ export default function AppLayout() {
       {totalItems > 0 && (
         <Link
           to="/carrinho"
+          onMouseEnter={prefetchCheckout}
           className="fixed left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between rounded-2xl px-5 py-3.5 md:hidden"
           style={{
             bottom: "96px",

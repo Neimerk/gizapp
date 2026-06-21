@@ -48,6 +48,8 @@ export default function ProductImage({ imageUrl, alt, category = "", className =
       src={getProductImageUrl(imageUrl)}
       alt={alt ?? ""}
       onError={() => setError(true)}
+      loading="lazy"
+      decoding="async"
       className={className}
     />
   );

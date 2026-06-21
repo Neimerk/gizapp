@@ -15,7 +15,7 @@ export default function ProductCard({ product }: Props) {
       className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
-      <div className="product-img-bg flex h-40 items-center justify-center p-3">
+      <div className="product-img-bg flex h-40 items-center justify-center overflow-hidden rounded-t-3xl p-3">
         <ProductImage
           imageUrl={product.imageUrl}
           alt={product.imageAlt || product.name}

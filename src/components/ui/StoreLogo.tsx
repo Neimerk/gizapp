@@ -16,6 +16,8 @@ export default function StoreLogo({ logoUrl, name, className = "h-full w-full ob
     <img
       src={getProductImageUrl(logoUrl)}
       alt=""
+      loading="lazy"
+      decoding="async"
       className={className}
       onError={() => setError(true)}
     />

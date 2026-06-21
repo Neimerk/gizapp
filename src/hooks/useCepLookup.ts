@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-type CepData = { logradouro: string; bairro: string };
+type CepData = { logradouro: string; bairro: string; localidade: string; uf: string };
 
 const num = (v: string) => v.replace(/\D/g, "");
 
@@ -19,7 +19,7 @@ export function useCepLookup() {
       if (!res.ok) throw new Error("Erro ao consultar CEP");
       const data = await res.json();
       if (data.erro) throw new Error("CEP não encontrado");
-      return { logradouro: data.logradouro ?? "", bairro: data.bairro ?? "" };
+      return { logradouro: data.logradouro ?? "", bairro: data.bairro ?? "", localidade: data.localidade ?? "", uf: data.uf ?? "" };
     } catch (e) {
       setError(e instanceof Error ? e.message : "CEP não encontrado");
       return null;

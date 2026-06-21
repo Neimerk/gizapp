@@ -1,15 +1,17 @@
-import { ArrowRight, Bike, Clock3, Star } from "lucide-react";
+import { ArrowRight, Bike, Clock3, MapPin, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { type Store } from "../../services/gizApi";
 import { formatBRL } from "../../utils/format";
+import { formatDistance } from "../../utils/geo";
 import StoreLogo from "../ui/StoreLogo";
 
 interface Props {
   store: Store;
+  distanceKm?: number;
 }
 
-export default function StoreCard({ store }: Props) {
+export default function StoreCard({ store, distanceKm }: Props) {
   const deliveryFeeText =
     Number(store.deliveryFee) === 0 ? "Grátis" : formatBRL(Number(store.deliveryFee));
 
@@ -26,6 +28,7 @@ export default function StoreCard({ store }: Props) {
             "radial-gradient(circle at 80% 30%, rgba(0,39,118,0.55), transparent 55%), linear-gradient(135deg, #0a1628 0%, #1e293b 100%)",
         }}
       >
+        {/* Status aberto/fechado */}
         <span
           className={`absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
             store.isOpen
@@ -37,6 +40,15 @@ export default function StoreCard({ store }: Props) {
           {store.isOpen ? "Aberto" : "Fechado"}
         </span>
 
+        {/* Badge de distância */}
+        {distanceKm !== undefined && (
+          <span className="absolute left-4 top-4 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+            <MapPin size={10} />
+            {formatDistance(distanceKm)}
+          </span>
+        )}
+
+        {/* Logo */}
         <span
           className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
           style={{
@@ -61,8 +73,8 @@ export default function StoreCard({ store }: Props) {
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           <StatBadge icon={<Clock3 size={12} />} label="Entrega" value={`${store.deliveryTimeMin}-${store.deliveryTimeMax}min`} />
-          <StatBadge icon={<Bike size={12} />} label="Taxa" value={deliveryFeeText} />
-          <StatBadge icon={<Star size={12} />} label="Nota" value={Number(store.rating).toFixed(1)} />
+          <StatBadge icon={<Bike size={12} />}   label="Taxa"    value={deliveryFeeText} />
+          <StatBadge icon={<Star size={12} />}   label="Nota"    value={Number(store.rating).toFixed(1)} />
         </div>
 
         <div

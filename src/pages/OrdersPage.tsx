@@ -5,7 +5,7 @@ const MapTrack = lazy(() => import("../components/ui/MapTrack"));
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getMyOrders, getProductImageUrl, queryKeys, type Order } from "../services/gizApi";
+import { getMyOrders, getProductImageUrl, queryKeys, upsertReview, type Order } from "../services/gizApi";
 import type { CourierPosition } from "../components/ui/MapTrack";
 import { ordersConnection, startOrdersConnection } from "../services/signalr";
 import { formatBRL } from "../utils/format";
@@ -95,6 +95,7 @@ export default function OrdersPage() {
   const navigate = useNavigate();
   const auth = getAuth();
   const queryClient = useQueryClient();
+  const [autoReviewOrder, setAutoReviewOrder] = useState<Order | null>(null);
 
   const { data: orders = [], isLoading: loading, isFetching: refreshing, refetch } = useQuery({
     queryKey: queryKeys.myOrders(),
@@ -125,6 +126,12 @@ export default function OrdersPage() {
             cur.map((o) => (o.id === updated.id ? updated : o))
           );
           showOrderNotification(updated);
+          if (updated.status === 4 && updated.items.length > 0) {
+            const alreadyRated = localStorage.getItem(`brasux-rating-${updated.id}`);
+            if (!alreadyRated) {
+              setTimeout(() => setAutoReviewOrder(updated), 1500);
+            }
+          }
         });
       } catch (e) {
         console.error("SignalR:", e);
@@ -210,6 +217,13 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+
+      {autoReviewOrder && (
+        <AutoReviewModal
+          order={autoReviewOrder}
+          onClose={() => setAutoReviewOrder(null)}
+        />
+      )}
     </div>
   );
 }
@@ -260,7 +274,7 @@ function StatusTimeline({ status }: { status: number }) {
 
 /* ── RATING SECTION ── */
 
-function RatingSection({ orderId }: { orderId: string }) {
+function RatingSection({ orderId, firstStoreProductId }: { orderId: string; firstStoreProductId?: string }) {
   const [saved, setSaved] = useState(false);
   const [existing] = useState(() => getRating(orderId));
   const [hovered, setHovered] = useState(existing?.stars ?? 0);
@@ -281,12 +295,17 @@ function RatingSection({ orderId }: { orderId: string }) {
     );
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!selected) return;
     const rating: OrderRating = { stars: selected, comment: comment.trim() || undefined };
     saveRating(orderId, rating);
     setSaved(true);
     setSubmitted(true);
+    if (firstStoreProductId) {
+      try {
+        await upsertReview(firstStoreProductId, selected, comment.trim() || undefined);
+      } catch { /* silencioso — localStorage já salvou */ }
+    }
   }
 
   return (
@@ -327,6 +346,96 @@ function RatingSection({ orderId }: { orderId: string }) {
           </button>
         </>
       )}
+    </div>
+  );
+}
+
+/* ── AUTO REVIEW MODAL ── */
+
+function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void }) {
+  const [selected, setSelected] = useState(0);
+  const [hovered, setHovered] = useState(0);
+  const [comment, setComment] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  function handleSubmit() {
+    if (!selected) return;
+    saveRating(order.id, { stars: selected, comment: comment.trim() || undefined });
+    setSubmitted(true);
+    setTimeout(onClose, 1500);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="relative z-10 w-full max-w-sm overflow-hidden rounded-t-3xl bg-white p-6 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {submitted ? (
+          <div className="flex flex-col items-center gap-3 py-4 text-center">
+            <span className="text-5xl">🎉</span>
+            <p className="text-lg font-black text-[#0f172a]">Obrigado pela avaliação!</p>
+            <p className="text-sm text-[#64748b]">Seu feedback ajuda outros compradores.</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f0fdf4]">
+                <span className="text-xl">📦</span>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">Pedido entregue!</p>
+                <h3 className="font-black text-[#0f172a]">Como foi sua experiência?</h3>
+              </div>
+            </div>
+            {order.storeName && (
+              <p className="mb-4 text-sm text-[#64748b]">
+                Avalie sua compra em <strong className="text-[#0f172a]">{order.storeName}</strong>
+              </p>
+            )}
+            <div className="mb-4 flex justify-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onMouseEnter={() => setHovered(star)}
+                  onMouseLeave={() => setHovered(0)}
+                  onClick={() => setSelected(star)}
+                  className="text-4xl transition-transform hover:scale-110 focus:outline-none"
+                  aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
+                >
+                  <span className={star <= (hovered || selected) ? "text-yellow-400" : "text-[#e2e8f0]"}>★</span>
+                </button>
+              ))}
+            </div>
+            {selected > 0 && (
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Deixe um comentário (opcional)…"
+                rows={2}
+                className="mb-4 w-full resize-none rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
+              />
+            )}
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 rounded-2xl border border-[#e2e8f0] py-3 text-sm font-black text-[#64748b]"
+              >
+                Agora não
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!selected}
+                className="flex-1 rounded-2xl py-3 text-sm font-black text-white disabled:opacity-40"
+                style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
+              >
+                Avaliar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -471,7 +580,12 @@ function OrderCard({ order }: { order: Order }) {
             </div>
 
             {/* AVALIAÇÃO (só após entrega) */}
-            {isDelivered && <RatingSection orderId={order.id} />}
+            {isDelivered && (
+              <RatingSection
+                orderId={order.id}
+                firstStoreProductId={order.items[0]?.storeProductId}
+              />
+            )}
           </div>
         )}
       </div>

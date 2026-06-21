@@ -1,4 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { usePageMeta } from "../hooks/usePageMeta";
+import { useGeolocation } from "../hooks/useGeolocation";
+import { haversineKm } from "../utils/geo";
 import {
   ArrowRight,
   Bike,
@@ -11,21 +15,27 @@ import {
   Package,
 } from "lucide-react";
 import BrasUXLogo from "../components/ui/BrasUXLogo";
+import BannerCarousel from "../components/ui/BannerCarousel";
+import FeaturedProductCarousel from "../components/ui/FeaturedProductCarousel";
 import { Link } from "react-router-dom";
 
 import {
   getStores,
+  getFeaturedProducts,
+  getActiveBanners,
+  getProducts,
+  getMyOrders,
   queryKeys,
+  type StoreProduct,
 } from "../services/gizApi";
-import { getFeaturedByStore } from "../services/shoppingSupabase";
-import FeaturedCarousel from "../components/ui/FeaturedCarousel";
+import { useAuthStore } from "../stores/authStore";
 import { categories } from "../data/categories";
+import { formatBRL } from "../utils/format";
 
 const SELLER_URL = "https://lojas.brasux.com.br";
 const DELIVERY_URL = "https://entregas.brasux.com.br";
 import { categoryIcons } from "../data/categoryIcons";
 import PromoCard from "../components/ui/PromoCard";
-import ProductCard from "../components/product/ProductCard";
 import StoreCard from "../components/store/StoreCard";
 
 const catGradients = [
@@ -40,33 +50,157 @@ const catGradients = [
 ];
 
 export default function HomePage() {
+  usePageMeta();
+  const { position } = useGeolocation();
+
+  const { data: banners = [] } = useQuery({
+    queryKey: queryKeys.banners(),
+    queryFn:  getActiveBanners,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: stores = [], isLoading: loadingStores } = useQuery({
     queryKey: queryKeys.stores(),
     queryFn: getStores,
     select: (data) => data.filter((s) => s.active),
   });
 
-  const { data: featuredByStore = [], isLoading: loadingFeatured } = useQuery({
-    queryKey: ["featuredByStore"],
-    queryFn: getFeaturedByStore,
-    staleTime: 0,
-    refetchInterval: 60_000,
+  const { data: featuredProducts = [], isLoading: loadingFeatured } = useQuery({
+    queryKey: queryKeys.featuredProducts(),
+    queryFn:  getFeaturedProducts,
+    staleTime: 5 * 60 * 1000,
   });
+
+  const { data: newestProducts = [] } = useQuery({
+    queryKey: ["products", "newest"],
+    queryFn: () => getProducts({ sort: "newest", pageSize: 6, available: true }),
+    select: (d) => d.items,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const storesSorted = useMemo(() => {
+    const withDist = stores.map((s) => ({
+      ...s,
+      distanceKm:
+        position && s.lat != null && s.lng != null
+          ? haversineKm(position.lat, position.lng, s.lat, s.lng)
+          : undefined as number | undefined,
+    }));
+    return position
+      ? [...withDist].sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999))
+      : withDist;
+  }, [stores, position]);
+
+  const authUser = useAuthStore((s) => s.user);
+
+  const { data: recentOrders = [] } = useQuery({
+    queryKey: ["orders", "my", "home"],
+    queryFn: getMyOrders,
+    enabled: !!authUser,
+    staleTime: 2 * 60 * 1000,
+    select: (orders) => orders.filter((o) => o.status === 4).slice(0, 5),
+  });
+
+  const recentProducts = useMemo(() => {
+    const seen = new Set<string>();
+    const products: Array<{
+      storeProductId: string;
+      productName: string;
+      imageUrl?: string;
+      unitPrice: number;
+      storeId: string;
+      storeName?: string;
+    }> = [];
+    for (const order of recentOrders) {
+      for (const item of order.items) {
+        if (!seen.has(item.storeProductId)) {
+          seen.add(item.storeProductId);
+          products.push({
+            storeProductId: item.storeProductId,
+            productName: item.productName,
+            imageUrl: item.imageUrl,
+            unitPrice: item.unitPrice,
+            storeId: order.storeId,
+            storeName: order.storeName,
+          });
+        }
+      }
+    }
+    return products.slice(0, 8);
+  }, [recentOrders]);
+
+  const flashSaleProducts = useMemo(
+    () => featuredProducts.filter((p) => p.promotionalPrice !== null && p.promotionalPrice !== undefined),
+    [featuredProducts],
+  );
 
   return (
     <div className="space-y-10">
+
+      {/* ── BANNER CAROUSEL ── */}
+      {banners.length > 0 && <BannerCarousel banners={banners} />}
+
+      {/* ── COMPRE DE NOVO ── */}
+      {authUser && recentProducts.length > 0 && (
+        <section>
+          <SectionHeader
+            label="seu histórico"
+            title="Compre de novo"
+            linkTo="/pedidos"
+            linkLabel="Ver pedidos"
+            color="#6366f1"
+          />
+          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
+            <div className="flex gap-4 pb-2">
+              {recentProducts.map((p) => (
+                <Link
+                  key={p.storeProductId}
+                  to={`/lojas/${p.storeId}/produto/${p.storeProductId}`}
+                  className="group flex w-36 shrink-0 flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex h-28 items-center justify-center overflow-hidden rounded-t-3xl bg-[#f8fafc] p-3">
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt={p.productName}
+                        className="h-20 w-full object-contain transition-transform group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="text-3xl">🛍️</div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5 p-2.5">
+                    <p className="line-clamp-2 text-[11px] font-black leading-tight text-[#0f172a]">
+                      {p.productName}
+                    </p>
+                    {p.storeName && (
+                      <p className="text-[9px] text-[#94a3b8]">{p.storeName}</p>
+                    )}
+                    <p className="mt-1 text-xs font-black text-[#16a34a]">
+                      {formatBRL(p.unitPrice)}
+                    </p>
+                    <div className="mt-1.5 flex items-center justify-center gap-1 rounded-xl bg-[#6366f1]/10 py-1.5 text-[10px] font-black text-[#6366f1] transition-colors group-hover:bg-[#6366f1] group-hover:text-white">
+                      🔁 Pedir novamente
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden rounded-3xl p-8 md:p-12"
         style={{ background: "linear-gradient(135deg, #001640 0%, #002776 30%, #001a4e 65%, #00361a 100%)" }}
       >
-        {/* Animated gradient blobs */}
         <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#002776] blur-3xl" />
         <div className="blob-b pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#16a34a] blur-3xl" />
         <div className="blob-c pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#1351b4] blur-3xl" />
 
-        {/* Subtle grid overlay */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
           style={{
@@ -76,7 +210,6 @@ export default function HomePage() {
         />
 
         <div className="relative z-10 flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
-          {/* Left: text */}
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
               <Sparkles size={12} className="text-[#4ade80]" />
@@ -119,7 +252,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right: stats */}
           <div className="flex shrink-0 flex-col items-center gap-6">
             <BrasUXLogo
               size={108}
@@ -153,11 +285,13 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Location strip */}
         <div className="relative z-10 mt-8 flex items-center gap-2 border-t border-white/10 pt-6">
           <MapPin size={14} className="text-[#16a34a]" />
           <span className="text-sm text-[#94a3b8]">
-            Entregando em <span className="font-bold text-white">Minha localização</span>
+            {position
+              ? <>Entregando em <span className="font-bold text-white">sua localização</span> · lojas ordenadas por distância</>
+              : <>Entregando em <span className="font-bold text-white">todo o Brasil</span></>
+            }
           </span>
         </div>
       </section>
@@ -193,35 +327,104 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── PRODUTOS EM DESTAQUE — substitui grade de produtos ── */}
-      <section>
-        <SectionHeader
-          label="ofertas"
-          title="Produtos em destaque"
-          linkTo="/buscar"
-          linkLabel="Ver mais"
-          color="#16a34a"
-        />
-        {loadingFeatured ? (
-          <div className="mt-5 space-y-4">
-            <div className="h-52 animate-pulse rounded-3xl bg-white shadow-sm" />
+      {/* ── FLASH SALE ── */}
+      {flashSaleProducts.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center gap-2 rounded-2xl px-3 py-1.5 text-sm font-black text-white"
+                style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)" }}
+              >
+                ⚡ Flash Sale
+              </div>
+              <FlashSaleTimer />
+            </div>
+            <Link to="/buscar" className="flex items-center gap-1 text-sm font-black text-[#dc2626]">
+              Ver todas <ChevronRight size={16} />
+            </Link>
           </div>
-        ) : featuredByStore.length === 0 ? (
-          <p className="mt-4 text-sm text-[#64748b]">Nenhum produto em destaque no momento.</p>
-        ) : (
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredByStore.map(({ store, products: fps }) => (
-              <FeaturedCarousel key={store.id} store={store} products={fps} />
+          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
+            <div className="flex gap-4 pb-2">
+              {flashSaleProducts.map((p) => (
+                <FlashSaleCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── PRODUTOS EM DESTAQUE ── */}
+      {(featuredProducts.length > 0 || loadingFeatured) && (
+        <section>
+          <SectionHeader
+            label="ofertas"
+            title="Produtos em destaque"
+            linkTo="/buscar"
+            linkLabel="Ver mais"
+            color="#16a34a"
+          />
+          <div className="mt-5">
+            {loadingFeatured ? (
+              <div className="mx-auto w-full max-w-sm animate-pulse rounded-3xl bg-white p-4 shadow-sm">
+                <div className="h-10 rounded-xl bg-[#f1f5f9]" />
+                <div className="mt-3 h-48 rounded-2xl bg-[#f1f5f9]" />
+                <div className="mt-4 h-4 w-3/4 rounded bg-[#f1f5f9]" />
+                <div className="mt-2 h-6 w-1/2 rounded bg-[#f1f5f9]" />
+                <div className="mt-4 h-10 rounded-2xl bg-[#f1f5f9]" />
+              </div>
+            ) : (
+              <FeaturedProductCarousel products={featuredProducts} />
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── MAIS POPULARES ── */}
+      {featuredProducts.length > 0 && (
+        <section>
+          <SectionHeader label="trending" title="Mais populares" linkTo="/buscar" linkLabel="Ver todos" color="#dc2626" />
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {featuredProducts.slice(0, 4).map((p) => (
+              <Link
+                key={p.id}
+                to={`/lojas/${p.storeId}/produto/${p.id}`}
+                className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex h-32 items-center justify-center bg-[#f8fafc] p-3">
+                  {p.imageUrl ? (
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="h-24 w-full object-contain transition-transform group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="text-4xl">🛍️</div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="line-clamp-2 text-xs font-black leading-tight text-[#0f172a]">{p.name}</p>
+                  {p.storeName && <p className="mt-0.5 text-[10px] text-[#94a3b8]">{p.storeName}</p>}
+                  <div className="mt-2">
+                    {p.promotionalPrice ? (
+                      <p className="text-sm font-black text-[#16a34a]">{formatBRL(p.promotionalPrice)}</p>
+                    ) : p.price ? (
+                      <p className="text-sm font-black text-[#16a34a]">{formatBRL(p.price)}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* ── LOJAS ── */}
       <section>
         <SectionHeader
-          label="perto de você"
-          title="Lojas abertas agora"
+          label={position ? "perto de você" : "lojas"}
+          title={position ? "Lojas próximas" : "Lojas abertas agora"}
           linkTo="/lojas"
           linkLabel="Ver todas"
           color="#0f766e"
@@ -236,16 +439,49 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        ) : stores.length === 0 ? (
+        ) : storesSorted.length === 0 ? (
           <p className="mt-4 text-sm text-[#64748b]">Nenhuma loja disponível.</p>
         ) : (
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {stores.slice(0, 6).map((store) => (
-              <StoreCard key={store.id} store={store} />
+            {storesSorted.slice(0, 6).map((store) => (
+              <StoreCard key={store.id} store={store} distanceKm={store.distanceKm} />
             ))}
           </div>
         )}
       </section>
+
+      {/* ── NOVIDADES ── */}
+      {newestProducts.length > 0 && (
+        <section>
+          <SectionHeader label="novo" title="Novidades" linkTo="/buscar" linkLabel="Ver todas" color="#7c3aed" />
+          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
+            <div className="flex gap-4 pb-2">
+              {newestProducts.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/lojas/${p.storeId}/produto/${p.id}`}
+                  className="flex w-36 shrink-0 flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative flex h-28 items-center justify-center bg-[#f8fafc] p-2">
+                    <span className="absolute left-2 top-2 rounded-lg bg-[#7c3aed] px-1.5 py-0.5 text-[9px] font-black text-white">
+                      NOVO
+                    </span>
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="h-20 w-full object-contain" loading="lazy" />
+                    ) : (
+                      <div className="text-3xl">✨</div>
+                    )}
+                  </div>
+                  <div className="p-2.5">
+                    <p className="line-clamp-2 text-[11px] font-black leading-tight text-[#0f172a]">{p.name}</p>
+                    {p.price && <p className="mt-1 text-xs font-black text-[#16a34a]">{formatBRL(p.price)}</p>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── PROMOS ── */}
       <section>
@@ -364,14 +600,37 @@ export default function HomePage() {
           badgeBorderColor="rgba(245,158,11,0.30)"
           badgeBgColor="rgba(245,158,11,0.10)"
           extraBadge={
-            <div
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5"
-              style={{
-                background: "linear-gradient(135deg, #f59e0b, #84cc16)",
-                boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
-              }}
-            >
-              <span className="text-[11px] font-black text-[#0c0a00]">apenas R$ 499</span>
+            <div className="flex flex-col gap-1.5">
+              <div
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5"
+                style={{
+                  background: "linear-gradient(135deg, #f59e0b, #84cc16)",
+                  boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
+                }}
+              >
+                <span className="text-[11px] font-black text-[#0c0a00]">🏷️ BrasUX Web</span>
+              </div>
+              <div
+                className="inline-flex flex-col rounded-2xl px-4 py-2.5"
+                style={{
+                  background: "rgba(245,158,11,0.12)",
+                  border: "1px solid rgba(245,158,11,0.30)",
+                }}
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#fcd34d]/70">
+                  a partir de
+                </span>
+                <span
+                  className="text-2xl font-black"
+                  style={{
+                    background: "linear-gradient(135deg, #fcd34d, #84cc16)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  R$ 499,00
+                </span>
+              </div>
             </div>
           }
           titleBefore="Landing Page +"
@@ -403,7 +662,6 @@ export default function HomePage() {
 
       {/* ── CTAs ── */}
       <section className="grid gap-4 md:grid-cols-2">
-        {/* Seller CTA */}
         <div
           className="relative overflow-hidden rounded-3xl p-8"
           style={{ background: "linear-gradient(135deg, #001640 0%, #002776 50%, #003d1a 100%)" }}
@@ -437,7 +695,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Courier CTA */}
         <div className="flex items-start gap-5 rounded-3xl border border-[#e2e8f0] bg-white p-8 shadow-sm">
           <div
             className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
@@ -497,5 +754,65 @@ function SectionHeader({
         {linkLabel} <ChevronRight size={16} />
       </Link>
     </div>
+  );
+}
+
+function FlashSaleTimer() {
+  const [time, setTime] = useState(() => {
+    const now = new Date();
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 0);
+    return Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
+  });
+
+  useEffect(() => {
+    const id = setInterval(() => setTime((t) => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const h = String(Math.floor(time / 3600)).padStart(2, "0");
+  const m = String(Math.floor((time % 3600) / 60)).padStart(2, "0");
+  const s = String(time % 60).padStart(2, "0");
+
+  return (
+    <div className="flex items-center gap-1">
+      {[h, m, s].map((v, i) => (
+        <span key={i}>
+          <span className="rounded-lg bg-[#0f172a] px-2 py-1 font-mono text-sm font-black text-white">{v}</span>
+          {i < 2 && <span className="mx-0.5 font-black text-[#64748b]">:</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function FlashSaleCard({ product }: { product: StoreProduct }) {
+  const discount = product.promotionalPrice
+    ? Math.round(((product.price - product.promotionalPrice) / product.price) * 100)
+    : 0;
+
+  return (
+    <Link
+      to={`/lojas/${product.storeId}/produto/${product.id}`}
+      className="group flex w-40 shrink-0 flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="relative flex h-32 items-center justify-center bg-[#f8fafc] p-3">
+        {discount > 0 && (
+          <span className="absolute right-2 top-2 rounded-xl bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
+            -{discount}%
+          </span>
+        )}
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt={product.name} className="h-24 w-full object-contain" loading="lazy" />
+        ) : (
+          <div className="text-4xl">🛍️</div>
+        )}
+      </div>
+      <div className="flex flex-col gap-0.5 p-3">
+        <p className="line-clamp-2 text-xs font-black leading-tight text-[#0f172a]">{product.name}</p>
+        <p className="text-[10px] text-[#94a3b8] line-through">{formatBRL(product.price)}</p>
+        <p className="text-sm font-black text-red-500">{formatBRL(product.promotionalPrice!)}</p>
+      </div>
+    </Link>
   );
 }

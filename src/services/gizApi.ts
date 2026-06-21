@@ -101,6 +101,8 @@ export type Store = {
   isOpen: boolean;
   active: boolean;
   featured: boolean;
+  lat?: number;
+  lng?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -131,6 +133,8 @@ function mapStore(row: Record<string, unknown>): Store {
     isOpen: row.is_open as boolean,
     active: row.active as boolean,
     featured: row.featured as boolean,
+    lat: row.lat != null ? Number(row.lat) : undefined,
+    lng: row.lng != null ? Number(row.lng) : undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -174,6 +178,7 @@ export type ProductQuery = {
   pageSize?: number;
   minPrice?: number;
   maxPrice?: number;
+  sort?: "default" | "price-asc" | "price-desc" | "newest";
 };
 
 export type StoreProduct = {
@@ -195,6 +200,9 @@ export type StoreProduct = {
   promotionalPrice?: number | null;
   stock: number;
   available: boolean;
+  featured?: boolean;
+  /** Preenchido quando fetchado com join em stores */
+  storeName?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -226,9 +234,25 @@ function mapStoreProduct(row: Record<string, unknown>): StoreProduct {
     promotionalPrice: row.promotional_price != null ? Number(row.promotional_price) : null,
     stock: Number(row.stock),
     available: row.available as boolean,
+    featured: (row.featured as boolean | null) ?? false,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
+}
+
+/** Retorna os produtos marcados como destaque (featured=true) com o nome da loja. */
+export async function getFeaturedProducts(): Promise<StoreProduct[]> {
+  const { data, error } = await supabase
+    .from("store_products")
+    .select("*, stores(name)")
+    .eq("featured", true)
+    .eq("available", true)
+    .order("name");
+  if (error) throw new Error("Erro ao buscar produtos em destaque.");
+  return (data ?? []).map((row) => ({
+    ...mapStoreProduct(row),
+    storeName: (row.stores as { name: string } | null)?.name ?? "Loja",
+  }));
 }
 
 /* ── ORDER TYPES ─────────────────────────────────────────── */
@@ -245,6 +269,8 @@ export type CreateOrderPayload = {
   deliveryNeighborhood: string;
   paymentMethod: string;
   items: CreateOrderItem[];
+  /** Taxa calculada por distância. Se omitida, usa a taxa padrão da loja. */
+  deliveryFeeOverride?: number;
 };
 
 export type OrderItem = {
@@ -274,6 +300,7 @@ export type Order = {
   subtotal: number;
   total: number;
   status: number;
+  paymentStatus: string;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
@@ -294,6 +321,7 @@ type OrderRow = {
   subtotal: number;
   total: number;
   status: number;
+  payment_status?: string;
   created_at: string;
   updated_at: string;
   stores?: { name: string } | null;
@@ -326,6 +354,7 @@ function mapOrder(row: OrderRow): Order {
     subtotal: Number(row.subtotal),
     total: Number(row.total),
     status: row.status,
+    paymentStatus: row.payment_status ?? "PENDING",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     items: (row.order_items ?? []).map((i) => ({
@@ -411,13 +440,32 @@ export async function getProducts(params?: ProductQuery): Promise<PagedProducts>
   if (params?.available !== false) query = query.eq("available", true);
   if (params?.category) query = query.eq("category", params.category);
   if (params?.search) {
-    const q = params.search.toLowerCase();
-    query = query.or(`name.ilike.%${q}%,category.ilike.%${q}%,brand.ilike.%${q}%`);
+    const term = params.search.trim();
+    if (term.length >= 3) {
+      // Full-text search com suporte a acentos e typos (search_vector + pg_trgm)
+      query = query.textSearch("search_vector", term, {
+        type: "websearch",
+        config: "portuguese_unaccent",
+      });
+    } else {
+      // Query curta: prefix ILIKE
+      query = query.ilike("name", `${term}%`);
+    }
   }
   if (params?.minPrice !== undefined) query = query.gte("price", params.minPrice);
   if (params?.maxPrice !== undefined) query = query.lte("price", params.maxPrice);
 
-  const { data, error, count } = await query.range(from, to).order("name");
+  if (!params?.sort || params.sort === "default") {
+    query = query.order("name");
+  } else if (params.sort === "price-asc") {
+    query = query.order("price", { ascending: true });
+  } else if (params.sort === "price-desc") {
+    query = query.order("price", { ascending: false });
+  } else if (params.sort === "newest") {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const { data, error, count } = await query.range(from, to);
   if (error) throw new Error("Erro ao buscar produtos");
 
   const totalItems = count ?? 0;
@@ -445,6 +493,28 @@ export async function getProducts(params?: ProductQuery): Promise<PagedProducts>
     totalItems,
     totalPages: Math.ceil(totalItems / pageSize),
   };
+}
+
+/** Envia notificação push para um usuário via Edge Function. Fire-and-forget. */
+export function sendPushToUser(
+  userId: string,
+  title:  string,
+  body:   string,
+  url?:   string,
+): void {
+  supabase.functions.invoke("send-push", { body: { userId, title, body, url } }).catch(() => null);
+}
+
+/** Sugestões de autocomplete para a barra de busca. */
+export async function getSearchSuggestions(
+  query: string,
+): Promise<Array<{ label: string; category: string }>> {
+  if (!query.trim() || query.trim().length < 2) return [];
+  const { data } = await supabase.rpc("get_search_suggestions", {
+    p_query: query.trim(),
+    p_limit: 6,
+  });
+  return (data ?? []) as Array<{ label: string; category: string }>;
 }
 
 export async function getProductBySlug(slug: string): Promise<Product> {
@@ -495,7 +565,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
     return { ...item, unitPrice, totalPrice: unitPrice * item.quantity, productName: p.name, imageUrl: p.image_url };
   });
 
-  const deliveryFee = Number(store.delivery_fee);
+  const deliveryFee = payload.deliveryFeeOverride ?? Number(store.delivery_fee);
   const subtotal = enriched.reduce((s, i) => s + i.totalPrice, 0);
   const total = subtotal + deliveryFee;
 
@@ -549,6 +619,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
     subtotal,
     total,
     status: 0,
+    paymentStatus: "PENDING",
     createdAt: order.created_at,
     updatedAt: order.updated_at,
     items: enriched.map((i, idx) => ({
@@ -721,6 +792,28 @@ export async function adminToggleUserActive(id: string, active: boolean): Promis
   if (error) throw new Error("Erro ao atualizar usuário.");
 }
 
+/* ── SELLER ORDERS API ───────────────────────────────────── */
+
+export async function getStoreOrders(storeId: string): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, stores(name), order_items(*)")
+    .eq("store_id", storeId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Erro ao buscar pedidos da loja.");
+  return (data ?? []).map((row) => mapOrder(row as OrderRow));
+}
+
+export async function sellerUpdateOrderStatus(orderId: string, status: number): Promise<void> {
+  const { error } = await supabase
+    .from("orders")
+    .update({ status })
+    .eq("id", orderId);
+  if (error) throw new Error("Erro ao atualizar status do pedido.");
+}
+
+/* ── ADMIN ORDERS API ─────────────────────────────────────── */
+
 export async function adminGetAllOrders(): Promise<Order[]> {
   const { data, error } = await supabase
     .from("orders")
@@ -760,6 +853,8 @@ export type StorePayload = {
   deliveryTimeMax?: number;
   isOpen?: boolean;
   active?: boolean;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export async function getMyStore(): Promise<Store | null> {
@@ -802,6 +897,8 @@ export async function createStore(payload: StorePayload): Promise<Store> {
       is_open: payload.isOpen ?? true,
       active: payload.active ?? true,
       owner_id: user.id,
+      lat: payload.lat ?? null,
+      lng: payload.lng ?? null,
     })
     .select()
     .single();
@@ -834,6 +931,8 @@ export async function updateStore(storeId: string, payload: Partial<StorePayload
       ...(payload.deliveryTimeMax !== undefined && { delivery_time_max: payload.deliveryTimeMax }),
       ...(payload.isOpen !== undefined && { is_open: payload.isOpen }),
       ...(payload.active !== undefined && { active: payload.active }),
+      ...(payload.lat !== undefined && { lat: payload.lat }),
+      ...(payload.lng !== undefined && { lng: payload.lng }),
     })
     .eq("id", storeId)
     .select()
@@ -857,6 +956,7 @@ export type StoreProductPayload = {
   promotionalPrice?: number | null;
   stock?: number;
   available?: boolean;
+  featured?: boolean;
 };
 
 export async function getMyStoreProducts(storeId: string): Promise<StoreProduct[]> {
@@ -884,8 +984,9 @@ export async function createStoreProduct(storeId: string, payload: StoreProductP
       image_alt: payload.imageAlt ?? null,
       price: payload.price,
       promotional_price: payload.promotionalPrice ?? null,
-      stock: payload.stock ?? 0,
+      stock:     payload.stock ?? 0,
       available: payload.available ?? true,
+      featured:  payload.featured ?? false,
     })
     .select()
     .single();
@@ -909,6 +1010,7 @@ export async function updateStoreProduct(productId: string, payload: Partial<Sto
       ...(payload.promotionalPrice !== undefined && { promotional_price: payload.promotionalPrice }),
       ...(payload.stock !== undefined && { stock: payload.stock }),
       ...(payload.available !== undefined && { available: payload.available }),
+      ...(payload.featured  !== undefined && { featured:  payload.featured  }),
     })
     .eq("id", productId)
     .select()
@@ -989,6 +1091,929 @@ export async function getImageApiCategories(): Promise<{ category: string; count
   return categories.map((c) => ({ category: c, count: 0 }));
 }
 
+/* ── REVIEWS API ─────────────────────────────────────────── */
+
+export type Review = {
+  id: string;
+  storeProductId: string;
+  userId: string;
+  userName: string;
+  stars: number;
+  comment?: string;
+  createdAt: string;
+};
+
+export async function getProductReviews(storeProductId: string): Promise<Review[]> {
+  const { data } = await supabase
+    .from("reviews")
+    .select("*, profiles(name)")
+    .eq("store_product_id", storeProductId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    storeProductId: r.store_product_id,
+    userId: r.user_id,
+    userName: (r.profiles as { name?: string } | null)?.name ?? "Usuário",
+    stars: r.stars,
+    comment: r.comment ?? undefined,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function getMyReview(storeProductId: string): Promise<Review | null> {
+  const user = useAuthStore.getState().user;
+  if (!user) return null;
+  const { data } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("store_product_id", storeProductId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.id,
+    storeProductId: data.store_product_id,
+    userId: data.user_id,
+    userName: "",
+    stars: data.stars,
+    comment: data.comment ?? undefined,
+    createdAt: data.created_at,
+  };
+}
+
+export async function upsertReview(storeProductId: string, stars: number, comment?: string): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Faça login para avaliar.");
+  const { error } = await supabase
+    .from("reviews")
+    .upsert(
+      { store_product_id: storeProductId, user_id: user.id, stars, comment: comment?.trim() || null },
+      { onConflict: "store_product_id,user_id" }
+    );
+  if (error) throw new Error("Erro ao salvar avaliação.");
+}
+
+export async function deleteReview(storeProductId: string): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) return;
+  await supabase
+    .from("reviews")
+    .delete()
+    .eq("store_product_id", storeProductId)
+    .eq("user_id", user.id);
+}
+
+/* ── POINTS API ──────────────────────────────────────────── */
+
+export type PointTransaction = {
+  id: string;
+  amount: number;
+  description: string;
+  orderId?: string;
+  createdAt: string;
+};
+
+export async function getMyPoints(): Promise<{ balance: number; transactions: PointTransaction[] }> {
+  const user = useAuthStore.getState().user;
+  if (!user) return { balance: 0, transactions: [] };
+  const [pointsRes, txRes] = await Promise.all([
+    supabase.from("user_points").select("balance").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("point_transactions")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+  return {
+    balance: pointsRes.data?.balance ?? 0,
+    transactions: (txRes.data ?? []).map((t) => ({
+      id: t.id,
+      amount: t.amount,
+      description: t.description,
+      orderId: t.order_id ?? undefined,
+      createdAt: t.created_at,
+    })),
+  };
+}
+
+export async function dbEarnPoints(amountBRL: number, description: string, orderId?: string): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) return;
+  const pts = Math.floor(amountBRL);
+  if (pts <= 0) return;
+  await supabase.rpc("earn_points", {
+    p_user_id: user.id,
+    p_amount: pts,
+    p_description: description,
+    p_order_id: orderId ?? null,
+  });
+}
+
+export async function dbSpendPoints(points: number, description: string, orderId?: string): Promise<boolean> {
+  const user = useAuthStore.getState().user;
+  if (!user) return false;
+  const { data, error } = await supabase.rpc("spend_points", {
+    p_user_id: user.id,
+    p_amount: points,
+    p_description: description,
+    p_order_id: orderId ?? null,
+  });
+  return !error && data === true;
+}
+
+/* ── COUPONS API ─────────────────────────────────────────── */
+
+export type CouponDB = {
+  id: string;
+  code: string;
+  type: "percent" | "fixed" | "free_delivery";
+  value: number;
+  label: string;
+  minOrder: number;
+};
+
+export async function validateCoupon(code: string): Promise<CouponDB> {
+  const { data, error } = await supabase
+    .from("coupons")
+    .select("*")
+    .eq("code", code.toUpperCase().trim())
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error || !data) throw new Error("Cupom inválido ou expirado.");
+  if (data.expires_at && new Date(data.expires_at) < new Date()) throw new Error("Cupom expirado.");
+  if (data.max_uses !== null && data.uses_count >= data.max_uses) throw new Error("Cupom esgotado.");
+
+  const user = useAuthStore.getState().user;
+  if (user && data.max_uses === 1) {
+    const { data: used } = await supabase
+      .from("user_coupons")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("coupon_id", data.id)
+      .maybeSingle();
+    if (used) throw new Error("Você já utilizou este cupom.");
+  }
+
+  return {
+    id: data.id,
+    code: data.code,
+    type: data.type as CouponDB["type"],
+    value: Number(data.value),
+    label: data.label,
+    minOrder: Number(data.min_order ?? 0),
+  };
+}
+
+/* ── SAVED ADDRESSES API ─────────────────────────────────── */
+
+export type SavedAddressDB = {
+  id: string;
+  label: string;
+  phone?: string;
+  cep?: string;
+  address: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city?: string;
+};
+
+function mapAddress(r: Record<string, unknown>): SavedAddressDB {
+  return {
+    id: r.id as string,
+    label: r.label as string,
+    phone: (r.phone as string | null) ?? undefined,
+    cep: (r.cep as string | null) ?? undefined,
+    address: r.address as string,
+    number: r.number as string,
+    complement: (r.complement as string | null) ?? undefined,
+    neighborhood: r.neighborhood as string,
+    city: (r.city as string | null) ?? undefined,
+  };
+}
+
+export async function getMySavedAddresses(): Promise<SavedAddressDB[]> {
+  const user = useAuthStore.getState().user;
+  if (!user) return [];
+  const { data } = await supabase
+    .from("saved_addresses")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true });
+  return (data ?? []).map(mapAddress);
+}
+
+export async function insertSavedAddress(addr: Omit<SavedAddressDB, "id">): Promise<SavedAddressDB> {
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Não autenticado.");
+  const { data, error } = await supabase
+    .from("saved_addresses")
+    .insert({
+      user_id: user.id,
+      label: addr.label,
+      phone: addr.phone ?? null,
+      cep: addr.cep ?? null,
+      address: addr.address,
+      number: addr.number,
+      complement: addr.complement ?? null,
+      neighborhood: addr.neighborhood,
+      city: addr.city ?? null,
+    })
+    .select()
+    .single();
+  if (error || !data) throw new Error("Erro ao salvar endereço.");
+  return mapAddress(data);
+}
+
+export async function updateSavedAddress(id: string, patch: Partial<Omit<SavedAddressDB, "id">>): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) return;
+  await supabase
+    .from("saved_addresses")
+    .update({
+      ...(patch.label !== undefined && { label: patch.label }),
+      ...(patch.phone !== undefined && { phone: patch.phone ?? null }),
+      ...(patch.cep !== undefined && { cep: patch.cep ?? null }),
+      ...(patch.address !== undefined && { address: patch.address }),
+      ...(patch.number !== undefined && { number: patch.number }),
+      ...(patch.complement !== undefined && { complement: patch.complement ?? null }),
+      ...(patch.neighborhood !== undefined && { neighborhood: patch.neighborhood }),
+      ...(patch.city !== undefined && { city: patch.city ?? null }),
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+}
+
+export async function deleteSavedAddress(id: string): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) return;
+  await supabase.from("saved_addresses").delete().eq("id", id).eq("user_id", user.id);
+}
+
+/* ── FAVORITES API ───────────────────────────────────────── */
+
+export async function getMyFavoriteIds(): Promise<{ productIds: string[]; storeIds: string[] }> {
+  const user = useAuthStore.getState().user;
+  if (!user) return { productIds: [], storeIds: [] };
+  const { data } = await supabase
+    .from("favorites")
+    .select("item_type, item_id")
+    .eq("user_id", user.id);
+  const rows = data ?? [];
+  return {
+    productIds: rows.filter((r) => r.item_type === "product").map((r) => r.item_id as string),
+    storeIds: rows.filter((r) => r.item_type === "store").map((r) => r.item_id as string),
+  };
+}
+
+export async function toggleFavoriteDB(itemType: "product" | "store", itemId: string): Promise<boolean> {
+  const user = useAuthStore.getState().user;
+  if (!user) return false;
+  const { data: existing } = await supabase
+    .from("favorites")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("item_type", itemType)
+    .eq("item_id", itemId)
+    .maybeSingle();
+  if (existing) {
+    await supabase.from("favorites").delete().eq("id", existing.id);
+    return false;
+  }
+  await supabase.from("favorites").insert({ user_id: user.id, item_type: itemType, item_id: itemId });
+  return true;
+}
+
+/* ── COURIER (ENTREGADOR) API ────────────────────────────── */
+
+export type AvailableDelivery = {
+  orderId: string;
+  storeId: string;
+  storeName: string;
+  storeAddress?: string;
+  deliveryAddress: string;
+  deliveryNumber: string;
+  deliveryNeighborhood: string;
+  deliveryFee: number;
+  total: number;
+  createdAt: string;
+  courierEarnings: number; // 70% da taxa de entrega, mínimo R$3
+};
+
+export type DeliveryOrder = {
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  deliveryNumber: string;
+  deliveryComplement?: string;
+  deliveryNeighborhood: string;
+  total: number;
+  deliveryFee: number;
+  storeName?: string;
+  storeAddress?: string;
+  storeNeighborhood?: string;
+  items: Array<{ id: string; productName: string; quantity: number; unitPrice: number; totalPrice: number }>;
+};
+
+export type Delivery = {
+  id: string;
+  orderId: string;
+  courierId: string;
+  status: "ACCEPTED" | "PICKED_UP" | "DELIVERED" | "CANCELLED";
+  earnings: number;
+  acceptedAt: string;
+  pickedUpAt?: string;
+  deliveredAt?: string;
+  createdAt: string;
+  order?: DeliveryOrder;
+};
+
+export type CourierEarningSummary = {
+  todayTotal: number;
+  weekTotal: number;
+  allTimeTotal: number;
+  deliveriesCount: number;
+};
+
+export type WithdrawalRequest = {
+  id: string;
+  amount: number;
+  pixKey: string;
+  status: "PENDING" | "PAID" | "REJECTED";
+  note?: string;
+  createdAt: string;
+};
+
+function mapDelivery(row: Record<string, unknown>): Delivery {
+  const order = row.orders as Record<string, unknown> | null;
+  const store = order?.stores as Record<string, unknown> | null;
+  const rawItems = (order?.order_items as Array<Record<string, unknown>> | null) ?? [];
+  return {
+    id: row.id as string,
+    orderId: row.order_id as string,
+    courierId: row.courier_id as string,
+    status: row.status as Delivery["status"],
+    earnings: Number(row.earnings),
+    acceptedAt: row.accepted_at as string,
+    pickedUpAt: (row.picked_up_at as string | null) ?? undefined,
+    deliveredAt: (row.delivered_at as string | null) ?? undefined,
+    createdAt: row.created_at as string,
+    order: order
+      ? {
+          customerName: order.customer_name as string,
+          customerPhone: order.customer_phone as string,
+          deliveryAddress: order.delivery_address as string,
+          deliveryNumber: (order.delivery_number as string | null) ?? "",
+          deliveryComplement: (order.delivery_complement as string | null) ?? undefined,
+          deliveryNeighborhood: order.delivery_neighborhood as string,
+          total: Number(order.total),
+          deliveryFee: Number(order.delivery_fee),
+          storeName: (store?.name as string | null) ?? undefined,
+          storeAddress: (store?.address as string | null) ?? undefined,
+          storeNeighborhood: (store?.neighborhood as string | null) ?? undefined,
+          items: rawItems.map((i) => ({
+            id: i.id as string,
+            productName: i.product_name as string,
+            quantity: i.quantity as number,
+            unitPrice: Number(i.unit_price),
+            totalPrice: Number(i.total_price),
+          })),
+        }
+      : undefined,
+  };
+}
+
+export async function getAvailableDeliveries(): Promise<AvailableDelivery[]> {
+  // Busca pedidos em status=2 que ainda não foram aceitos por nenhum entregador
+  const [ordersRes, takenRes] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("id, store_id, total, delivery_fee, delivery_address, delivery_number, delivery_neighborhood, created_at, stores(name, address, neighborhood)")
+      .eq("status", 2)
+      .order("created_at", { ascending: false })
+      .limit(30),
+    supabase
+      .from("deliveries")
+      .select("order_id")
+      .neq("status", "CANCELLED"),
+  ]);
+
+  if (ordersRes.error) throw new Error("Erro ao buscar entregas disponíveis.");
+
+  const takenIds = new Set((takenRes.data ?? []).map((d) => d.order_id as string));
+
+  return (ordersRes.data ?? [])
+    .filter((o) => !takenIds.has(o.id as string))
+    .map((o) => {
+      const store = o.stores as { name?: string; address?: string; neighborhood?: string } | null;
+      const fee = Number(o.delivery_fee);
+      return {
+        orderId: o.id as string,
+        storeId: o.store_id as string,
+        storeName: store?.name ?? "Loja",
+        storeAddress: store?.address
+          ? `${store.address}${store.neighborhood ? `, ${store.neighborhood}` : ""}`
+          : undefined,
+        deliveryAddress: o.delivery_address as string,
+        deliveryNumber: (o.delivery_number as string | null) ?? "",
+        deliveryNeighborhood: o.delivery_neighborhood as string,
+        deliveryFee: fee,
+        total: Number(o.total),
+        createdAt: o.created_at as string,
+        courierEarnings: Math.max(7, Math.round(fee * 0.9 * 100) / 100),
+      };
+    });
+}
+
+export async function acceptDelivery(orderId: string, courierEarnings: number): Promise<Delivery> {
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Não autenticado.");
+  const { data, error } = await supabase
+    .from("deliveries")
+    .insert({ order_id: orderId, courier_id: user.id, status: "ACCEPTED", earnings: courierEarnings })
+    .select()
+    .single();
+  if (error) {
+    if (error.code === "23505") throw new Error("Esta entrega já foi aceita por outro entregador.");
+    throw new Error("Erro ao aceitar entrega.");
+  }
+  return mapDelivery(data as Record<string, unknown>);
+}
+
+export async function getMyDeliveries(): Promise<Delivery[]> {
+  const user = useAuthStore.getState().user;
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from("deliveries")
+    .select("*, orders(customer_name, customer_phone, delivery_address, delivery_number, delivery_complement, delivery_neighborhood, total, delivery_fee, stores(name, address, neighborhood), order_items(id, product_name, quantity, unit_price, total_price))")
+    .eq("courier_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error) throw new Error("Erro ao buscar suas entregas.");
+  return (data ?? []).map((d) => mapDelivery(d as Record<string, unknown>));
+}
+
+export async function updateDeliveryStatus(
+  deliveryId: string,
+  newStatus: "PICKED_UP" | "DELIVERED" | "CANCELLED",
+): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Não autenticado.");
+
+  const updates: Record<string, unknown> = { status: newStatus };
+  if (newStatus === "PICKED_UP")  updates.picked_up_at = new Date().toISOString();
+  if (newStatus === "DELIVERED")  updates.delivered_at = new Date().toISOString();
+
+  const { data: delivery, error } = await supabase
+    .from("deliveries")
+    .update(updates)
+    .eq("id", deliveryId)
+    .eq("courier_id", user.id)
+    .select("order_id, earnings")
+    .single();
+
+  if (error || !delivery) throw new Error("Erro ao atualizar entrega.");
+
+  // Atualiza status do pedido
+  const orderStatus = newStatus === "PICKED_UP" ? 3 : newStatus === "DELIVERED" ? 4 : undefined;
+  if (orderStatus !== undefined) {
+    await supabase.from("orders").update({ status: orderStatus }).eq("id", delivery.order_id);
+  }
+
+  // Credita ganho ao entregador quando entrega é concluída
+  if (newStatus === "DELIVERED") {
+    await supabase.from("courier_earnings").insert({
+      courier_id: user.id,
+      delivery_id: deliveryId,
+      amount: Number(delivery.earnings),
+      description: `Entrega #${(delivery.order_id as string).slice(0, 8).toUpperCase()}`,
+    });
+  }
+}
+
+export async function updateCourierLocation(lat: number, lng: number, heading?: number): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) return;
+  await supabase
+    .from("courier_locations")
+    .upsert({ courier_id: user.id, lat, lng, heading: heading ?? null, updated_at: new Date().toISOString() });
+}
+
+export async function getCourierEarningsSummary(): Promise<CourierEarningSummary> {
+  const user = useAuthStore.getState().user;
+  if (!user) return { todayTotal: 0, weekTotal: 0, allTimeTotal: 0, deliveriesCount: 0 };
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const { data } = await supabase
+    .from("courier_earnings")
+    .select("amount, created_at")
+    .eq("courier_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const earnings = data ?? [];
+  const todayTotal = earnings
+    .filter((e) => new Date(e.created_at) >= todayStart)
+    .reduce((s, e) => s + Number(e.amount), 0);
+  const weekTotal = earnings
+    .filter((e) => new Date(e.created_at) >= weekStart)
+    .reduce((s, e) => s + Number(e.amount), 0);
+  const allTimeTotal = earnings.reduce((s, e) => s + Number(e.amount), 0);
+
+  return { todayTotal, weekTotal, allTimeTotal, deliveriesCount: earnings.length };
+}
+
+export async function getMyWithdrawals(): Promise<WithdrawalRequest[]> {
+  const user = useAuthStore.getState().user;
+  if (!user) return [];
+  const { data } = await supabase
+    .from("courier_withdrawals")
+    .select("*")
+    .eq("courier_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return (data ?? []).map((w) => ({
+    id: w.id,
+    amount: Number(w.amount),
+    pixKey: w.pix_key,
+    status: w.status as WithdrawalRequest["status"],
+    note: (w.note as string | null) ?? undefined,
+    createdAt: w.created_at,
+  }));
+}
+
+export async function requestCourierWithdrawal(amount: number, pixKey: string): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Não autenticado.");
+  const { error } = await supabase
+    .from("courier_withdrawals")
+    .insert({ courier_id: user.id, amount, pix_key: pixKey });
+  if (error) throw new Error("Erro ao solicitar saque.");
+}
+
+/* ── ADMIN: COUPONS ──────────────────────────────────────── */
+
+export type CouponAdmin = {
+  id: string;
+  code: string;
+  type: "percent" | "fixed" | "free_delivery";
+  value: number;
+  label: string;
+  minOrder: number;
+  maxUses?: number;
+  usesCount: number;
+  expiresAt?: string;
+  active: boolean;
+  createdAt: string;
+};
+
+export type CouponAdminPayload = {
+  code: string;
+  type: "percent" | "fixed" | "free_delivery";
+  value: number;
+  label: string;
+  minOrder?: number;
+  maxUses?: number | null;
+  expiresAt?: string | null;
+  active?: boolean;
+};
+
+function mapCouponAdmin(r: Record<string, unknown>): CouponAdmin {
+  return {
+    id:        r.id as string,
+    code:      r.code as string,
+    type:      r.type as CouponAdmin["type"],
+    value:     Number(r.value),
+    label:     r.label as string,
+    minOrder:  Number(r.min_order ?? 0),
+    maxUses:   r.max_uses != null ? Number(r.max_uses) : undefined,
+    usesCount: Number(r.uses_count ?? 0),
+    expiresAt: (r.expires_at as string | null) ?? undefined,
+    active:    r.active as boolean,
+    createdAt: r.created_at as string,
+  };
+}
+
+export async function adminGetCoupons(): Promise<CouponAdmin[]> {
+  const { data, error } = await supabase
+    .from("coupons")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Erro ao buscar cupons.");
+  return (data ?? []).map(mapCouponAdmin);
+}
+
+export async function adminCreateCoupon(payload: CouponAdminPayload): Promise<void> {
+  const { error } = await supabase.from("coupons").insert({
+    code:       payload.code.toUpperCase().trim(),
+    type:       payload.type,
+    value:      payload.value,
+    label:      payload.label,
+    min_order:  payload.minOrder ?? 0,
+    max_uses:   payload.maxUses ?? null,
+    expires_at: payload.expiresAt ?? null,
+    active:     payload.active ?? true,
+    uses_count: 0,
+  });
+  if (error) throw new Error(error.message ?? "Erro ao criar cupom.");
+}
+
+export async function adminUpdateCoupon(id: string, patch: Partial<CouponAdminPayload>): Promise<void> {
+  const update: Record<string, unknown> = {};
+  if (patch.code      !== undefined) update.code       = patch.code.toUpperCase().trim();
+  if (patch.type      !== undefined) update.type       = patch.type;
+  if (patch.value     !== undefined) update.value      = patch.value;
+  if (patch.label     !== undefined) update.label      = patch.label;
+  if (patch.minOrder  !== undefined) update.min_order  = patch.minOrder;
+  if (patch.maxUses   !== undefined) update.max_uses   = patch.maxUses ?? null;
+  if (patch.expiresAt !== undefined) update.expires_at = patch.expiresAt ?? null;
+  if (patch.active    !== undefined) update.active     = patch.active;
+  const { error } = await supabase.from("coupons").update(update).eq("id", id);
+  if (error) throw new Error("Erro ao atualizar cupom.");
+}
+
+export async function adminDeleteCoupon(id: string): Promise<void> {
+  const { error } = await supabase.from("coupons").delete().eq("id", id);
+  if (error) throw new Error("Erro ao excluir cupom.");
+}
+
+/* ── ADMIN: WITHDRAWALS ──────────────────────────────────── */
+
+export type WithdrawalAdmin = {
+  id: string;
+  courierId: string;
+  courierName: string;
+  amount: number;
+  pixKey: string;
+  status: "PENDING" | "PAID" | "REJECTED";
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function adminGetWithdrawals(): Promise<WithdrawalAdmin[]> {
+  const { data, error } = await supabase
+    .from("courier_withdrawals")
+    .select("*, profiles(name)")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Erro ao buscar saques.");
+  return (data ?? []).map((r) => ({
+    id:          r.id,
+    courierId:   r.courier_id,
+    courierName: (r.profiles as { name?: string } | null)?.name ?? "Entregador",
+    amount:      Number(r.amount),
+    pixKey:      r.pix_key,
+    status:      r.status as WithdrawalAdmin["status"],
+    note:        (r.note as string | null) ?? undefined,
+    createdAt:   r.created_at,
+    updatedAt:   r.updated_at,
+  }));
+}
+
+export async function adminUpdateWithdrawal(
+  id: string,
+  status: "PAID" | "REJECTED",
+  note?: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("courier_withdrawals")
+    .update({ status, ...(note ? { note } : {}) })
+    .eq("id", id);
+  if (error) throw new Error("Erro ao atualizar saque.");
+}
+
+/* ── BANNERS API ─────────────────────────────────────────── */
+
+export type Banner = {
+  id: string;
+  title: string;
+  description?: string;
+  imageUrl: string;
+  link?: string;
+  linkLabel?: string;
+  badge?: string;
+};
+
+export type AdminBanner = Banner & {
+  active: boolean;
+  sortOrder: number;
+  startsAt?: string;
+  endsAt?: string;
+};
+
+export type BannerPayload = {
+  title: string;
+  description?: string;
+  imageUrl: string;
+  link?: string;
+  linkLabel?: string;
+  badge?: string;
+  active?: boolean;
+  sortOrder?: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+};
+
+function mapAdminBanner(b: Record<string, unknown>): AdminBanner {
+  return {
+    id: b.id as string,
+    title: b.title as string,
+    description: (b.description as string | null) ?? undefined,
+    imageUrl: b.image_url as string,
+    link: (b.link as string | null) ?? undefined,
+    linkLabel: (b.link_label as string | null) ?? undefined,
+    badge: (b.badge as string | null) ?? undefined,
+    active: b.active as boolean,
+    sortOrder: b.sort_order as number,
+    startsAt: (b.starts_at as string | null) ?? undefined,
+    endsAt: (b.ends_at as string | null) ?? undefined,
+  };
+}
+
+export async function adminGetBanners(): Promise<AdminBanner[]> {
+  const { data, error } = await supabase
+    .from("banners")
+    .select("*")
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("Erro ao buscar banners.");
+  return (data ?? []).map(mapAdminBanner);
+}
+
+export async function adminCreateBanner(payload: BannerPayload): Promise<void> {
+  const { error } = await supabase.from("banners").insert({
+    title: payload.title,
+    description: payload.description ?? null,
+    image_url: payload.imageUrl,
+    link: payload.link ?? null,
+    link_label: payload.linkLabel ?? null,
+    badge: payload.badge ?? null,
+    active: payload.active ?? true,
+    sort_order: payload.sortOrder ?? 0,
+    starts_at: payload.startsAt ?? null,
+    ends_at: payload.endsAt ?? null,
+  });
+  if (error) throw new Error("Erro ao criar banner.");
+}
+
+export async function adminUpdateBanner(id: string, patch: Partial<BannerPayload>): Promise<void> {
+  const update: Record<string, unknown> = {};
+  if (patch.title       !== undefined) update.title       = patch.title;
+  if (patch.description !== undefined) update.description = patch.description ?? null;
+  if (patch.imageUrl    !== undefined) update.image_url   = patch.imageUrl;
+  if (patch.link        !== undefined) update.link        = patch.link ?? null;
+  if (patch.linkLabel   !== undefined) update.link_label  = patch.linkLabel ?? null;
+  if (patch.badge       !== undefined) update.badge       = patch.badge ?? null;
+  if (patch.active      !== undefined) update.active      = patch.active;
+  if (patch.sortOrder   !== undefined) update.sort_order  = patch.sortOrder;
+  if (patch.startsAt    !== undefined) update.starts_at   = patch.startsAt ?? null;
+  if (patch.endsAt      !== undefined) update.ends_at     = patch.endsAt ?? null;
+  const { error } = await supabase.from("banners").update(update).eq("id", id);
+  if (error) throw new Error("Erro ao atualizar banner.");
+}
+
+export async function adminDeleteBanner(id: string): Promise<void> {
+  const { error } = await supabase.from("banners").delete().eq("id", id);
+  if (error) throw new Error("Erro ao excluir banner.");
+}
+
+export async function getActiveBanners(): Promise<Banner[]> {
+  const { data } = await supabase
+    .from("banners")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  return (data ?? []).map((b) => ({
+    id: b.id,
+    title: b.title,
+    description: b.description ?? undefined,
+    imageUrl: b.image_url,
+    link: b.link ?? undefined,
+    linkLabel: b.link_label ?? undefined,
+    badge: b.badge ?? undefined,
+  }));
+}
+
+/* ── PIX STATUS POLLING ──────────────────────────────────── */
+
+export async function getOrderPaymentStatus(orderId: string): Promise<string> {
+  const { data } = await supabase
+    .from("orders")
+    .select("payment_status")
+    .eq("id", orderId)
+    .single();
+  return (data?.payment_status as string | null) ?? "PENDING";
+}
+
+/* ── CUPONS DISPONÍVEIS (públicos, ativos) ───────────────── */
+
+export type PublicCoupon = {
+  id: string;
+  code: string;
+  label: string;
+  type: "percentage" | "fixed" | "free_shipping";
+  value: number;
+  minOrderValue: number | null;
+  expiresAt: string | null;
+};
+
+export async function getAvailableCoupons(): Promise<PublicCoupon[]> {
+  const now = new Date().toISOString();
+  const { data } = await supabase
+    .from("coupons")
+    .select("id, code, label, type, value, min_order_value, expires_at")
+    .eq("active", true)
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
+    .order("value", { ascending: false })
+    .limit(6);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    code: r.code as string,
+    label: r.label as string,
+    type: r.type as PublicCoupon["type"],
+    value: Number(r.value),
+    minOrderValue: r.min_order_value != null ? Number(r.min_order_value) : null,
+    expiresAt: r.expires_at as string | null,
+  }));
+}
+
+/* ── SELLER WITHDRAWALS ──────────────────────────────────── */
+
+export type SellerWithdrawal = {
+  id: string;
+  amount: number;
+  pixKey: string;
+  status: "PENDING" | "PAID" | "REJECTED";
+  createdAt: string;
+};
+
+export async function requestSellerWithdrawal(amount: number, pixKey: string): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) throw new Error("Usuário não autenticado.");
+  const { error } = await supabase.from("seller_withdrawals").insert({
+    seller_id: user.id,
+    amount,
+    pix_key: pixKey,
+    status: "PENDING",
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function getSellerWithdrawals(): Promise<SellerWithdrawal[]> {
+  const { data, error } = await supabase
+    .from("seller_withdrawals")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((w) => ({
+    id: w.id as string,
+    amount: Number(w.amount),
+    pixKey: w.pix_key as string,
+    status: w.status as SellerWithdrawal["status"],
+    createdAt: w.created_at as string,
+  }));
+}
+
+/* ── STORE OPENING HOURS ─────────────────────────────────── */
+
+export type DayHours = { open: string; close: string; enabled: boolean };
+export type OpeningHours = {
+  seg: DayHours; ter: DayHours; qua: DayHours; qui: DayHours;
+  sex: DayHours; sab: DayHours; dom: DayHours;
+};
+
+export const DEFAULT_DAY_HOURS: DayHours = { open: "09:00", close: "22:00", enabled: true };
+export const DEFAULT_OPENING_HOURS: OpeningHours = {
+  seg: { ...DEFAULT_DAY_HOURS },
+  ter: { ...DEFAULT_DAY_HOURS },
+  qua: { ...DEFAULT_DAY_HOURS },
+  qui: { ...DEFAULT_DAY_HOURS },
+  sex: { ...DEFAULT_DAY_HOURS },
+  sab: { ...DEFAULT_DAY_HOURS },
+  dom: { open: "10:00", close: "20:00", enabled: false },
+};
+
+export async function updateStoreOpeningHours(storeId: string, hours: OpeningHours): Promise<void> {
+  const { error } = await supabase
+    .from("stores")
+    .update({ opening_hours: hours })
+    .eq("id", storeId);
+  if (error) throw new Error(error.message);
+}
+
+export async function getStoreOpeningHours(storeId: string): Promise<OpeningHours | null> {
+  const { data } = await supabase
+    .from("stores")
+    .select("opening_hours")
+    .eq("id", storeId)
+    .single();
+  return (data?.opening_hours as OpeningHours | null) ?? null;
+}
+
 /* ── QUERY KEYS ──────────────────────────────────────────── */
 
 export const queryKeys = {
@@ -998,6 +2023,24 @@ export const queryKeys = {
   storeProducts: (storeId: string) => ["storeProducts", storeId] as const,
   products: (params: ProductQuery) => ["products", params] as const,
   myOrders: () => ["orders", "my"] as const,
+  productReviews: (storeProductId: string) => ["reviews", storeProductId] as const,
+  myReview: (storeProductId: string) => ["reviews", storeProductId, "mine"] as const,
+  myPoints: () => ["points", "my"] as const,
+  myAddresses: () => ["addresses", "my"] as const,
+  banners: () => ["banners"] as const,
+  featuredProducts:  () => ["products", "featured"] as const,
+  adminCoupons:      () => ["admin", "coupons"] as const,
+  adminWithdrawals:  () => ["admin", "withdrawals"] as const,
+  suggestions: (query: string) => ["suggestions", query] as const,
+  storeOrders: (storeId: string) => ["storeOrders", storeId] as const,
+  myStoreProducts: (storeId: string) => ["myStoreProducts", storeId] as const,
+  availableDeliveries: () => ["deliveries", "available"] as const,
+  myDeliveries: () => ["deliveries", "mine"] as const,
+  courierEarnings: () => ["courier", "earnings"] as const,
+  myWithdrawals: () => ["courier", "withdrawals"] as const,
+  sellerWithdrawals: () => ["seller", "withdrawals"] as const,
+  availableCoupons: () => ["coupons", "available"] as const,
+  storeHours: (storeId: string) => ["stores", storeId, "hours"] as const,
 };
 
 /* ── IMAGES ──────────────────────────────────────────────── */

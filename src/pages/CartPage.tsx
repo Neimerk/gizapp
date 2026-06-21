@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -13,6 +14,8 @@ export default function CartPage() {
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
 
+  const [confirmClear, setConfirmClear] = useState(false);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -21,12 +24,29 @@ export default function CartPage() {
           <h1 className="text-2xl font-black text-[#0f172a]">Carrinho</h1>
         </div>
         {items.length > 0 && (
-          <button
-            onClick={clearCart}
-            className="rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-3 py-1.5 text-xs font-black text-[#e11d48]"
-          >
-            Limpar
-          </button>
+          confirmClear ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { clearCart(); setConfirmClear(false); }}
+                className="rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-3 py-1.5 text-xs font-black text-[#e11d48]"
+              >
+                Confirmar
+              </button>
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="rounded-xl border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-black text-[#64748b]"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmClear(true)}
+              className="rounded-xl border border-[#fecdd3] bg-[#fff1f2] px-3 py-1.5 text-xs font-black text-[#e11d48]"
+            >
+              Limpar
+            </button>
+          )
         )}
       </div>
 
@@ -59,6 +79,7 @@ export default function CartPage() {
               <img
                 src={item.image}
                 alt={item.name}
+                loading="lazy"
                 className="h-20 w-20 shrink-0 rounded-xl object-cover bg-[#f8fafc]"
                 onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
               />

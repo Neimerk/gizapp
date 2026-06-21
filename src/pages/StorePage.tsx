@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { usePageMeta } from "../hooks/usePageMeta";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bike, Clock3, GitCompareArrows, MessageCircle, Search, Star, X } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -59,6 +60,11 @@ function StorePageContent() {
   });
 
   const loading = loadingStore || loadingProducts;
+
+  usePageMeta({
+    title: store?.name,
+    description: store?.description ?? undefined,
+  });
 
   // Build tab list: declared store types (from store.category) + any extra product categories
   const tabs = useMemo(() => {
@@ -339,8 +345,7 @@ function CompareButton({ product }: { product: StoreProduct }) {
 
 function StoreFavoriteButton({ store }: { store: StoreType }) {
   const toggleStore = useFavoritesStore((s) => s.toggleStore);
-  const isStoreFavorite = useFavoritesStore((s) => s.isStoreFavorite);
-  const isFav = isStoreFavorite(store.id);
+  const isFav = useFavoritesStore((s) => s.stores.some((st) => st.id === store.id));
 
   return (
     <button
@@ -394,7 +399,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
   return (
     <div className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
       <Link to={`/lojas/${product.storeId}/produto/${product.id}`} className="block">
-        <div className="flex h-44 items-center justify-center overflow-hidden bg-[#f8fafc] p-4">
+        <div className="flex h-44 items-center justify-center overflow-hidden rounded-t-3xl bg-[#f8fafc] p-4">
           <ProductImage
             imageUrl={product.imageUrl}
             alt={product.imageAlt || product.name}

@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Users, Store as StoreIcon, Package, ShoppingBag,
   Shield, ToggleLeft, ToggleRight, Search, ChevronDown,
-  LogOut, ArrowLeft, RefreshCw, Clock3,
+  LogOut, ArrowLeft, RefreshCw, Clock3, Image as ImageIcon,
+  Plus, Pencil, Trash2, Loader2, ExternalLink,
+  Tag, Wallet, CheckCircle2, XCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -11,7 +13,12 @@ import { logout } from "../services/auth";
 import { useAuthStore, type AuthUser } from "../stores/authStore";
 import {
   adminGetUsers, adminToggleUserActive, adminGetAllOrders, adminUpdateOrderStatus, getStores,
+  adminGetBanners, adminCreateBanner, adminUpdateBanner, adminDeleteBanner,
+  adminGetCoupons, adminCreateCoupon, adminUpdateCoupon, adminDeleteCoupon,
+  adminGetWithdrawals, adminUpdateWithdrawal,
   queryKeys,
+  type AdminBanner, type BannerPayload,
+  type CouponAdmin, type CouponAdminPayload,
 } from "../services/gizApi";
 import { useToastStore } from "../stores/toastStore";
 import { formatBRL } from "../utils/format";
@@ -55,7 +62,7 @@ export default function AdminPage() {
 
 function AdminDashboard({ auth }: { auth: AuthUser }) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores" | "banners" | "coupons" | "withdrawals">("overview");
 
   async function handleLogout() {
     await logout();
@@ -110,27 +117,38 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
 
         {/* Tabs */}
         <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 pb-0 md:px-8">
-          {(["overview", "orders", "users", "stores"] as const).map((t) => (
+          {([
+            { key: "overview",     label: "Visão Geral" },
+            { key: "orders",       label: "Pedidos"     },
+            { key: "users",        label: "Usuários"    },
+            { key: "stores",       label: "Lojas"       },
+            { key: "banners",      label: "Banners"     },
+            { key: "coupons",      label: "Cupons"      },
+            { key: "withdrawals",  label: "Saques"      },
+          ] as const).map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={t.key}
+              onClick={() => setTab(t.key)}
               className={`shrink-0 border-b-2 px-4 py-2.5 text-xs font-black uppercase tracking-wide transition-colors ${
-                tab === t
+                tab === t.key
                   ? "border-[#002776] text-[#002776]"
                   : "border-transparent text-[#64748b] hover:text-[#0f172a]"
               }`}
             >
-              {t === "overview" ? "Visão Geral" : t === "orders" ? "Pedidos" : t === "users" ? "Usuários" : "Lojas"}
+              {t.label}
             </button>
           ))}
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 md:px-8">
-        {tab === "overview" && <OverviewTab />}
-        {tab === "orders"   && <OrdersTab />}
-        {tab === "users"    && <UsersTab />}
-        {tab === "stores"   && <StoresTab />}
+        {tab === "overview"    && <OverviewTab />}
+        {tab === "orders"      && <OrdersTab />}
+        {tab === "users"       && <UsersTab />}
+        {tab === "stores"      && <StoresTab />}
+        {tab === "banners"     && <BannersTab />}
+        {tab === "coupons"     && <CouponsTab />}
+        {tab === "withdrawals" && <WithdrawalsTab />}
       </main>
     </div>
   );
@@ -532,6 +550,847 @@ function UsersTab() {
                       )}
                     </td>
                   </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── BANNERS ── */
+
+const EMPTY_BANNER: BannerPayload = {
+  title: "", description: "", imageUrl: "", link: "", linkLabel: "",
+  badge: "", active: true, sortOrder: 0, startsAt: null, endsAt: null,
+};
+
+function BannerModal({
+  banner,
+  onClose,
+  onSave,
+}: {
+  banner?: AdminBanner | null;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const [form, setForm] = useState<BannerPayload>(
+    banner
+      ? {
+          title:       banner.title,
+          description: banner.description ?? "",
+          imageUrl:    banner.imageUrl,
+          link:        banner.link ?? "",
+          linkLabel:   banner.linkLabel ?? "",
+          badge:       banner.badge ?? "",
+          active:      banner.active,
+          sortOrder:   banner.sortOrder,
+          startsAt:    banner.startsAt?.slice(0, 16) ?? null,
+          endsAt:      banner.endsAt?.slice(0, 16) ?? null,
+        }
+      : EMPTY_BANNER,
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  function set(k: keyof BannerPayload, v: unknown) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function handleSave() {
+    if (!form.title.trim()) { setError("Título é obrigatório."); return; }
+    if (!form.imageUrl.trim()) { setError("URL da imagem é obrigatória."); return; }
+    setSaving(true); setError(null);
+    const payload: BannerPayload = {
+      ...form,
+      description: form.description || undefined,
+      link:        form.link        || undefined,
+      linkLabel:   form.linkLabel   || undefined,
+      badge:       form.badge       || undefined,
+    };
+    try {
+      if (banner) await adminUpdateBanner(banner.id, payload);
+      else        await adminCreateBanner(payload);
+      onSave();
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
+        style={{ maxHeight: "90vh" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4">
+          <h2 className="font-black text-[#0f172a]">{banner ? "Editar banner" : "Novo banner"}</h2>
+          <button onClick={onClose} className="rounded-xl bg-[#f1f5f9] p-2 text-[#64748b]">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-4 p-5">
+          {/* Preview da imagem */}
+          {form.imageUrl && (
+            <div className="relative overflow-hidden rounded-2xl" style={{ aspectRatio: "21/9" }}>
+              <img src={form.imageUrl} alt="Preview" className="h-full w-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = "none"; }} />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent pointer-events-none" />
+              {form.badge && (
+                <span className="absolute left-3 top-3 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur-sm">
+                  {form.badge}
+                </span>
+              )}
+              {form.title && (
+                <p className="absolute bottom-3 left-3 text-base font-black text-white drop-shadow-sm">{form.title}</p>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className={lbl}>Título *</label>
+            <input value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Ex: Ofertas da semana" className={inp} />
+          </div>
+          <div>
+            <label className={lbl}>Descrição</label>
+            <input value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} placeholder="Texto complementar (opcional)" className={inp} />
+          </div>
+          <div>
+            <label className={lbl}>URL da imagem *</label>
+            <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://..." className={inp} />
+            <p className="mt-1 text-[10px] text-[#94a3b8]">Recomendado: 1200×514px (proporção 21:9)</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Link (opcional)</label>
+              <input value={form.link ?? ""} onChange={(e) => set("link", e.target.value)} placeholder="/lojas ou https://..." className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>Texto do botão</label>
+              <input value={form.linkLabel ?? ""} onChange={(e) => set("linkLabel", e.target.value)} placeholder="Ex: Ver ofertas" className={inp} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Badge</label>
+              <input value={form.badge ?? ""} onChange={(e) => set("badge", e.target.value)} placeholder="🔥 Oferta do dia" className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>Ordem</label>
+              <input type="number" min="0" value={form.sortOrder ?? 0} onChange={(e) => set("sortOrder", Number(e.target.value))} className={inp} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Início (opcional)</label>
+              <input type="datetime-local" value={form.startsAt ?? ""} onChange={(e) => set("startsAt", e.target.value || null)} className={inp} />
+            </div>
+            <div>
+              <label className={lbl}>Fim (opcional)</label>
+              <input type="datetime-local" value={form.endsAt ?? ""} onChange={(e) => set("endsAt", e.target.value || null)} className={inp} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+            <input
+              type="checkbox"
+              id="banner-active"
+              checked={form.active ?? true}
+              onChange={(e) => set("active", e.target.checked)}
+              className="h-4 w-4 accent-[#16a34a]"
+            />
+            <label htmlFor="banner-active" className="cursor-pointer text-sm font-black text-[#0f172a]">
+              Banner ativo (aparece na home)
+            </label>
+          </div>
+
+          {error && <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</p>}
+        </div>
+
+        <div className="border-t border-[#f1f5f9] p-4">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-black text-white disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg, #002776, #001640)" }}
+          >
+            {saving ? <><Loader2 size={16} className="animate-spin" /> Salvando…</> : "Salvar banner"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BannersTab() {
+  const queryClient = useQueryClient();
+  const show = useToastStore((s) => s.show);
+  const [modal, setModal] = useState<{ open: boolean; banner?: AdminBanner | null }>({ open: false });
+
+  const { data: banners = [], isLoading } = useQuery({
+    queryKey: ["admin", "banners"],
+    queryFn:  adminGetBanners,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminDeleteBanner(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "banners"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.banners() });
+      show("Banner excluído.", "success");
+    },
+    onError: () => show("Erro ao excluir banner.", "error"),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      adminUpdateBanner(id, { active }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "banners"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.banners() });
+    },
+  });
+
+  function handleSaved() {
+    queryClient.invalidateQueries({ queryKey: ["admin", "banners"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.banners() });
+    show("Banner salvo!", "success");
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-black text-[#0f172a]">{banners.length} banner{banners.length !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-[#94a3b8]">Banners aparecem no topo da Home para todos os usuários.</p>
+        </div>
+        <button
+          onClick={() => setModal({ open: true, banner: null })}
+          className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black text-white"
+          style={{ background: "linear-gradient(135deg, #002776, #001640)" }}
+        >
+          <Plus size={16} /> Novo banner
+        </button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 size={24} className="animate-spin text-[#002776]" />
+        </div>
+      ) : banners.length === 0 ? (
+        <div className="flex flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-16 text-center">
+          <ImageIcon size={36} className="text-[#cbd5e1]" />
+          <div>
+            <p className="font-black text-[#0f172a]">Nenhum banner configurado</p>
+            <p className="mt-1 text-sm text-[#64748b]">Crie o primeiro banner para exibir na Home.</p>
+          </div>
+          <button
+            onClick={() => setModal({ open: true, banner: null })}
+            className="rounded-2xl px-6 py-3 text-sm font-black text-white"
+            style={{ background: "linear-gradient(135deg, #002776, #001640)" }}
+          >
+            <Plus size={14} className="inline mr-1.5" /> Criar banner
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {banners.map((b) => (
+            <div key={b.id} className="flex items-center gap-4 rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+              {/* Thumbnail */}
+              <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#f1f5f9]">
+                <img src={b.imageUrl} alt={b.title} className="h-full w-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                {!b.active && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                    <span className="text-[10px] font-black text-white">INATIVO</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate font-black text-[#0f172a]">{b.title}</p>
+                  {b.badge && (
+                    <span className="shrink-0 rounded-full bg-[#f0f9ff] px-2 py-0.5 text-[10px] font-black text-[#0369a1]">
+                      {b.badge}
+                    </span>
+                  )}
+                </div>
+                {b.description && <p className="mt-0.5 truncate text-xs text-[#64748b]">{b.description}</p>}
+                <div className="mt-1 flex items-center gap-3 text-[10px] text-[#94a3b8]">
+                  <span>Ordem: {b.sortOrder}</span>
+                  {b.link && (
+                    <span className="flex items-center gap-1 truncate">
+                      <ExternalLink size={10} /> {b.link}
+                    </span>
+                  )}
+                  {b.startsAt && <span>De {new Date(b.startsAt).toLocaleDateString("pt-BR")}</span>}
+                  {b.endsAt   && <span>até {new Date(b.endsAt).toLocaleDateString("pt-BR")}</span>}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => toggleMutation.mutate({ id: b.id, active: !b.active })}
+                  disabled={toggleMutation.isPending}
+                  className={`flex items-center gap-1 rounded-xl border px-3 py-1.5 text-[11px] font-black transition-colors ${
+                    b.active
+                      ? "border-[#16a34a]/30 bg-[#f0fdf4] text-[#16a34a]"
+                      : "border-[#e2e8f0] bg-[#f8fafc] text-[#94a3b8]"
+                  }`}
+                >
+                  {b.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                  {b.active ? "Ativo" : "Inativo"}
+                </button>
+                <button
+                  onClick={() => setModal({ open: true, banner: b })}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] hover:bg-[#f8fafc]"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  onClick={() => { if (confirm(`Excluir "${b.title}"?`)) deleteMutation.mutate(b.id); }}
+                  disabled={deleteMutation.isPending}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 disabled:opacity-50"
+                >
+                  {deleteMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {modal.open && (
+        <BannerModal
+          banner={modal.banner}
+          onClose={() => setModal({ open: false })}
+          onSave={handleSaved}
+        />
+      )}
+    </div>
+  );
+}
+
+const inp = "w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#002776]/20 placeholder:text-[#cbd5e1]";
+const lbl = "mb-1.5 block text-[10px] font-black uppercase tracking-wide text-[#94a3b8]";
+
+/* ── COUPONS ── */
+
+const COUPON_TYPE_LABEL: Record<string, string> = {
+  percent:       "% Desconto",
+  fixed:         "R$ Fixo",
+  free_delivery: "Frete Grátis",
+};
+
+const EMPTY_COUPON: CouponAdminPayload = {
+  code: "", type: "percent", value: 10, label: "", minOrder: 0,
+  maxUses: null, expiresAt: null, active: true,
+};
+
+function CouponModal({
+  coupon, onClose, onSave,
+}: { coupon?: CouponAdmin | null; onClose: () => void; onSave: () => void }) {
+  const [form, setForm] = useState<CouponAdminPayload>(
+    coupon
+      ? {
+          code:      coupon.code,
+          type:      coupon.type,
+          value:     coupon.value,
+          label:     coupon.label,
+          minOrder:  coupon.minOrder,
+          maxUses:   coupon.maxUses ?? null,
+          expiresAt: coupon.expiresAt?.slice(0, 16) ?? null,
+          active:    coupon.active,
+        }
+      : EMPTY_COUPON,
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  function set(k: keyof CouponAdminPayload, v: unknown) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function handleSave() {
+    if (!form.code.trim()) { setError("Código é obrigatório."); return; }
+    if (!form.label.trim()) { setError("Descrição é obrigatória."); return; }
+    if (form.value <= 0)    { setError("Valor deve ser maior que zero."); return; }
+    setSaving(true); setError(null);
+    try {
+      if (coupon) await adminUpdateCoupon(coupon.id, form);
+      else        await adminCreateCoupon(form);
+      onSave(); onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar.");
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
+        style={{ maxHeight: "90vh" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4">
+          <h2 className="font-black text-[#0f172a]">{coupon ? "Editar cupom" : "Novo cupom"}</h2>
+          <button onClick={onClose} className="rounded-xl bg-[#f1f5f9] p-2 text-[#64748b]">✕</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-4 p-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Código *</label>
+              <input
+                value={form.code}
+                onChange={(e) => set("code", e.target.value.toUpperCase())}
+                placeholder="EX: BRASUX20"
+                className={`${inp} font-mono`}
+              />
+            </div>
+            <div>
+              <label className={lbl}>Tipo *</label>
+              <select value={form.type} onChange={(e) => set("type", e.target.value)} className={inp}>
+                <option value="percent">% Desconto</option>
+                <option value="fixed">R$ Fixo</option>
+                <option value="free_delivery">Frete Grátis</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className={lbl}>Descrição *</label>
+            <input value={form.label} onChange={(e) => set("label", e.target.value)} placeholder="Ex: 20% de desconto" className={inp} />
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={lbl}>
+                {form.type === "percent" ? "Valor (%)" : form.type === "fixed" ? "Valor (R$)" : "Cobertura (%)"}
+              </label>
+              <input
+                type="number" min="0" step="0.01"
+                value={form.value}
+                onChange={(e) => set("value", Number(e.target.value))}
+                className={inp}
+              />
+            </div>
+            <div>
+              <label className={lbl}>Pedido mínimo (R$)</label>
+              <input
+                type="number" min="0" step="0.01"
+                value={form.minOrder ?? 0}
+                onChange={(e) => set("minOrder", Number(e.target.value))}
+                className={inp}
+              />
+            </div>
+            <div>
+              <label className={lbl}>Máx de usos</label>
+              <input
+                type="number" min="1" placeholder="∞ Ilimitado"
+                value={form.maxUses ?? ""}
+                onChange={(e) => set("maxUses", e.target.value ? Number(e.target.value) : null)}
+                className={inp}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={lbl}>Validade (opcional)</label>
+            <input
+              type="datetime-local"
+              value={form.expiresAt ?? ""}
+              onChange={(e) => set("expiresAt", e.target.value || null)}
+              className={inp}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+            <input
+              type="checkbox" id="coupon-active"
+              checked={form.active ?? true}
+              onChange={(e) => set("active", e.target.checked)}
+              className="h-4 w-4 accent-[#16a34a]"
+            />
+            <label htmlFor="coupon-active" className="cursor-pointer text-sm font-black text-[#0f172a]">
+              Cupom ativo (aceito no checkout)
+            </label>
+          </div>
+
+          {error && (
+            <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</p>
+          )}
+        </div>
+
+        <div className="border-t border-[#f1f5f9] p-4">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-black text-white disabled:opacity-60"
+            style={{ background: "linear-gradient(135deg, #002776, #001640)" }}
+          >
+            {saving ? <><Loader2 size={16} className="animate-spin" /> Salvando…</> : "Salvar cupom"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CouponsTab() {
+  const queryClient = useQueryClient();
+  const show = useToastStore((s) => s.show);
+  const [modal, setModal] = useState<{ open: boolean; coupon?: CouponAdmin | null }>({ open: false });
+
+  const { data: coupons = [], isLoading } = useQuery({
+    queryKey: queryKeys.adminCoupons(),
+    queryFn:  adminGetCoupons,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      adminUpdateCoupon(id, { active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminCoupons() }),
+    onError: () => show("Erro ao atualizar cupom.", "error"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminDeleteCoupon(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminCoupons() });
+      show("Cupom excluído.", "success");
+    },
+    onError: () => show("Erro ao excluir cupom.", "error"),
+  });
+
+  function handleSaved() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.adminCoupons() });
+    show("Cupom salvo!", "success");
+  }
+
+  const totalUses = coupons.reduce((s, c) => s + c.usesCount, 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Total de cupons", value: coupons.length, color: "#002776" },
+          { label: "Cupons ativos",   value: coupons.filter((c) => c.active).length, color: "#16a34a" },
+          { label: "Total de usos",   value: totalUses, color: "#7c3aed" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-xs text-[#64748b]">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold text-[#64748b]">{coupons.length} cupom{coupons.length !== 1 ? "s" : ""}</p>
+        <button
+          onClick={() => setModal({ open: true, coupon: null })}
+          className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black text-white"
+          style={{ background: "linear-gradient(135deg, #002776, #001640)" }}
+        >
+          <Plus size={16} /> Novo cupom
+        </button>
+      </div>
+
+      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando…</div>
+        ) : coupons.length === 0 ? (
+          <div className="flex flex-col items-center gap-4 p-16 text-center">
+            <Tag size={36} className="text-[#cbd5e1]" />
+            <p className="font-black text-[#0f172a]">Nenhum cupom cadastrado</p>
+            <button
+              onClick={() => setModal({ open: true, coupon: null })}
+              className="rounded-2xl px-6 py-3 text-sm font-black text-white"
+              style={{ background: "linear-gradient(135deg, #002776, #001640)" }}
+            >
+              Criar primeiro cupom
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#f1f5f9]">
+                  {["Código", "Tipo", "Valor", "Mín. Pedido", "Usos", "Validade", "Status", "Ações"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f8fafc]">
+                {coupons.map((c) => {
+                  const expired = c.expiresAt ? new Date(c.expiresAt) < new Date() : false;
+                  const exhausted = c.maxUses != null && c.usesCount >= c.maxUses;
+                  return (
+                    <tr key={c.id} className="hover:bg-[#f8fafc] transition-colors">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-sm font-black text-[#0f172a]">{c.code}</span>
+                        <p className="text-[10px] text-[#94a3b8]">{c.label}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-[#f0f9ff] px-2.5 py-1 text-[10px] font-black text-[#0369a1]">
+                          {COUPON_TYPE_LABEL[c.type]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-black text-[#0f172a]">
+                        {c.type === "percent" ? `${c.value}%` : c.type === "fixed" ? formatBRL(c.value) : "100%"}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[#64748b]">
+                        {c.minOrder > 0 ? formatBRL(c.minOrder) : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-black ${exhausted ? "text-red-500" : "text-[#0f172a]"}`}>
+                          {c.usesCount}
+                          {c.maxUses != null && <span className="text-[#94a3b8]">/{c.maxUses}</span>}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {c.expiresAt ? (
+                          <span className={`text-xs font-bold ${expired ? "text-red-500" : "text-[#64748b]"}`}>
+                            {new Date(c.expiresAt).toLocaleDateString("pt-BR")}
+                            {expired && " ⚠️"}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-[#94a3b8]">Sem prazo</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => toggleMutation.mutate({ id: c.id, active: !c.active })}
+                          disabled={toggleMutation.isPending}
+                          className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-[10px] font-black ${
+                            c.active && !expired && !exhausted
+                              ? "border-[#16a34a]/30 bg-[#f0fdf4] text-[#16a34a]"
+                              : "border-[#e2e8f0] bg-[#f8fafc] text-[#94a3b8]"
+                          }`}
+                        >
+                          {c.active ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
+                          {c.active ? "Ativo" : "Inativo"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => setModal({ open: true, coupon: c })}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] hover:bg-[#f8fafc]"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => { if (confirm(`Excluir cupom "${c.code}"?`)) deleteMutation.mutate(c.id); }}
+                            disabled={deleteMutation.isPending}
+                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {modal.open && (
+        <CouponModal
+          coupon={modal.coupon}
+          onClose={() => setModal({ open: false })}
+          onSave={handleSaved}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── WITHDRAWALS ── */
+
+function WithdrawalsTab() {
+  const queryClient = useQueryClient();
+  const show = useToastStore((s) => s.show);
+  const [filter, setFilter] = useState<"PENDING" | "ALL">("PENDING");
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
+
+  const { data: withdrawals = [], isLoading, refetch } = useQuery({
+    queryKey: queryKeys.adminWithdrawals(),
+    queryFn:  adminGetWithdrawals,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, status, note }: { id: string; status: "PAID" | "REJECTED"; note?: string }) =>
+      adminUpdateWithdrawal(id, status, note),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminWithdrawals() });
+      show(vars.status === "PAID" ? "Saque aprovado! ✅" : "Saque rejeitado.", "success");
+      setRejectId(null);
+      setRejectNote("");
+    },
+    onError: () => show("Erro ao atualizar saque.", "error"),
+  });
+
+  const filtered = filter === "PENDING" ? withdrawals.filter((w) => w.status === "PENDING") : withdrawals;
+  const pendingTotal = withdrawals.filter((w) => w.status === "PENDING").reduce((s, w) => s + w.amount, 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Resumo */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Pendentes",   value: withdrawals.filter((w) => w.status === "PENDING").length,  color: "#f59e0b" },
+          { label: "Valor pendente", value: formatBRL(pendingTotal), color: "#002776" },
+          { label: "Total pago",  value: formatBRL(withdrawals.filter((w) => w.status === "PAID").reduce((s, w) => s + w.amount, 0)), color: "#16a34a" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <p className="text-xl font-black" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-xs text-[#64748b]">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Filtros */}
+      <div className="flex items-center gap-3">
+        {(["PENDING", "ALL"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-xl px-4 py-2 text-xs font-black transition-colors ${
+              filter === f ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+            }`}
+          >
+            {f === "PENDING" ? `Pendentes (${withdrawals.filter((w) => w.status === "PENDING").length})` : "Todos"}
+          </button>
+        ))}
+        <button onClick={() => refetch()} className="ml-auto text-[#64748b] hover:text-[#0f172a]">
+          <RefreshCw size={15} />
+        </button>
+      </div>
+
+      {/* Tabela */}
+      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+        {isLoading ? (
+          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando…</div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 p-16 text-center">
+            <Wallet size={36} className="text-[#cbd5e1]" />
+            <p className="font-black text-[#0f172a]">
+              {filter === "PENDING" ? "Nenhum saque pendente 🎉" : "Nenhum saque registrado"}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[#f1f5f9]">
+                  {["Entregador", "Valor", "Chave Pix", "Status", "Data", "Ações"].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f8fafc]">
+                {filtered.map((w) => (
+                  <>
+                    <tr key={w.id} className="hover:bg-[#f8fafc] transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f0f9ff] text-xs font-black text-[#0369a1]">
+                            {w.courierName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-black text-[#0f172a]">{w.courierName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-base font-black text-[#16a34a]">
+                        {formatBRL(w.amount)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-[#64748b]">{w.pixKey}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
+                          w.status === "PAID"     ? "bg-green-50 text-green-700" :
+                          w.status === "REJECTED" ? "bg-red-50 text-red-600"    :
+                          "bg-yellow-50 text-yellow-700"
+                        }`}>
+                          {w.status === "PAID" ? "✓ Pago" : w.status === "REJECTED" ? "Rejeitado" : "Pendente"}
+                        </span>
+                        {w.note && <p className="mt-0.5 text-[10px] text-[#94a3b8] italic">{w.note}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-[#64748b]">
+                        {new Date(w.createdAt).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-4 py-3">
+                        {w.status === "PENDING" && (
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => updateMutation.mutate({ id: w.id, status: "PAID" })}
+                              disabled={updateMutation.isPending}
+                              className="flex items-center gap-1 rounded-xl border border-green-200 bg-green-50 px-3 py-1.5 text-[11px] font-black text-green-700 hover:bg-green-100 disabled:opacity-50"
+                            >
+                              <CheckCircle2 size={12} /> Aprovar
+                            </button>
+                            <button
+                              onClick={() => setRejectId(w.id)}
+                              className="flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-black text-red-600 hover:bg-red-100"
+                            >
+                              <XCircle size={12} /> Rejeitar
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+
+                    {/* Inline reject form */}
+                    {rejectId === w.id && (
+                      <tr key={`${w.id}-reject`}>
+                        <td colSpan={6} className="bg-red-50 px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <input
+                              value={rejectNote}
+                              onChange={(e) => setRejectNote(e.target.value)}
+                              placeholder="Motivo da rejeição (obrigatório)…"
+                              className="flex-1 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-[#0f172a] outline-none"
+                            />
+                            <button
+                              onClick={() => {
+                                if (!rejectNote.trim()) return;
+                                updateMutation.mutate({ id: w.id, status: "REJECTED", note: rejectNote });
+                              }}
+                              disabled={!rejectNote.trim() || updateMutation.isPending}
+                              className="rounded-xl bg-red-600 px-4 py-2 text-xs font-black text-white disabled:opacity-50"
+                            >
+                              Confirmar rejeição
+                            </button>
+                            <button
+                              onClick={() => { setRejectId(null); setRejectNote(""); }}
+                              className="rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-bold text-[#64748b]"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>

@@ -137,7 +137,7 @@ create trigger orders_updated_at before update on orders
 create or replace function handle_new_user()
 returns trigger as $$
 begin
-  insert into profiles (id, name, role)
+  insert into public.profiles (id, name, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', ''),
@@ -145,7 +145,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
@@ -174,6 +174,9 @@ alter table orders enable row level security;
 alter table order_items enable row level security;
 
 -- PROFILES
+create policy "profiles_insert" on profiles
+  for insert with check (true);
+
 create policy "profiles_select" on profiles
   for select using (auth.uid() = id or is_admin());
 
@@ -223,6 +226,23 @@ create policy "orders_update" on orders
       select 1 from stores
       where stores.id = orders.store_id
       and stores.owner_id = auth.uid()
+    )
+  );
+
+-- ============================================================
+-- MIGRATION: sellers podem ver seus próprios produtos inativos
+-- Execute no Dashboard → SQL Editor depois do schema inicial
+-- ============================================================
+drop policy if exists "products_select" on store_products;
+
+create policy "products_select" on store_products
+  for select using (
+    available = true
+    or is_admin()
+    or exists (
+      select 1 from stores
+      where stores.id = store_products.store_id
+        and stores.owner_id = auth.uid()
     )
   );
 

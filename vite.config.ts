@@ -38,6 +38,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,svg,webp,woff2}"],
+        // Injeta o handler de push no Service Worker gerado
+        importScripts: ["/push-sw.js"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\/api\/(stores|products)/,

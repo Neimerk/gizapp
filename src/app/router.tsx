@@ -1,27 +1,37 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useLocation } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
 import { useAuthStore } from "../stores/authStore";
 
-import HomePage from "../pages/HomePage";
-import StorePage from "../pages/StorePage";
-import CartPage from "../pages/CartPage";
-import CheckoutPage from "../pages/CheckoutPage";
-import OrdersPage from "../pages/OrdersPage";
-import AccountPage from "../pages/AccountPage";
-import CategoryPage from "../pages/CategoryPage";
-import CategoriesPage from "../pages/CategoriesPage";
-import SearchPage from "../pages/SearchPage";
-import StoresPage from "../pages/StoresPage";
-import LoginPage from "../pages/LoginPage";
-import AdminPage from "../pages/AdminPage";
-import ProductPage from "../pages/ProductPage";
-import NotFoundPage from "../pages/NotFoundPage";
-import FavoritesPage from "../pages/FavoritesPage";
-import ComparePage from "../pages/ComparePage";
-import ChatPage from "../pages/ChatPage";
-import ServicesPage from "../pages/ServicesPage";
-import SellerPage from "../pages/SellerPage";
+const HomePage = lazy(() => import("../pages/HomePage"));
+const StorePage = lazy(() => import("../pages/StorePage"));
+const CartPage = lazy(() => import("../pages/CartPage"));
+const CheckoutPage = lazy(() => import("../pages/CheckoutPage"));
+const OrdersPage = lazy(() => import("../pages/OrdersPage"));
+const AccountPage = lazy(() => import("../pages/AccountPage"));
+const CategoryPage = lazy(() => import("../pages/CategoryPage"));
+const CategoriesPage = lazy(() => import("../pages/CategoriesPage"));
+const SearchPage = lazy(() => import("../pages/SearchPage"));
+const StoresPage = lazy(() => import("../pages/StoresPage"));
+const LoginPage = lazy(() => import("../pages/LoginPage"));
+const AdminPage = lazy(() => import("../pages/AdminPage"));
+const ProductPage = lazy(() => import("../pages/ProductPage"));
+const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
+const FavoritesPage = lazy(() => import("../pages/FavoritesPage"));
+const ComparePage = lazy(() => import("../pages/ComparePage"));
+const ChatPage = lazy(() => import("../pages/ChatPage"));
+const ServicesPage = lazy(() => import("../pages/ServicesPage"));
+const SellerPage   = lazy(() => import("../pages/SellerPage"));
+const CourierPage  = lazy(() => import("../pages/CourierPage"));
+
+function PageSpinner() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, initialized } = useAuthStore();
@@ -45,7 +55,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export const router = createBrowserRouter([
   {
     path: "/admin",
-    element: <AdminPage />,
+    element: (
+      <Suspense fallback={<PageSpinner />}>
+        <AdminPage />
+      </Suspense>
+    ),
   },
   {
     path: "/",
@@ -93,6 +107,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <SellerPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "entregador",
+        element: (
+          <ProtectedRoute>
+            <CourierPage />
           </ProtectedRoute>
         ),
       },
