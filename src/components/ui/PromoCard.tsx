@@ -25,11 +25,11 @@ interface PromoCardProps {
   ctaTextColor?: string;
   ctaShadow?: string;
   domainLabel?: string;
-  iconEmoji: string;
-  iconSrc?: string;
-  iconBg: string;
-  iconBorder: string;
+  iconEmoji?: string;
+  iconBg?: string;
+  iconBorder?: string;
   iconExtra?: ReactNode;
+  illustration?: ReactNode;
 }
 
 const GRID_OVERLAY = {
@@ -62,10 +62,10 @@ export default function PromoCard({
   ctaShadow,
   domainLabel,
   iconEmoji,
-  iconSrc,
   iconBg,
   iconBorder,
   iconExtra,
+  illustration,
 }: PromoCardProps) {
   const inner = (
     <>
@@ -99,28 +99,19 @@ export default function PromoCard({
           {extraBadge}
         </div>
 
-        {/* Ícone + texto lado a lado */}
-        <div className="flex items-start gap-4">
-          <span
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl"
-            style={{ background: iconBg, border: `1px solid ${iconBorder}` }}
-          >
-            {iconEmoji}
-          </span>
-          <div>
-            <h2 className="text-3xl font-black text-white md:text-4xl">
-              {titleBefore}{" "}
-              <span
-                className="bg-clip-text text-transparent"
-                style={{ backgroundImage: titleHighlightGradient }}
-              >
-                {titleHighlight}
-              </span>
-            </h2>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
-              {description}
-            </p>
-          </div>
+        <div>
+          <h2 className="text-3xl font-black text-white md:text-4xl">
+            {titleBefore}{" "}
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: titleHighlightGradient }}
+            >
+              {titleHighlight}
+            </span>
+          </h2>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
+            {description}
+          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -136,21 +127,19 @@ export default function PromoCard({
         </div>
       </div>
 
-      <div className={`relative z-10 flex items-center justify-center ${
-        iconSrc
-          ? "h-52 shrink-0 self-stretch overflow-hidden md:h-auto md:w-5/12"
-          : "px-8 pb-8 md:pb-0 md:pr-10"
-      }`}>
-        {iconSrc && (
-          <img
-            src={iconSrc}
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        )}
-        {!iconSrc && iconExtra && (
-          <div className="flex flex-col items-center gap-3 px-8 pb-8 md:pb-0 md:pr-10">
+      <div className="relative z-10 flex items-end justify-center px-6 pb-0 md:pr-8">
+        {illustration ? (
+          <div className="pointer-events-none select-none opacity-95">
+            {illustration}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 pb-8 md:pb-0">
+            <span
+              className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
+              style={{ background: iconBg, border: `1px solid ${iconBorder}` }}
+            >
+              {iconEmoji}
+            </span>
             {iconExtra}
           </div>
         )}

@@ -38,6 +38,12 @@ const SELLER_URL = "https://brasux.store";
 const DELIVERY_URL = "https://entregas.brasux.com.br";
 import { categoryIcons } from "../data/categoryIcons";
 import PromoCard from "../components/ui/PromoCard";
+import {
+  IllustrationNota1000,
+  IllustrationPDV,
+  IllustrationServicos,
+  IllustrationLandingPage,
+} from "../components/ui/PromoIllustrations";
 import StoreCard from "../components/store/StoreCard";
 
 const catGradients = [
@@ -518,10 +524,15 @@ export default function HomePage() {
           ctaLabel="Fazer simulado grátis"
           ctaBackground="linear-gradient(135deg, #16a34a, #15803d)"
           ctaShadow="0 8px 24px rgba(22,163,74,0.45)"
-          iconEmoji="🎓"
-          iconSrc="/card-simulenem.webp"
-          iconBg="rgba(22,163,74,0.15)"
-          iconBorder="rgba(22,163,74,0.25)"
+          illustration={
+            <img
+              src="/card-simulenem.webp"
+              alt="Simulado ENEM"
+              className="h-44 w-auto object-contain"
+              loading="lazy"
+              decoding="async"
+            />
+          }
           domainLabel="simulenem.com"
         />
       </section>
@@ -544,10 +555,7 @@ export default function HomePage() {
           ctaLabel="Conhecer o curso"
           ctaBackground="linear-gradient(135deg, #6366f1, #4f46e5)"
           ctaShadow="0 8px 24px rgba(99,102,241,0.45)"
-          iconEmoji="🎯"
-          iconSrc="/card-notaon.webp"
-          iconBg="rgba(99,102,241,0.15)"
-          iconBorder="rgba(99,102,241,0.25)"
+          illustration={<IllustrationNota1000 />}
           domainLabel="cursonotaon.com.br"
         />
       </section>
@@ -571,10 +579,7 @@ export default function HomePage() {
           ctaBackground="linear-gradient(135deg, #34d399, #10b981)"
           ctaShadow="0 8px 24px rgba(16,185,129,0.45)"
           ctaTextColor="#022c22"
-          iconEmoji="🧾"
-          iconSrc="/card-pdv.webp"
-          iconBg="rgba(16,185,129,0.15)"
-          iconBorder="rgba(16,185,129,0.25)"
+          illustration={<IllustrationPDV />}
           domainLabel="caixa.brasux.com.br"
         />
       </section>
@@ -597,10 +602,7 @@ export default function HomePage() {
           ctaLabel="Ver todos os serviços"
           ctaBackground="linear-gradient(135deg, #7c3aed, #4f46e5)"
           ctaShadow="0 8px 24px rgba(124,58,237,0.45)"
-          iconEmoji="🚀"
-          iconSrc="/card-ti.webp"
-          iconBg="rgba(124,58,237,0.15)"
-          iconBorder="rgba(124,58,237,0.25)"
+          illustration={<IllustrationServicos />}
         />
       </section>
 
@@ -659,22 +661,7 @@ export default function HomePage() {
           ctaBackground="linear-gradient(135deg, #f59e0b, #84cc16)"
           ctaShadow="0 8px 24px rgba(245,158,11,0.45)"
           ctaTextColor="#0c0a00"
-          iconEmoji="🌐"
-          iconSrc="/card-lp.webp"
-          iconBg="rgba(245,158,11,0.12)"
-          iconBorder="rgba(245,158,11,0.25)"
-          iconExtra={
-            <div
-              className="flex items-center gap-2 rounded-2xl px-4 py-2"
-              style={{
-                background: "rgba(37,211,102,0.12)",
-                border: "1px solid rgba(37,211,102,0.25)",
-              }}
-            >
-              <span className="text-lg">💬</span>
-              <span className="text-sm font-black text-[#25d166]">WhatsApp</span>
-            </div>
-          }
+          illustration={<IllustrationLandingPage />}
           domainLabel="produtos.brasux.com.br"
         />
       </section>
