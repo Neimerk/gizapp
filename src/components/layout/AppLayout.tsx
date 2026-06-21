@@ -10,7 +10,6 @@ import {
   ReceiptText,
   Search,
   ShoppingCart,
-  Store as StoreIcon,
   Sun,
   User,
 } from "lucide-react";
@@ -45,20 +44,10 @@ const baseNavLinks = [
 export default function AppLayout() {
   useErrorMonitor();
 
-  // brasux.store é o portal de lojistas — redireciona para /parceiro
-  useEffect(() => {
-    if (window.location.hostname === "brasux.store" && window.location.pathname === "/") {
-      window.location.replace("/parceiro");
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const authUser = useAuthStore((s) => s.user);
-  const isSellerOrAdmin = authUser?.role === "Seller" || authUser?.role === "Admin";
-  const isCourier       = authUser?.role === "Courier";
+  const isCourier = authUser?.role === "Courier";
   const navLinks = isCourier
     ? [baseNavLinks[0], { label: "Entregas", path: "/entregador", icon: Bike }, baseNavLinks[3], baseNavLinks[4]]
-    : isSellerOrAdmin
-    ? [...baseNavLinks.slice(0, 4), { label: "Minha Loja", path: "/minha-loja", icon: StoreIcon }, baseNavLinks[4]]
     : baseNavLinks;
 
   const totalItems = useCartStore((s) => s.totalItems());
