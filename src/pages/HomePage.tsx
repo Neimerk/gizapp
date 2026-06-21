@@ -658,6 +658,7 @@ export default function HomePage() {
           ctaBackground="linear-gradient(135deg, #f59e0b, #84cc16)"
           ctaShadow="0 8px 24px rgba(245,158,11,0.45)"
           ctaTextColor="#0c0a00"
+          imageUrl="/card-lp.webp"
           illustration={<IllustrationLandingPage />}
           domainLabel="produtos.brasux.com.br"
         />
