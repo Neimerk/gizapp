@@ -39,6 +39,7 @@ const DELIVERY_URL = "https://entregas.brasux.com.br";
 import { categoryIcons } from "../data/categoryIcons";
 import PromoCard from "../components/ui/PromoCard";
 import {
+  IllustrationEnem,
   IllustrationNota1000,
   IllustrationPDV,
   IllustrationServicos,
@@ -524,15 +525,8 @@ export default function HomePage() {
           ctaLabel="Fazer simulado grátis"
           ctaBackground="linear-gradient(135deg, #16a34a, #15803d)"
           ctaShadow="0 8px 24px rgba(22,163,74,0.45)"
-          illustration={
-            <img
-              src="/card-simulenem.webp"
-              alt="Simulado ENEM"
-              className="h-44 w-auto object-contain"
-              loading="lazy"
-              decoding="async"
-            />
-          }
+          imageUrl="/card-simulenem.webp"
+          illustration={<IllustrationEnem />}
           domainLabel="simulenem.com"
         />
       </section>
@@ -555,6 +549,7 @@ export default function HomePage() {
           ctaLabel="Conhecer o curso"
           ctaBackground="linear-gradient(135deg, #6366f1, #4f46e5)"
           ctaShadow="0 8px 24px rgba(99,102,241,0.45)"
+          imageUrl="/card-notaon.webp"
           illustration={<IllustrationNota1000 />}
           domainLabel="cursonotaon.com.br"
         />
