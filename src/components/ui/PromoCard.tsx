@@ -99,19 +99,28 @@ export default function PromoCard({
           {extraBadge}
         </div>
 
-        <div>
-          <h2 className="text-3xl font-black text-white md:text-4xl">
-            {titleBefore}{" "}
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: titleHighlightGradient }}
-            >
-              {titleHighlight}
-            </span>
-          </h2>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
-            {description}
-          </p>
+        {/* Ícone + texto lado a lado */}
+        <div className="flex items-start gap-4">
+          <span
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl"
+            style={{ background: iconBg, border: `1px solid ${iconBorder}` }}
+          >
+            {iconEmoji}
+          </span>
+          <div>
+            <h2 className="text-3xl font-black text-white md:text-4xl">
+              {titleBefore}{" "}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: titleHighlightGradient }}
+              >
+                {titleHighlight}
+              </span>
+            </h2>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
+              {description}
+            </p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -140,19 +149,11 @@ export default function PromoCard({
             className="absolute inset-0 h-full w-full object-cover"
           />
         )}
-        <div className="relative z-10 flex flex-col items-center gap-3 p-6">
-          <span
-            className="flex h-20 w-20 items-center justify-center rounded-2xl text-4xl"
-            style={{
-              background: iconBg,
-              border: `1px solid ${iconBorder}`,
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            {iconEmoji}
-          </span>
-          {iconExtra}
-        </div>
+        {!iconSrc && iconExtra && (
+          <div className="flex flex-col items-center gap-3 px-8 pb-8 md:pb-0 md:pr-10">
+            {iconExtra}
+          </div>
+        )}
       </div>
     </>
   );
