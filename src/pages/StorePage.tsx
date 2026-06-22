@@ -28,7 +28,7 @@ import { categoryIcons } from "../data/categoryIcons";
 import { categories as masterCategories } from "../data/categories";
 import { formatBRL } from "../utils/format";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 function parseCategorySlugs(raw: string): string[] {
   return raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
