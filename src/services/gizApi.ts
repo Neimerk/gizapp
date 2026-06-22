@@ -33,6 +33,15 @@ const IMAGE_BASE_URL: string =
 export const DEFAULT_STORE_ID =
   "b5c148b0-a07b-4532-aca3-e66c12f389af";
 
+// Mapeia IDs do Supabase → IDs do GizAPI (os dois sistemas usam UUIDs diferentes para a mesma loja)
+const SUPABASE_TO_GIZAPI: Record<string, string> = {
+  "21f2f9d1-de5f-40b5-a3fc-765aba6d70a0": "b5c148b0-a07b-4532-aca3-e66c12f389af",
+};
+
+export function resolveGizApiStoreId(id: string): string {
+  return SUPABASE_TO_GIZAPI[id] ?? id;
+}
+
 /* AUTH */
 
 export type AuthResponse = {

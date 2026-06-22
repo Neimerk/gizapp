@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import {
   DEFAULT_STORE_ID,
+  resolveGizApiStoreId,
   getProductImageUrl,
   getStoreById,
   getStoreProducts,
@@ -44,18 +45,20 @@ function StorePageContent() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const currentStoreId = storeId || DEFAULT_STORE_ID;
+  // Resolve o ID do GizAPI (pode diferir do ID do Supabase usado no link)
+  const gizApiStoreId = resolveGizApiStoreId(currentStoreId);
 
   const [activeSlug, setActiveSlug] = useState(searchParams.get("categoria") ?? "");
   const [search, setSearch] = useState("");
 
   const { data: store, isLoading: loadingStore } = useQuery({
-    queryKey: queryKeys.store(currentStoreId),
-    queryFn: () => getStoreById(currentStoreId),
+    queryKey: queryKeys.store(gizApiStoreId),
+    queryFn: () => getStoreById(gizApiStoreId),
   });
 
   const { data: products = [], isLoading: loadingProducts } = useQuery({
-    queryKey: queryKeys.storeProducts(currentStoreId),
-    queryFn: () => getStoreProducts({ storeId: currentStoreId }),
+    queryKey: queryKeys.storeProducts(gizApiStoreId),
+    queryFn: () => getStoreProducts({ storeId: gizApiStoreId }),
   });
 
   const loading = loadingStore || loadingProducts;
