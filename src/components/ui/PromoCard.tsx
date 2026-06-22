@@ -26,6 +26,7 @@ interface PromoCardProps {
   ctaShadow?: string;
   domainLabel?: string;
   iconEmoji: string;
+  iconSrc?: string;
   iconBg: string;
   iconBorder: string;
   iconExtra?: ReactNode;
@@ -61,6 +62,7 @@ export default function PromoCard({
   ctaShadow,
   domainLabel,
   iconEmoji,
+  iconSrc,
   iconBg,
   iconBorder,
   iconExtra,
@@ -127,12 +129,21 @@ export default function PromoCard({
 
       <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
         <div className="flex flex-col items-center gap-3">
-          <span
-            className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
-            style={{ background: iconBg, border: `1px solid ${iconBorder}` }}
-          >
-            {iconEmoji}
-          </span>
+          {iconSrc ? (
+            <img
+              src={iconSrc}
+              alt={iconEmoji}
+              className="h-32 w-32 rounded-3xl object-cover"
+              style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}
+            />
+          ) : (
+            <span
+              className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
+              style={{ background: iconBg, border: `1px solid ${iconBorder}` }}
+            >
+              {iconEmoji}
+            </span>
+          )}
           {iconExtra}
         </div>
       </div>
