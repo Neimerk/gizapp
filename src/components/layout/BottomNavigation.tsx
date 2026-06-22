@@ -1,17 +1,30 @@
-import { Home, ReceiptText, Search, ShoppingCart, User } from "lucide-react";
+import { Bike, Home, ReceiptText, Search, ShoppingCart, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useCartStore } from "../../stores/cartStore";
+import { useAuthStore } from "../../stores/authStore";
 
-const navItems = [
-  { label: "Início", path: "/", icon: Home },
-  { label: "Buscar", path: "/buscar", icon: Search },
-  { label: "Carrinho", path: "/carrinho", icon: ShoppingCart },
-  { label: "Pedidos", path: "/pedidos", icon: ReceiptText },
-  { label: "Conta", path: "/conta", icon: User },
+type NavItem = { label: string; path: string; icon: React.ComponentType<{ size: number; strokeWidth: number; className?: string }> };
+
+const DEFAULT_NAV: NavItem[] = [
+  { label: "Início",    path: "/",         icon: Home },
+  { label: "Buscar",    path: "/buscar",   icon: Search },
+  { label: "Carrinho",  path: "/carrinho", icon: ShoppingCart },
+  { label: "Pedidos",   path: "/pedidos",  icon: ReceiptText },
+  { label: "Conta",     path: "/conta",    icon: User },
+];
+
+const COURIER_NAV: NavItem[] = [
+  { label: "Início",    path: "/",           icon: Home },
+  { label: "Entregas",  path: "/entregador", icon: Bike },
+  { label: "Pedidos",   path: "/pedidos",    icon: ReceiptText },
+  { label: "Conta",     path: "/conta",      icon: User },
 ];
 
 export default function BottomNavigation() {
   const cartCount = useCartStore((s) => s.totalItems());
+  const userRole  = useAuthStore((s) => s.user?.role);
+
+  const navItems = userRole === "Courier" ? COURIER_NAV : DEFAULT_NAV;
 
   return (
     <nav className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 md:hidden">
@@ -27,14 +40,8 @@ export default function BottomNavigation() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isCart = item.path === "/carrinho";
-
           return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === "/"}
-              className="relative"
-            >
+            <NavLink key={item.path} to={item.path} end={item.path === "/"} className="relative">
               {({ isActive }) => (
                 <div
                   className="relative flex flex-col items-center gap-0.5 rounded-[22px] px-3 py-2.5 transition-all duration-200"

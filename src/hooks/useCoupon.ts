@@ -1,51 +1,32 @@
 import { useState, useCallback } from "react";
+import { validateCoupon, type CouponDB } from "../services/gizApi";
 
-export type CouponType = "percent" | "fixed" | "free_delivery";
-
-export type Coupon = {
-  code: string;
-  type: CouponType;
-  value: number;
-  label: string;
-};
-
-const COUPONS: Record<string, Coupon> = {
-  BRASUX10: { code: "BRASUX10", type: "percent", value: 10, label: "10% de desconto" },
-  BRASUX20: { code: "BRASUX20", type: "percent", value: 20, label: "20% de desconto" },
-  FRETE0: { code: "FRETE0", type: "free_delivery", value: 100, label: "Frete grátis" },
-  WELCOME: { code: "WELCOME", type: "fixed", value: 15, label: "R$ 15,00 de desconto" },
-};
-
-const KEY = "brasux-coupon";
-
-function loadCoupon(): Coupon | null {
-  try {
-    return JSON.parse(localStorage.getItem(KEY) ?? "null");
-  } catch {
-    return null;
-  }
-}
+export type { CouponDB as Coupon };
 
 export function useCoupon() {
-  const [coupon, setCoupon] = useState<Coupon | null>(loadCoupon);
+  const [coupon, setCoupon] = useState<CouponDB | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
 
-  const apply = useCallback((code: string): boolean => {
-    const found = COUPONS[code.toUpperCase().trim()];
-    if (!found) {
-      setError("Cupom inválido ou expirado.");
-      return false;
-    }
-    setCoupon(found);
+  const apply = useCallback(async (code: string): Promise<boolean> => {
+    if (!code.trim()) { setError("Informe um código de cupom."); return false; }
+    setApplying(true);
     setError(null);
-    localStorage.setItem(KEY, JSON.stringify(found));
-    return true;
+    try {
+      const found = await validateCoupon(code);
+      setCoupon(found);
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Cupom inválido.");
+      return false;
+    } finally {
+      setApplying(false);
+    }
   }, []);
 
   const remove = useCallback(() => {
     setCoupon(null);
     setError(null);
-    localStorage.removeItem(KEY);
   }, []);
 
   function discount(subtotal: number, deliveryFee: number): number {
@@ -56,5 +37,5 @@ export function useCoupon() {
     return 0;
   }
 
-  return { coupon, error, apply, remove, discount };
+  return { coupon, error, applying, apply, remove, discount };
 }

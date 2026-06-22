@@ -1,9 +1,8 @@
-import {
-  getProductImageUrl,
-  type StoreProduct,
-} from "../../services/gizApi";
+import { Link } from "react-router-dom";
 
-import AddToCartButton from "./AddToCartButton";
+import { type StoreProduct } from "../../services/gizApi";
+import { formatBRL } from "../../utils/format";
+import ProductImage from "../ui/ProductImage";
 
 interface Props {
   product: StoreProduct;
@@ -11,44 +10,50 @@ interface Props {
 
 export default function ProductCard({ product }: Props) {
   return (
-    <div className="overflow-hidden rounded-[28px] bg-white shadow-lg shadow-[#dbe2ef]">
-      <div className="flex h-40 items-center justify-center bg-[#f8fafc]">
-        <img
-          src={getProductImageUrl(product.imageUrl)}
+    <Link
+      to={`/lojas/${product.storeId}/produto/${product.id}`}
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
+    >
+      <div className="product-img-bg flex h-40 items-center justify-center overflow-hidden rounded-t-3xl p-3">
+        <ProductImage
+          imageUrl={product.imageUrl}
           alt={product.imageAlt || product.name}
-          className="h-32 w-full object-contain"
+          category={product.category}
+          containerClassName="h-32 w-full rounded-2xl"
+          className="h-32 w-full object-contain transition-transform group-hover:scale-105"
         />
       </div>
-
-      <div className="p-4">
-        <h3 className="line-clamp-2 text-base font-black text-[#111827]">
+      <div className="flex flex-1 flex-col p-4">
+        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[#94a3b8]">
+          {product.category}
+        </p>
+        <h3 className="mt-1 flex-1 text-sm font-black leading-tight text-[#0f172a] line-clamp-2">
           {product.name}
         </h3>
-
-        <p className="mt-1 line-clamp-2 text-sm text-[#64748b]">
-          {product.description}
-        </p>
-
-        <div className="mt-4">
+        <div className="mt-3">
           {product.promotionalPrice ? (
             <>
-              <p className="text-xs font-bold text-[#94a3b8] line-through">
-                R$ {Number(product.price).toFixed(2).replace(".", ",")}
+              <p className="text-[10px] font-bold text-[#94a3b8] line-through">
+                {formatBRL(Number(product.price))}
               </p>
-
-              <p className="text-lg font-black text-[#16a34a]">
-                R$ {Number(product.promotionalPrice).toFixed(2).replace(".", ",")}
+              <p className="text-base font-black text-[#16a34a]">
+                {formatBRL(Number(product.promotionalPrice))}
               </p>
             </>
           ) : (
-            <p className="text-lg font-black text-[#16a34a]">
-              R$ {Number(product.price).toFixed(2).replace(".", ",")}
+            <p className="text-base font-black text-[#16a34a]">
+              {formatBRL(Number(product.price))}
             </p>
           )}
         </div>
-
-        <AddToCartButton product={product} />
+        <div
+          className="mt-3 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black text-white transition-all group-hover:opacity-90"
+          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
+        >
+          Ver produto
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -1,4 +1,8 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { usePageMeta } from "../hooks/usePageMeta";
+import { useJsonLd } from "../hooks/useJsonLd";
+import { buildLocalBusinessSchema, buildBreadcrumbSchema, canonicalUrl } from "../lib/seo";
+import Breadcrumbs from "../components/seo/Breadcrumbs";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Bike, Clock3, GitCompareArrows, MessageCircle, Search, Star, X } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -62,6 +66,38 @@ function StorePageContent() {
   });
 
   const loading = loadingStore || loadingProducts;
+
+  usePageMeta({
+    title: store?.name,
+    description: store
+      ? `${store.name} no BrasUX Shopping. Entrega em ${store.deliveryTimeMin}–${store.deliveryTimeMax} min${Number(store.deliveryFee) === 0 ? ", frete grátis" : ""}. Avaliação ${Number(store.rating).toFixed(1)}/5.`
+      : undefined,
+    canonical: canonicalUrl(`/lojas/${currentStoreId}`),
+  });
+
+  const storeSchemas = useMemo(() => {
+    if (!store) return null;
+    return [
+      buildLocalBusinessSchema({
+        id: store.id,
+        name: store.name,
+        description: store.description ?? undefined,
+        logoUrl: store.logoUrl ?? undefined,
+        category: store.category,
+        rating: Number(store.rating),
+        deliveryTimeMin: store.deliveryTimeMin,
+        deliveryTimeMax: store.deliveryTimeMax,
+        deliveryFee: Number(store.deliveryFee),
+        isOpen: store.isOpen,
+      }),
+      buildBreadcrumbSchema([
+        { name: "Início", path: "/" },
+        { name: "Lojas", path: "/lojas" },
+        { name: store.name, path: `/lojas/${currentStoreId}` },
+      ]),
+    ];
+  }, [store, currentStoreId]);
+  useJsonLd(storeSchemas);
 
   // Build tab list: declared store types (from store.category) + any extra product categories
   const tabs = useMemo(() => {
@@ -147,6 +183,16 @@ function StorePageContent() {
 
   return (
     <div className="space-y-6">
+      {/* ── BREADCRUMBS ── */}
+      {store && (
+        <Breadcrumbs
+          items={[
+            { name: "Lojas", path: "/lojas" },
+            { name: store.name, path: `/lojas/${currentStoreId}` },
+          ]}
+        />
+      )}
+
       {/* ── BACK BUTTON ── */}
       <button
         onClick={() => navigate(-1)}
@@ -163,6 +209,10 @@ function StorePageContent() {
               src={getProductImageUrl(store.bannerUrl)}
               alt={store.name}
               className="h-full w-full object-cover"
+              loading="eager"
+              decoding="sync"
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              fetchPriority={"high" as any}
             />
           ) : (
             <div
@@ -342,8 +392,7 @@ function CompareButton({ product }: { product: StoreProduct }) {
 
 function StoreFavoriteButton({ store }: { store: StoreType }) {
   const toggleStore = useFavoritesStore((s) => s.toggleStore);
-  const isStoreFavorite = useFavoritesStore((s) => s.isStoreFavorite);
-  const isFav = isStoreFavorite(store.id);
+  const isFav = useFavoritesStore((s) => s.stores.some((st) => st.id === store.id));
 
   return (
     <button
@@ -397,7 +446,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
   return (
     <div className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
       <Link to={`/lojas/${product.storeId}/produto/${product.id}`} className="block">
-        <div className="flex h-44 items-center justify-center overflow-hidden bg-[#f8fafc] p-4">
+        <div className="flex h-44 items-center justify-center overflow-hidden rounded-t-3xl bg-[#f8fafc] p-4">
           <ProductImage
             imageUrl={product.imageUrl}
             alt={product.imageAlt || product.name}

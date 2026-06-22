@@ -1,6 +1,16 @@
 import { useMemo } from "react";
 import { ArrowLeft, ArrowRight, Bike, Clock3, ExternalLink, Star } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { usePageMeta } from "../hooks/usePageMeta";
+import { useJsonLd } from "../hooks/useJsonLd";
+import {
+  buildItemListSchema,
+  buildBreadcrumbSchema,
+  buildFaqSchema,
+  canonicalUrl,
+  SEO,
+} from "../lib/seo";
+import Breadcrumbs from "../components/seo/Breadcrumbs";
 import { useQuery } from "@tanstack/react-query";
 
 import { getStores, getProductImageUrl, queryKeys, type Store } from "../services/gizApi";
@@ -38,8 +48,58 @@ export default function CategoryPage() {
 
   const solutions = brasuxSolutions.filter((s) => s.categorySlug === categorySlug);
 
+  usePageMeta({
+    title: `${label} — Lojas e Produtos`,
+    description: `Encontre as melhores lojas de ${label} no BrasUX Shopping. ${filtered.length} loja${filtered.length !== 1 ? "s" : ""} disponível${filtered.length !== 1 ? "s" : ""}${solutions.length > 0 ? ` e ${solutions.length} solução${solutions.length !== 1 ? "s" : ""} BrasUX` : ""} com entrega rápida.`,
+    canonical: canonicalUrl(`/categorias/${categorySlug}`),
+  });
+
+  const categorySchemas = useMemo(() => {
+    const storeItems = filtered.map((s) => ({
+      name: s.name,
+      url: `${SEO.site.domain}/lojas/${s.id}`,
+      imageUrl: s.logoUrl ?? undefined,
+    }));
+    return [
+      buildItemListSchema({
+        name: `${label} — Lojas no BrasUX`,
+        description: `Lojas de ${label} disponíveis no BrasUX Shopping`,
+        path: `/categorias/${categorySlug}`,
+        items: storeItems,
+      }),
+      buildBreadcrumbSchema([
+        { name: "Início", path: "/" },
+        { name: "Categorias", path: "/categorias" },
+        { name: label, path: `/categorias/${categorySlug}` },
+      ]),
+      buildFaqSchema([
+        {
+          question: `Como encontrar lojas de ${label} perto de mim?`,
+          answer: `No BrasUX Shopping, permita sua localização e veja automaticamente as lojas de ${label} mais próximas de você com tempo de entrega estimado.`,
+        },
+        {
+          question: `Qual o tempo de entrega para ${label}?`,
+          answer: `O tempo de entrega para ${label} no BrasUX varia de acordo com a loja e sua localização. A maioria das lojas entrega entre 20 e 60 minutos.`,
+        },
+        {
+          question: `Tem frete grátis em ${label}?`,
+          answer: `Várias lojas de ${label} no BrasUX oferecem frete grátis. Consulte a taxa de entrega de cada loja ao fazer seu pedido.`,
+        },
+      ]),
+    ];
+  }, [filtered, label, categorySlug]);
+  useJsonLd(categorySchemas);
+
   return (
     <div className="space-y-6">
+      {/* Breadcrumbs */}
+      <Breadcrumbs
+        items={[
+          { name: "Categorias", path: "/categorias" },
+          { name: label, path: `/categorias/${categorySlug}` },
+        ]}
+      />
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link

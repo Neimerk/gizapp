@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
+  Bike,
   Briefcase,
   Home,
   Mic,
@@ -13,6 +15,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import BottomNavigation from "./BottomNavigation";
+import Footer from "./Footer";
 import BrasUXLogo from "../ui/BrasUXLogo";
 import ErrorBoundary from "./ErrorBoundary";
 import CompareBar from "../ui/CompareBar";
@@ -20,10 +23,17 @@ import Onboarding from "../ui/Onboarding";
 import Toast from "../ui/Toast";
 import { useCartStore } from "../../stores/cartStore";
 import { useThemeStore } from "../../stores/themeStore";
+import { useFavoritesStore } from "../../stores/favoritesStore";
+import { usePointsStore } from "../../stores/pointsStore";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { useVoiceSearch } from "../../hooks/useVoiceSearch";
+import { useAuthStore, initAuth } from "../../stores/authStore";
 import { formatBRL } from "../../utils/format";
+import { prefetchCart, prefetchCheckout, prefetchOrders } from "../../utils/prefetch";
+import { useErrorMonitor } from "../../hooks/useErrorMonitor";
+import CookieBanner from "../ui/CookieBanner";
 
-const navLinks = [
+const baseNavLinks = [
   { label: "Início", path: "/", icon: Home },
   { label: "Lojas", path: "/lojas", icon: ShoppingCart },
   { label: "Serviços", path: "/servicos", icon: Briefcase },
@@ -32,9 +42,32 @@ const navLinks = [
 ];
 
 export default function AppLayout() {
+  useErrorMonitor();
+
+  const authUser = useAuthStore((s) => s.user);
+  const isCourier = authUser?.role === "Courier";
+  const navLinks = isCourier
+    ? [baseNavLinks[0], { label: "Entregas", path: "/entregador", icon: Bike }, baseNavLinks[3], baseNavLinks[4]]
+    : baseNavLinks;
+
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
+
+  // Inicializa auth lazy — carrega Supabase apenas após primeiro render
+  useEffect(() => { initAuth(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync favorites, pontos e push subscription quando usuário loga/desloga
+  const loadFavorites = useFavoritesStore((s) => s.loadFromDB);
+  const loadPoints    = usePointsStore((s) => s.loadFromDB);
+  const { syncExisting: syncPush } = usePushNotifications();
+  useEffect(() => {
+    if (authUser) {
+      loadFavorites();
+      loadPoints();
+      syncPush(); // persiste subscription existente no banco após login
+    }
+  }, [authUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -129,6 +162,11 @@ export default function AppLayout() {
                 key={item.path}
                 to={item.path}
                 end={item.path === "/"}
+                onMouseEnter={() => {
+                  if (item.path === "/carrinho") prefetchCart();
+                  if (item.path === "/pedidos")  prefetchOrders();
+                  if (item.path === "/checkout") prefetchCheckout();
+                }}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                     isActive
@@ -155,6 +193,7 @@ export default function AppLayout() {
           {/* Cart button */}
           <Link
             to="/carrinho"
+            onMouseEnter={prefetchCart}
             className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-all hover:border-[#16a34a]/40 hover:text-[#16a34a]"
           >
             <ShoppingCart size={18} />
@@ -173,20 +212,27 @@ export default function AppLayout() {
       <Toast />
 
       {/* ── MAIN CONTENT ── */}
-      <main
-        className={`mx-auto max-w-7xl px-4 py-6 md:px-8 md:pb-8 ${
-          totalItems > 0 ? "pb-44" : "pb-32"
-        }`}
-      >
+      <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:pb-8">
         <ErrorBoundary>
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex min-h-[60vh] items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </ErrorBoundary>
       </main>
+
+      <Footer />
 
       {/* ── FLOATING CART BAR (mobile) ── */}
       {totalItems > 0 && (
         <Link
           to="/carrinho"
+          onMouseEnter={prefetchCheckout}
           className="fixed left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between rounded-2xl px-5 py-3.5 md:hidden"
           style={{
             bottom: "96px",
@@ -214,6 +260,7 @@ export default function AppLayout() {
       )}
 
       <CompareBar />
+      <CookieBanner />
       <BottomNavigation />
 
       {/* ── DESKTOP CART BAR ── */}

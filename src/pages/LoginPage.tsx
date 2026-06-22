@@ -3,8 +3,7 @@ import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react"
 import BrasUXLogo from "../components/ui/BrasUXLogo";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { loginCustomer, registerCustomer, GIZ_API_URL } from "../services/gizApi";
-import { saveAuth } from "../services/auth";
+import { supabase } from "../lib/supabase";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -27,15 +26,12 @@ export default function LoginPage() {
       if (!email.trim()) { setError("Informe seu e-mail."); return; }
       try {
         setLoading(true);
-        const res = await fetch(`${GIZ_API_URL}/api/auth/forgot-password`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
+        await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/conta`,
         });
-        if (!res.ok && res.status !== 204) throw new Error();
         setForgotSent(true);
       } catch {
-        setForgotSent(true); // mostra confirmação mesmo se endpoint não existir
+        setForgotSent(true);
       } finally {
         setLoading(false);
       }
@@ -44,11 +40,21 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      const auth =
-        mode === "login"
-          ? await loginCustomer({ email, password })
-          : await registerCustomer({ name, email, password, role: "Customer", storeId: null });
-      saveAuth(auth);
+
+      if (mode === "login") {
+        const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+        if (authError) throw new Error("Email ou senha inválidos.");
+      } else {
+        if (!name.trim()) throw new Error("Informe seu nome completo.");
+        const { error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name, role: "customer" } },
+        });
+        if (authError) throw new Error(authError.message || "Erro ao cadastrar.");
+      }
+
+      // onAuthStateChange no authStore atualiza o user automaticamente
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao entrar.");
@@ -97,7 +103,6 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm"
         >
-          {/* Forgot password sent */}
           {mode === "forgot" && forgotSent && (
             <div className="mb-4 flex flex-col items-center gap-3 rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-6 text-center">
               <CheckCircle2 size={32} className="text-[#16a34a]" />

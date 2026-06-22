@@ -1,0 +1,284 @@
+import { Link } from "react-router-dom";
+import { ExternalLink, ArrowRight } from "lucide-react";
+import BrasUXLogo from "../ui/BrasUXLogo";
+
+const CATEGORIES = [
+  { name: "Restaurantes",   slug: "restaurantes" },
+  { name: "Mercado",        slug: "mercearia" },
+  { name: "Farmácia",       slug: "farmacia" },
+  { name: "Pizzarias",      slug: "pizzarias" },
+  { name: "Bebidas",        slug: "cervejas" },
+  { name: "Eletrônicos",    slug: "eletronicos" },
+  { name: "Hortifruti",     slug: "hortifruti" },
+  { name: "Pet Shop",       slug: "petshop" },
+];
+
+const ECOSYSTEM = [
+  { name: "BrasUX Loja",          href: "https://lojas.brasux.com.br",             badge: "Lojistas" },
+  { name: "BrasUX Entregas",      href: "https://entregas.brasux.com.br",           badge: "Entregadores" },
+  { name: "SimulENEM",            href: "https://simulenem.com",                    badge: "Edu" },
+  { name: "SimulaiOAB",           href: "https://simulaioab.com",                   badge: "Edu" },
+  { name: "Curso NotaOn",         href: "https://cursonotaon.com.br",               badge: "Edu" },
+  { name: "BrasUX Caixa",         href: "https://brasux-caixa-livre.vercel.app",   badge: "PDV" },
+  { name: "Landing Pages",        href: "https://produtos.brasux.com.br",           badge: "Dev" },
+];
+
+const COMPANY = [
+  { name: "Sobre o BrasUX",        to: "/sobre" },
+  { name: "Serviços",              to: "/servicos" },
+  { name: "Todas as categorias",   to: "/categorias" },
+  { name: "Todas as lojas",        to: "/lojas" },
+];
+
+const SUPPORT = [
+  { name: "Central de ajuda",      href: "mailto:contato@brasux.com.br" },
+  { name: "Fale conosco",          href: "mailto:contato@brasux.com.br" },
+  { name: "Política de privacidade", href: "#" },
+  { name: "Termos de uso",          href: "#" },
+  { name: "Cookies",                href: "#" },
+];
+
+const SOCIAL = [
+  {
+    label: "Instagram",
+    href: "https://instagram.com/brasux",
+    svg: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+        <circle cx="12" cy="12" r="4"/>
+        <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+      </svg>
+    ),
+  },
+  {
+    label: "LinkedIn",
+    href: "https://linkedin.com/company/brasux",
+    svg: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+        <rect x="2" y="9" width="4" height="12"/>
+        <circle cx="4" cy="4" r="2"/>
+      </svg>
+    ),
+  },
+  {
+    label: "Facebook",
+    href: "https://facebook.com/brasux",
+    svg: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+      </svg>
+    ),
+  },
+];
+
+export default function Footer() {
+  const year = new Date().getFullYear();
+
+  return (
+    <footer
+      className="mt-16 w-full"
+      aria-label="Rodapé BrasUX Shopping"
+      style={{
+        background: "linear-gradient(180deg, #071020 0%, #060d1a 100%)",
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      {/* ── CTA BAND ── */}
+      <div
+        className="border-b border-white/5 px-4 py-8 md:px-8"
+        style={{
+          background:
+            "radial-gradient(ellipse at 60% 50%, rgba(22,163,74,0.12) 0%, transparent 65%)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-[#4ade80]">
+              Quer vender pelo BrasUX?
+            </p>
+            <p className="mt-1 text-xl font-black text-white">
+              Abra sua loja em menos de 5 minutos
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="https://lojas.brasux.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-5 py-3 text-sm font-black text-white transition-opacity hover:opacity-90"
+            >
+              Quero ser lojista <ArrowRight size={15} />
+            </a>
+            <a
+              href="https://entregas.brasux.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-5 py-3 text-sm font-black text-white/80 transition-colors hover:border-white/30 hover:text-white"
+            >
+              Ser entregador
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* ── MAIN GRID ── */}
+      <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+
+          {/* ── COL 1: BRAND ── */}
+          <div className="lg:col-span-1">
+            <Link to="/" className="inline-flex items-center gap-2.5">
+              <BrasUXLogo
+                size={36}
+                style={{ filter: "drop-shadow(0 4px 12px rgba(22,163,74,0.5))" }}
+              />
+              <span className="text-xl font-black text-white">
+                Bras<span className="text-[#4ade80]">UX</span>
+              </span>
+            </Link>
+            <p className="mt-4 text-sm leading-relaxed text-[#64748b]">
+              O Shopping Brasileiro de Soluções Tecnológicas. Restaurantes, mercado,
+              farmácia, eletrônicos e muito mais com entrega rápida.
+            </p>
+
+            {/* Social */}
+            <div className="mt-6 flex items-center gap-3">
+              {SOCIAL.map(({ label, href, svg }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`BrasUX no ${label}`}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#4ade80]"
+                >
+                  {svg}
+                </a>
+              ))}
+            </div>
+
+            {/* PWA hint */}
+            <div className="mt-6 flex items-center gap-2 rounded-xl border border-white/8 bg-white/4 px-3 py-2.5">
+              <span className="text-lg">📱</span>
+              <div>
+                <p className="text-[11px] font-black text-white/70">Instale o app</p>
+                <p className="text-[10px] text-[#475569]">Disponível no Android e iPhone</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── COL 2: CATEGORIAS ── */}
+          <div>
+            <h3 className="mb-4 text-[11px] font-black uppercase tracking-widest text-[#4ade80]">
+              Categorias
+            </h3>
+            <ul className="space-y-2.5">
+              {CATEGORIES.map((cat) => (
+                <li key={cat.slug}>
+                  <Link
+                    to={`/categorias/${cat.slug}`}
+                    className="text-sm text-[#64748b] transition-colors hover:text-white"
+                  >
+                    {cat.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link
+                  to="/categorias"
+                  className="inline-flex items-center gap-1 text-sm font-bold text-[#16a34a] transition-opacity hover:opacity-80"
+                >
+                  Ver todas <ArrowRight size={12} />
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* ── COL 3: ECOSSISTEMA ── */}
+          <div>
+            <h3 className="mb-4 text-[11px] font-black uppercase tracking-widest text-[#4ade80]">
+              Ecossistema BrasUX
+            </h3>
+            <ul className="space-y-2.5">
+              {ECOSYSTEM.map((item) => (
+                <li key={item.name}>
+                  <a
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center gap-2 text-sm text-[#64748b] transition-colors hover:text-white"
+                  >
+                    {item.name}
+                    <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#475569] transition-colors group-hover:bg-[#16a34a]/20 group-hover:text-[#4ade80]">
+                      {item.badge}
+                    </span>
+                    <ExternalLink size={11} className="opacity-0 transition-opacity group-hover:opacity-50" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* ── COL 4: EMPRESA + SUPORTE ── */}
+          <div className="grid grid-cols-2 gap-8 lg:grid-cols-1 lg:gap-8">
+            <div>
+              <h3 className="mb-4 text-[11px] font-black uppercase tracking-widest text-[#4ade80]">
+                Empresa
+              </h3>
+              <ul className="space-y-2.5">
+                {COMPANY.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      to={item.to}
+                      className="text-sm text-[#64748b] transition-colors hover:text-white"
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="mb-4 text-[11px] font-black uppercase tracking-widest text-[#4ade80]">
+                Suporte
+              </h3>
+              <ul className="space-y-2.5">
+                {SUPPORT.map((item) => (
+                  <li key={item.name}>
+                    <a
+                      href={item.href}
+                      className="text-sm text-[#64748b] transition-colors hover:text-white"
+                    >
+                      {item.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── BOTTOM BAR ── */}
+      {/* pb-20 mobile: espaço para a bottom nav fixa (64px) + margem */}
+      <div className="border-t border-white/5 px-4 pt-5 pb-20 md:px-8 md:pb-6">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 md:flex-row md:items-center">
+          <p className="text-xs text-[#334155]">
+            © {year} BrasUX Tecnologia Ltda. — Todos os direitos reservados.
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="flex items-center gap-1.5 text-xs text-[#334155]">
+              <span
+                className="inline-block h-2 w-2 rounded-full bg-[#16a34a]"
+                style={{ boxShadow: "0 0 6px rgba(22,163,74,0.6)" }}
+              />
+              Todos os sistemas operacionais
+            </span>
+            <span className="text-xs text-[#334155]">🇧🇷 Feito no Brasil</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}

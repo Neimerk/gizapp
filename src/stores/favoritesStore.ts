@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+// gizApi importado de forma lazy para não puxar supabase no bundle inicial
+const gizApi = () => import("../services/gizApi");
+
 export type FavoriteProduct = {
   id: string;
   storeId: string;
@@ -26,10 +29,13 @@ export type FavoriteStoreItem = {
 type FavoritesState = {
   products: FavoriteProduct[];
   stores: FavoriteStoreItem[];
+  synced: boolean;
   toggleProduct: (product: FavoriteProduct) => void;
   toggleStore: (store: FavoriteStoreItem) => void;
   isProductFavorite: (id: string) => boolean;
   isStoreFavorite: (id: string) => boolean;
+  syncFromDB: (productObjects: FavoriteProduct[], storeObjects: FavoriteStoreItem[]) => void;
+  loadFromDB: () => Promise<void>;
 };
 
 export const useFavoritesStore = create<FavoritesState>()(
@@ -37,6 +43,7 @@ export const useFavoritesStore = create<FavoritesState>()(
     (set, get) => ({
       products: [],
       stores: [],
+      synced: false,
 
       toggleProduct: (product) => {
         const isFav = get().products.some((p) => p.id === product.id);
@@ -45,6 +52,9 @@ export const useFavoritesStore = create<FavoritesState>()(
             ? get().products.filter((p) => p.id !== product.id)
             : [...get().products, product],
         });
+        gizApi().then(({ toggleFavoriteDB }) =>
+          toggleFavoriteDB("product", product.id)
+        ).catch(() => null);
       },
 
       toggleStore: (store) => {
@@ -54,10 +64,31 @@ export const useFavoritesStore = create<FavoritesState>()(
             ? get().stores.filter((s) => s.id !== store.id)
             : [...get().stores, store],
         });
+        gizApi().then(({ toggleFavoriteDB }) =>
+          toggleFavoriteDB("store", store.id)
+        ).catch(() => null);
       },
 
       isProductFavorite: (id) => get().products.some((p) => p.id === id),
       isStoreFavorite: (id) => get().stores.some((s) => s.id === id),
+
+      syncFromDB: (productObjects, storeObjects) => {
+        set({ products: productObjects, stores: storeObjects, synced: true });
+      },
+
+      loadFromDB: async () => {
+        try {
+          const { getMyFavoriteIds } = await gizApi();
+          const { productIds, storeIds } = await getMyFavoriteIds();
+          const currentProducts = get().products;
+          const currentStores = get().stores;
+          const syncedProducts = currentProducts.filter((p) => productIds.includes(p.id));
+          const syncedStores = currentStores.filter((s) => storeIds.includes(s.id));
+          set({ products: syncedProducts, stores: syncedStores, synced: true });
+        } catch {
+          set({ synced: true });
+        }
+      },
     }),
     { name: "brasux-favorites" }
   )

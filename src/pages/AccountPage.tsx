@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  Bell, BellOff,
   Heart,
   Home,
   Loader2,
@@ -12,15 +13,16 @@ import {
   Trash2,
   User,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useCepLookup } from "../hooks/useCepLookup";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 
-import { getAuth, logout, saveAuth } from "../services/auth";
-import { updateMyProfile, getProductImageUrl } from "../services/gizApi";
+import { getAuth, logout } from "../services/auth";
+import { updateMyProfile, getMyProfile, getProductImageUrl } from "../services/gizApi";
 import { useFavoritesStore } from "../stores/favoritesStore";
-import { usePointsStore } from "../stores/pointsStore";
+import { usePointsStore, type PointsEntry } from "../stores/pointsStore";
 import { formatBRL } from "../utils/format";
 
 const ACCOUNT_KEY = "brasux-account";
@@ -84,6 +86,27 @@ export default function AccountPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
 
+  // Carrega dados do Supabase ao montar e mescla com localStorage
+  useEffect(() => {
+    getMyProfile().then((profile) => {
+      if (!profile) return;
+      const local = load();
+      setForm((prev) => ({
+        ...prev,
+        name: profile.name || prev.name,
+        email: profile.email || prev.email,
+        phone: profile.phone ? fmtPhone(profile.phone) : prev.phone,
+        cpf: profile.cpf ? fmtCPF(profile.cpf) : prev.cpf,
+        cep: profile.zipCode ? fmtCEP(profile.zipCode) : prev.cep,
+        address: profile.address || prev.address,
+        number: profile.addressNumber || prev.number,
+        complement: profile.addressComplement || prev.complement,
+        neighborhood: profile.neighborhood || prev.neighborhood,
+        pixKey: local.pixKey || prev.pixKey,
+      }));
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   function update(key: keyof AccountForm, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
   }
@@ -121,9 +144,10 @@ export default function AccountPage() {
           addressComplement: form.complement || undefined,
           neighborhood: form.neighborhood || undefined,
         });
-        // Keep the auth token in sync if name changed
-        if (updated.name && updated.name !== auth.name) {
-          saveAuth({ ...auth, name: updated.name });
+        // atualiza nome no authStore se mudou
+        if (updated.name !== auth.name) {
+          const { useAuthStore } = await import("../stores/authStore");
+          useAuthStore.setState((s) => s.user ? { user: { ...s.user, name: updated.name } } : {});
         }
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : "Erro ao salvar no servidor.");
@@ -135,10 +159,39 @@ export default function AccountPage() {
     setTimeout(() => setSaved(false), 2500);
   }
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     localStorage.removeItem("brasux-orders");
     navigate("/login");
+  }
+
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  async function handleDeleteAccount() {
+    if (!window.confirm("Tem certeza? Esta ação é irreversível. Seus dados serão apagados permanentemente.")) return;
+    if (!window.confirm("Confirme novamente: excluir conta e todos os seus dados?")) return;
+    setDeletingAccount(true);
+    try {
+      const { supabase } = await import("../lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${session?.access_token ?? ""}`,
+          },
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao excluir conta.");
+      localStorage.clear();
+      navigate("/");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Erro ao excluir conta.");
+    } finally {
+      setDeletingAccount(false);
+    }
   }
 
   return (
@@ -319,40 +372,9 @@ export default function AccountPage() {
           </Field>
         </SectionCard>
 
-        {/* PONTOS */}
-        <SectionCard icon={<Star size={16} className="text-[#f59e0b]" />} title="Programa de pontos">
-          <div className="flex items-center justify-between rounded-2xl bg-gradient-to-br from-[#0f172a] to-[#002776] px-5 py-4">
-            <div>
-              <p className="text-xs font-bold text-white/60">Seus pontos</p>
-              <p className="text-3xl font-black text-white">{points.toLocaleString("pt-BR")}</p>
-              <p className="mt-0.5 text-[10px] text-white/40">1 ponto = R$ 1 gasto</p>
-            </div>
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f59e0b]/20">
-              <Star size={28} className="text-[#f59e0b]" />
-            </div>
-          </div>
-          {pointsHistory.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Histórico recente</p>
-              {pointsHistory.slice(0, 5).map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between rounded-xl bg-[#f8fafc] px-3 py-2">
-                  <div>
-                    <p className="text-xs font-bold text-[#0f172a]">{entry.description}</p>
-                    <p className="text-[10px] text-[#94a3b8]">
-                      {new Date(entry.date).toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
-                  <span
-                    className={`text-sm font-black ${
-                      entry.amount > 0 ? "text-[#16a34a]" : "text-red-500"
-                    }`}
-                  >
-                    {entry.amount > 0 ? "+" : ""}{entry.amount} pts
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* PONTOS + NÍVEL */}
+        <SectionCard icon={<Star size={16} className="text-[#f59e0b]" />} title="Programa de pontos BrasUX">
+          <LoyaltyWidget points={points} pointsHistory={pointsHistory} />
         </SectionCard>
 
         {/* FAVORITOS */}
@@ -429,6 +451,9 @@ export default function AccountPage() {
           </SectionCard>
         )}
 
+        {/* NOTIFICAÇÕES PUSH */}
+        <PushNotificationsCard />
+
         {/* PIX */}
         <SectionCard icon={<Smartphone size={16} className="text-[#16a34a]" />} title="Chave Pix">
           <Field label="Chave Pix">
@@ -465,6 +490,24 @@ export default function AccountPage() {
           )}
         </button>
 
+        {/* LGPD — Exclusão de conta */}
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-4">
+          <p className="text-xs font-black uppercase tracking-wide text-red-600">Zona de perigo</p>
+          <p className="mt-1 text-xs text-red-500">
+            A exclusão de conta é permanente. Seus dados pessoais serão anonimizados conforme a LGPD.{" "}
+            <Link to="/privacidade" className="underline underline-offset-2">Política de Privacidade</Link>
+          </p>
+          <button
+            onClick={handleDeleteAccount}
+            disabled={deletingAccount}
+            className="mt-3 flex items-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-xs font-black text-red-600 hover:bg-red-100 disabled:opacity-60"
+          >
+            {deletingAccount
+              ? <><Loader2 size={13} className="animate-spin" /> Excluindo…</>
+              : <><Trash2 size={13} /> Excluir minha conta</>}
+          </button>
+        </div>
+
       </div>
     </div>
   );
@@ -472,6 +515,199 @@ export default function AccountPage() {
 
 const inputCls =
   "w-full rounded-xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
+
+function PushNotificationsCard() {
+  const { status, subscribe, unsubscribe } = usePushNotifications();
+  const [loading, setLoading] = useState(false);
+
+  if (status === "unsupported") return null;
+
+  const isOn = status === "subscribed";
+
+  async function toggle() {
+    setLoading(true);
+    if (isOn) await unsubscribe();
+    else      await subscribe();
+    setLoading(false);
+  }
+
+  return (
+    <SectionCard icon={<Bell size={16} className="text-[#16a34a]" />} title="Notificações">
+      <div className="flex items-center justify-between rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3.5">
+        <div>
+          <p className="text-sm font-black text-[#0f172a]">
+            {isOn ? "Notificações ativadas ✅" : "Ativar notificações push"}
+          </p>
+          <p className="mt-0.5 text-xs text-[#64748b]">
+            {status === "denied"
+              ? "Permissão negada — habilite nas configurações do navegador."
+              : isOn
+              ? "Você receberá alertas de pedidos e entregas."
+              : "Receba alertas quando seu pedido sair para entrega."}
+          </p>
+        </div>
+        {status !== "denied" && (
+          <button
+            onClick={toggle}
+            disabled={loading}
+            className={`ml-4 flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black transition-colors disabled:opacity-50 ${
+              isOn
+                ? "border border-red-200 bg-red-50 text-red-500"
+                : "bg-[#16a34a] text-white"
+            }`}
+          >
+            {loading
+              ? <Loader2 size={13} className="animate-spin" />
+              : isOn
+              ? <><BellOff size={13} /> Desativar</>
+              : <><Bell size={13} /> Ativar</>
+            }
+          </button>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ── LOYALTY WIDGET ──────────────────────────────────────────────
+
+const LEVELS = [
+  { name: "Bronze",   min: 0,    max: 499,   emoji: "🥉", color: "#cd7f32", bg: "#fdf2e9" },
+  { name: "Prata",    min: 500,  max: 1999,  emoji: "🥈", color: "#9ca3af", bg: "#f9fafb" },
+  { name: "Ouro",     min: 2000, max: 4999,  emoji: "🥇", color: "#f59e0b", bg: "#fffbeb" },
+  { name: "Diamante", min: 5000, max: 9999,  emoji: "💎", color: "#6366f1", bg: "#eef2ff" },
+  { name: "Elite",    min: 10000, max: Infinity, emoji: "👑", color: "#16a34a", bg: "#f0fdf4" },
+];
+
+function getLoyaltyLevel(points: number) {
+  return LEVELS.findLast((l) => points >= l.min) ?? LEVELS[0];
+}
+
+function LoyaltyWidget({
+  points,
+  pointsHistory,
+}: {
+  points: number;
+  pointsHistory: PointsEntry[];
+}) {
+  const level = getLoyaltyLevel(points);
+  const nextLevel = LEVELS[LEVELS.indexOf(level) + 1];
+  const progress = nextLevel
+    ? Math.min(100, ((points - level.min) / (nextLevel.min - level.min)) * 100)
+    : 100;
+
+  const BADGES = [
+    { id: "first", emoji: "🛒", label: "Primeira compra", unlocked: pointsHistory.some((e) => e.amount > 0) },
+    { id: "loyal5", emoji: "🔁", label: "5 compras",      unlocked: pointsHistory.filter((e) => e.amount > 0).length >= 5 },
+    { id: "big",    emoji: "💰", label: "R$ 500 gastos",  unlocked: points >= 500 },
+    { id: "gold",   emoji: "🥇", label: "Nível Ouro",     unlocked: points >= 2000 },
+    { id: "dia",    emoji: "💎", label: "Nível Diamante",  unlocked: points >= 5000 },
+    { id: "elite",  emoji: "👑", label: "Elite BrasUX",   unlocked: points >= 10000 },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Pontos + nível */}
+      <div
+        className="relative overflow-hidden rounded-2xl p-5"
+        style={{ background: "linear-gradient(135deg, #0f172a 0%, #002776 60%, #001a4e 100%)" }}
+      >
+        <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#f59e0b] opacity-10 blur-2xl" />
+        <div className="relative flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Seus pontos</p>
+            <p className="mt-0.5 text-4xl font-black text-white tabnum">{points.toLocaleString("pt-BR")}</p>
+            <p className="mt-0.5 text-[10px] text-white/40">1 ponto = R$ 1 de desconto</p>
+          </div>
+          <div
+            className="flex h-16 w-16 items-center justify-center rounded-2xl text-3xl"
+            style={{ background: `${level.color}22`, border: `1px solid ${level.color}44` }}
+          >
+            {level.emoji}
+          </div>
+        </div>
+
+        {/* Nível atual */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-black" style={{ color: level.color }}>{level.name}</span>
+            {nextLevel && (
+              <span className="text-white/40">
+                {nextLevel.min - points} pts para {nextLevel.name} {nextLevel.emoji}
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${progress}%`,
+                background: `linear-gradient(90deg, ${level.color}, ${nextLevel?.color ?? level.color})`,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Benefícios do nível */}
+      <div
+        className="rounded-2xl border px-4 py-3"
+        style={{ borderColor: `${level.color}33`, background: level.bg }}
+      >
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: level.color }}>
+          {level.emoji} Benefícios nível {level.name}
+        </p>
+        <ul className="space-y-1 text-xs text-[#64748b]">
+          {level.name === "Bronze"   && <><li>• Cashback 1× em pontos</li><li>• Acesso a cupons gerais</li></>}
+          {level.name === "Prata"    && <><li>• Cashback 1.5× em pontos</li><li>• Frete grátis em compras acima de R$80</li></>}
+          {level.name === "Ouro"     && <><li>• Cashback 2× em pontos</li><li>• Frete grátis em compras acima de R$50</li><li>• Acesso antecipado a flash sales</li></>}
+          {level.name === "Diamante" && <><li>• Cashback 3× em pontos</li><li>• Frete grátis ilimitado</li><li>• Suporte prioritário</li><li>• Badge exclusivo</li></>}
+          {level.name === "Elite"    && <><li>• Cashback 5× em pontos</li><li>• Frete grátis ilimitado</li><li>• Gerente de conta exclusivo</li><li>• Todas as vantagens anteriores</li></>}
+        </ul>
+      </div>
+
+      {/* Conquistas */}
+      <div>
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Conquistas</p>
+        <div className="grid grid-cols-3 gap-2">
+          {BADGES.map((b) => (
+            <div
+              key={b.id}
+              className={`flex flex-col items-center gap-1 rounded-2xl border py-3 transition-all ${
+                b.unlocked
+                  ? "border-[#16a34a]/30 bg-[#f0fdf4]"
+                  : "border-[#e2e8f0] bg-[#f8fafc] opacity-40"
+              }`}
+            >
+              <span className="text-xl">{b.unlocked ? b.emoji : "🔒"}</span>
+              <p className="text-center text-[9px] font-black leading-tight text-[#64748b]">{b.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Histórico */}
+      {pointsHistory.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Histórico recente</p>
+          {pointsHistory.slice(0, 5).map((entry) => (
+            <div key={entry.id} className="flex items-center justify-between rounded-xl bg-[#f8fafc] px-3 py-2">
+              <div>
+                <p className="text-xs font-bold text-[#0f172a]">{entry.description}</p>
+                <p className="text-[10px] text-[#94a3b8]">
+                  {new Date(entry.date).toLocaleDateString("pt-BR")}
+                </p>
+              </div>
+              <span className={`text-sm font-black ${entry.amount > 0 ? "text-[#16a34a]" : "text-red-500"}`}>
+                {entry.amount > 0 ? "+" : ""}{entry.amount} pts
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SectionCard({
   icon,

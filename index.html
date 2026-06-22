@@ -1,15 +1,109 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" prefix="og: https://ogp.me/ns#">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Identidade -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#0a1a0f" />
-    <meta name="description" content="O Shopping Brasileiro de Soluções Tecnológicas. Educação, IA, Desenvolvimento, Gestão, Dados, APIs e muito mais." />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="apple-touch-icon" href="/logo-brasux.webp" />
+    <meta name="theme-color" content="#16a34a" />
+    <meta name="application-name" content="BrasUX Shopping" />
+    <meta name="generator" content="BrasUX v1.0" />
+
+    <!-- SEO Core — fallback para antes do React hidratar -->
     <title>BrasUX Shopping — O Shopping Brasileiro de Soluções Tecnológicas</title>
+    <meta name="description" content="BrasUX Shopping — restaurantes, mercado, farmácia, eletrônicos, serviços e muito mais com entrega rápida em todo o Brasil. Compre de lojas locais com facilidade." />
+    <meta name="keywords" content="shopping brasileiro, delivery, restaurantes, mercado online, farmácia delivery, eletrônicos, serviços digitais, BrasUX" />
+    <meta name="robots" content="index,follow" />
+    <meta name="author" content="BrasUX" />
+    <link rel="canonical" href="https://shopping.brasux.com.br/" />
+
+    <!-- Sitemap discovery -->
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BrasUX Shopping" />
+    <meta property="og:title" content="BrasUX Shopping — O Shopping Brasileiro de Soluções Tecnológicas" />
+    <meta property="og:description" content="Restaurantes, mercado, farmácia, eletrônicos e muito mais com entrega rápida. O Shopping Brasileiro de Soluções Tecnológicas." />
+    <meta property="og:image" content="https://shopping.brasux.com.br/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="BrasUX Shopping — O Shopping Brasileiro" />
+    <meta property="og:url" content="https://shopping.brasux.com.br/" />
+    <meta property="og:locale" content="pt_BR" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@brasux" />
+    <meta name="twitter:title" content="BrasUX Shopping — O Shopping Brasileiro de Soluções Tecnológicas" />
+    <meta name="twitter:description" content="Restaurantes, mercado, farmácia, eletrônicos e muito mais com entrega rápida." />
+    <meta name="twitter:image" content="https://shopping.brasux.com.br/og-image.png" />
+
+    <!-- PWA / Mobile -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BrasUX" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Preconnect para Supabase (imagens de produtos) -->
+    <link rel="preconnect" href="https://cbyufprmiuwvhsxsxttn.supabase.co" />
+    <link rel="dns-prefetch" href="https://cbyufprmiuwvhsxsxttn.supabase.co" />
+    <!-- Inter é self-hosted via @fontsource-variable/inter (sem request externo) -->
+
+    <!-- Organization JSON-LD base (antes do React) — GEO/AEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://brasux.com.br/#organization",
+      "name": "BrasUX",
+      "legalName": "BrasUX Tecnologia Ltda.",
+      "url": "https://brasux.com.br",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://shopping.brasux.com.br/logo-brasux.webp",
+        "width": 512,
+        "height": 512
+      },
+      "description": "O Shopping Brasileiro de Soluções Tecnológicas. Ecossistema que engloba Shopping, Loja White-Label, Entregas, IA e Educação.",
+      "sameAs": [
+        "https://instagram.com/brasux",
+        "https://linkedin.com/company/brasux",
+        "https://facebook.com/brasux"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "contato@brasux.com.br",
+        "contactType": "customer service",
+        "availableLanguage": "Portuguese"
+      }
+    }
+    </script>
+
+    <!-- WebSite JSON-LD base — habilita Sitelinks Search Box no Google -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://shopping.brasux.com.br/#website",
+      "name": "BrasUX Shopping",
+      "url": "https://shopping.brasux.com.br",
+      "description": "O Shopping Brasileiro de Soluções Tecnológicas com entrega rápida.",
+      "inLanguage": "pt-BR",
+      "publisher": { "@id": "https://brasux.com.br/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://shopping.brasux.com.br/buscar?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

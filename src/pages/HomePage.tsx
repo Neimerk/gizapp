@@ -1,9 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { usePageMeta } from "../hooks/usePageMeta";
+import { useJsonLd } from "../hooks/useJsonLd";
+import { buildOrganizationSchema, buildWebSiteSchema, buildFaqSchema, HOME_FAQS, canonicalUrl } from "../lib/seo";
+import { useGeolocation } from "../hooks/useGeolocation";
+import { haversineKm } from "../utils/geo";
 import {
+  ArrowRight,
   Bike,
   Clock3,
   Star,
-  ArrowRight,
   Store as StoreIcon,
   ChevronRight,
   Sparkles,
@@ -11,24 +17,28 @@ import {
   Package,
 } from "lucide-react";
 import BrasUXLogo from "../components/ui/BrasUXLogo";
+import BannerCarousel from "../components/ui/BannerCarousel";
+import FeaturedProductCarousel from "../components/ui/FeaturedProductCarousel";
 import { Link } from "react-router-dom";
 
 import {
   getStores,
+  getFeaturedProducts,
+  getActiveBanners,
+  getProducts,
+  getMyOrders,
   queryKeys,
-  type Store,
   type StoreProduct,
 } from "../services/gizApi";
-import { getFeaturedByStore } from "../services/shoppingSupabase";
-import FeaturedCarousel from "../components/ui/FeaturedCarousel";
+import { useAuthStore } from "../stores/authStore";
 import { categories } from "../data/categories";
+import { formatBRL } from "../utils/format";
 
-const SELLER_URL = "https://lojas.brasux.com.br";
+const SELLER_URL = "https://brasux.store";
 const DELIVERY_URL = "https://entregas.brasux.com.br";
 import { categoryIcons } from "../data/categoryIcons";
-import { formatBRL } from "../utils/format";
-import ProductImage from "../components/ui/ProductImage";
-import StoreLogo from "../components/ui/StoreLogo";
+import PromoCard from "../components/ui/PromoCard";
+import StoreCard from "../components/store/StoreCard";
 
 const catGradients = [
   "from-[#16a34a] to-[#15803d]",
@@ -42,33 +52,169 @@ const catGradients = [
 ];
 
 export default function HomePage() {
+  usePageMeta({
+    title: "Shopping Brasileiro de Soluções Tecnológicas",
+    description:
+      "BrasUX Shopping — restaurantes, mercado, farmácia, eletrônicos, serviços e muito mais com entrega rápida em todo o Brasil.",
+    canonical: canonicalUrl("/"),
+  });
+
+  const homeSchemas = useMemo(
+    () => [buildOrganizationSchema(), buildWebSiteSchema(), buildFaqSchema([...HOME_FAQS])],
+    []
+  );
+  useJsonLd(homeSchemas);
+
+  const { position } = useGeolocation();
+
+  const { data: banners = [] } = useQuery({
+    queryKey: queryKeys.banners(),
+    queryFn:  getActiveBanners,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: stores = [], isLoading: loadingStores } = useQuery({
     queryKey: queryKeys.stores(),
     queryFn: getStores,
     select: (data) => data.filter((s) => s.active),
   });
 
-  const { data: featuredByStore = [], isLoading: loadingFeatured } = useQuery({
-    queryKey: ["featuredByStore"],
-    queryFn: getFeaturedByStore,
-    staleTime: 0,
-    refetchInterval: 60_000,
+  const { data: featuredProducts = [], isLoading: loadingFeatured } = useQuery({
+    queryKey: queryKeys.featuredProducts(),
+    queryFn:  getFeaturedProducts,
+    staleTime: 5 * 60 * 1000,
   });
+
+  const { data: newestProducts = [] } = useQuery({
+    queryKey: ["products", "newest"],
+    queryFn: () => getProducts({ sort: "newest", pageSize: 6, available: true }),
+    select: (d) => d.items,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const storesSorted = useMemo(() => {
+    const withDist = stores.map((s) => ({
+      ...s,
+      distanceKm:
+        position && s.lat != null && s.lng != null
+          ? haversineKm(position.lat, position.lng, s.lat, s.lng)
+          : undefined as number | undefined,
+    }));
+    return position
+      ? [...withDist].sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999))
+      : withDist;
+  }, [stores, position]);
+
+  const authUser = useAuthStore((s) => s.user);
+
+  const { data: recentOrders = [] } = useQuery({
+    queryKey: ["orders", "my", "home"],
+    queryFn: getMyOrders,
+    enabled: !!authUser,
+    staleTime: 2 * 60 * 1000,
+    select: (orders) => orders.filter((o) => o.status === 4).slice(0, 5),
+  });
+
+  const recentProducts = useMemo(() => {
+    const seen = new Set<string>();
+    const products: Array<{
+      storeProductId: string;
+      productName: string;
+      imageUrl?: string;
+      unitPrice: number;
+      storeId: string;
+      storeName?: string;
+    }> = [];
+    for (const order of recentOrders) {
+      for (const item of order.items) {
+        if (!seen.has(item.storeProductId)) {
+          seen.add(item.storeProductId);
+          products.push({
+            storeProductId: item.storeProductId,
+            productName: item.productName,
+            imageUrl: item.imageUrl,
+            unitPrice: item.unitPrice,
+            storeId: order.storeId,
+            storeName: order.storeName,
+          });
+        }
+      }
+    }
+    return products.slice(0, 8);
+  }, [recentOrders]);
+
+  const flashSaleProducts = useMemo(
+    () => featuredProducts.filter((p) => p.promotionalPrice !== null && p.promotionalPrice !== undefined),
+    [featuredProducts],
+  );
 
   return (
     <div className="space-y-10">
+
+      {/* ── BANNER CAROUSEL ── */}
+      {banners.length > 0 && <BannerCarousel banners={banners} />}
+
+      {/* ── COMPRE DE NOVO ── */}
+      {authUser && recentProducts.length > 0 && (
+        <section>
+          <SectionHeader
+            label="seu histórico"
+            title="Compre de novo"
+            linkTo="/pedidos"
+            linkLabel="Ver pedidos"
+            color="#6366f1"
+          />
+          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
+            <div className="flex gap-4 pb-2">
+              {recentProducts.map((p) => (
+                <Link
+                  key={p.storeProductId}
+                  to={`/lojas/${p.storeId}/produto/${p.storeProductId}`}
+                  className="group flex w-36 shrink-0 flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="flex h-28 items-center justify-center overflow-hidden rounded-t-3xl bg-[#f8fafc] p-3">
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt={p.productName}
+                        className="h-20 w-full object-contain transition-transform group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="text-3xl">🛍️</div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5 p-2.5">
+                    <p className="line-clamp-2 text-[11px] font-black leading-tight text-[#0f172a]">
+                      {p.productName}
+                    </p>
+                    {p.storeName && (
+                      <p className="text-[9px] text-[#94a3b8]">{p.storeName}</p>
+                    )}
+                    <p className="mt-1 text-xs font-black text-[#16a34a]">
+                      {formatBRL(p.unitPrice)}
+                    </p>
+                    <div className="mt-1.5 flex items-center justify-center gap-1 rounded-xl bg-[#6366f1]/10 py-1.5 text-[10px] font-black text-[#6366f1] transition-colors group-hover:bg-[#6366f1] group-hover:text-white">
+                      🔁 Pedir novamente
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── HERO ── */}
       <section
         className="relative overflow-hidden rounded-3xl p-8 md:p-12"
         style={{ background: "linear-gradient(135deg, #001640 0%, #002776 30%, #001a4e 65%, #00361a 100%)" }}
       >
-        {/* Animated gradient blobs */}
         <div className="blob-a pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-[#002776] blur-3xl" />
         <div className="blob-b pointer-events-none absolute -bottom-16 left-16 h-64 w-64 rounded-full bg-[#16a34a] blur-3xl" />
         <div className="blob-c pointer-events-none absolute right-48 bottom-0 h-48 w-48 rounded-full bg-[#1351b4] blur-3xl" />
 
-        {/* Subtle grid overlay */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.04]"
           style={{
@@ -78,7 +224,6 @@ export default function HomePage() {
         />
 
         <div className="relative z-10 flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
-          {/* Left: text */}
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
               <Sparkles size={12} className="text-[#4ade80]" />
@@ -121,7 +266,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right: stats */}
           <div className="flex shrink-0 flex-col items-center gap-6">
             <BrasUXLogo
               size={108}
@@ -155,11 +299,13 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Location strip */}
         <div className="relative z-10 mt-8 flex items-center gap-2 border-t border-white/10 pt-6">
           <MapPin size={14} className="text-[#16a34a]" />
           <span className="text-sm text-[#94a3b8]">
-            Entregando em <span className="font-bold text-white">Minha localização</span>
+            {position
+              ? <>Entregando em <span className="font-bold text-white">sua localização</span> · lojas ordenadas por distância</>
+              : <>Entregando em <span className="font-bold text-white">todo o Brasil</span></>
+            }
           </span>
         </div>
       </section>
@@ -195,35 +341,104 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── PRODUTOS EM DESTAQUE — substitui grade de produtos ── */}
-      <section>
-        <SectionHeader
-          label="ofertas"
-          title="Produtos em destaque"
-          linkTo="/buscar"
-          linkLabel="Ver mais"
-          color="#16a34a"
-        />
-        {loadingFeatured ? (
-          <div className="mt-5 space-y-4">
-            <div className="h-52 animate-pulse rounded-3xl bg-white shadow-sm" />
+      {/* ── FLASH SALE ── */}
+      {flashSaleProducts.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center gap-2 rounded-2xl px-3 py-1.5 text-sm font-black text-white"
+                style={{ background: "linear-gradient(135deg, #dc2626, #b91c1c)" }}
+              >
+                ⚡ Flash Sale
+              </div>
+              <FlashSaleTimer />
+            </div>
+            <Link to="/buscar" className="flex items-center gap-1 text-sm font-black text-[#dc2626]">
+              Ver todas <ChevronRight size={16} />
+            </Link>
           </div>
-        ) : featuredByStore.length === 0 ? (
-          <p className="mt-4 text-sm text-[#64748b]">Nenhum produto em destaque no momento.</p>
-        ) : (
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredByStore.map(({ store, products: fps }) => (
-              <FeaturedCarousel key={store.id} store={store} products={fps} />
+          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
+            <div className="flex gap-4 pb-2">
+              {flashSaleProducts.map((p) => (
+                <FlashSaleCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── PRODUTOS EM DESTAQUE ── */}
+      {(featuredProducts.length > 0 || loadingFeatured) && (
+        <section>
+          <SectionHeader
+            label="ofertas"
+            title="Produtos em destaque"
+            linkTo="/buscar"
+            linkLabel="Ver mais"
+            color="#16a34a"
+          />
+          <div className="mt-5">
+            {loadingFeatured ? (
+              <div className="mx-auto w-full max-w-sm animate-pulse rounded-3xl bg-white p-4 shadow-sm">
+                <div className="h-10 rounded-xl bg-[#f1f5f9]" />
+                <div className="mt-3 h-48 rounded-2xl bg-[#f1f5f9]" />
+                <div className="mt-4 h-4 w-3/4 rounded bg-[#f1f5f9]" />
+                <div className="mt-2 h-6 w-1/2 rounded bg-[#f1f5f9]" />
+                <div className="mt-4 h-10 rounded-2xl bg-[#f1f5f9]" />
+              </div>
+            ) : (
+              <FeaturedProductCarousel products={featuredProducts} />
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── MAIS POPULARES ── */}
+      {featuredProducts.length > 0 && (
+        <section>
+          <SectionHeader label="trending" title="Mais populares" linkTo="/buscar" linkLabel="Ver todos" color="#dc2626" />
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {featuredProducts.slice(0, 4).map((p) => (
+              <Link
+                key={p.id}
+                to={`/lojas/${p.storeId}/produto/${p.id}`}
+                className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex h-32 items-center justify-center bg-[#f8fafc] p-3">
+                  {p.imageUrl ? (
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="h-24 w-full object-contain transition-transform group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="text-4xl">🛍️</div>
+                  )}
+                </div>
+                <div className="p-3">
+                  <p className="line-clamp-2 text-xs font-black leading-tight text-[#0f172a]">{p.name}</p>
+                  {p.storeName && <p className="mt-0.5 text-[10px] text-[#94a3b8]">{p.storeName}</p>}
+                  <div className="mt-2">
+                    {p.promotionalPrice ? (
+                      <p className="text-sm font-black text-[#16a34a]">{formatBRL(p.promotionalPrice)}</p>
+                    ) : p.price ? (
+                      <p className="text-sm font-black text-[#16a34a]">{formatBRL(p.price)}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* ── LOJAS ── */}
       <section>
         <SectionHeader
-          label="perto de você"
-          title="Lojas abertas agora"
+          label={position ? "perto de você" : "lojas"}
+          title={position ? "Lojas próximas" : "Lojas abertas agora"}
           linkTo="/lojas"
           linkLabel="Ver todas"
           color="#0f766e"
@@ -238,336 +453,168 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        ) : stores.length === 0 ? (
+        ) : storesSorted.length === 0 ? (
           <p className="mt-4 text-sm text-[#64748b]">Nenhuma loja disponível.</p>
         ) : (
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {stores.slice(0, 6).map((store) => (
-              <StoreCard key={store.id} store={store} />
+            {storesSorted.slice(0, 6).map((store) => (
+              <StoreCard key={store.id} store={store} distanceKm={store.distanceKm} />
             ))}
           </div>
         )}
       </section>
 
-      {/* ── PROMO SIMULENEM ── */}
+      {/* ── NOVIDADES ── */}
+      {newestProducts.length > 0 && (
+        <section>
+          <SectionHeader label="novo" title="Novidades" linkTo="/buscar" linkLabel="Ver todas" color="#7c3aed" />
+          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
+            <div className="flex gap-4 pb-2">
+              {newestProducts.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/lojas/${p.storeId}/produto/${p.id}`}
+                  className="flex w-36 shrink-0 flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="relative flex h-28 items-center justify-center bg-[#f8fafc] p-2">
+                    <span className="absolute left-2 top-2 rounded-lg bg-[#7c3aed] px-1.5 py-0.5 text-[9px] font-black text-white">
+                      NOVO
+                    </span>
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt={p.name} className="h-20 w-full object-contain" loading="lazy" />
+                    ) : (
+                      <div className="text-3xl">✨</div>
+                    )}
+                  </div>
+                  <div className="p-2.5">
+                    <p className="line-clamp-2 text-[11px] font-black leading-tight text-[#0f172a]">{p.name}</p>
+                    {p.price && <p className="mt-1 text-xs font-black text-[#16a34a]">{formatBRL(p.price)}</p>}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── PROMOS ── */}
       <section>
-        <a
+        <PromoCard
           href="https://simulenem.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
-          style={{ background: "linear-gradient(135deg, #001640 0%, #002776 40%, #003d1a 100%)" }}
-        >
-          {/* Blobs */}
-          <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#16a34a] opacity-30 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#002776] opacity-35 blur-3xl" />
-
-          {/* Grid overlay */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-
-          <div className="relative z-10 flex flex-1 flex-col gap-4 p-8 md:p-10">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#16a34a]/30 bg-[#16a34a]/10 px-3 py-1.5">
-              <span className="text-sm">📝</span>
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#4ade80]">
-                BrasUX Educação
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-black text-white md:text-4xl">
-                Simule o ENEM{" "}
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: "linear-gradient(135deg, #86efac, #4ade80)" }}
-                >
-                  agora mesmo.
-                </span>
-              </h2>
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
-                Questões comentadas, gabarito instantâneo e ranking nacional. Prepare-se para o ENEM com simulados gratuitos.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-all group-hover:scale-[1.03]"
-                style={{
-                  background: "linear-gradient(135deg, #16a34a, #15803d)",
-                  boxShadow: "0 8px 24px rgba(22,163,74,0.45)",
-                }}
-              >
-                Fazer simulado grátis <ArrowRight size={15} />
-              </span>
-              <span className="text-xs text-[#64748b]">simulenem.com</span>
-            </div>
-          </div>
-
-          {/* Right emoji */}
-          <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
-            <span
-              className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
-              style={{
-                background: "rgba(22,163,74,0.15)",
-                border: "1px solid rgba(22,163,74,0.25)",
-              }}
-            >
-              🎓
-            </span>
-          </div>
-        </a>
+          background="linear-gradient(135deg, #001640 0%, #002776 40%, #003d1a 100%)"
+          blobAColor="#16a34a"
+          blobAOpacity={0.3}
+          blobBColor="#002776"
+          blobBOpacity={0.35}
+          badgeEmoji="📝"
+          badgeLabel="BrasUX Educação"
+          badgeTextColor="#4ade80"
+          badgeBorderColor="rgba(22,163,74,0.30)"
+          badgeBgColor="rgba(22,163,74,0.10)"
+          titleBefore="Simule o ENEM"
+          titleHighlight="agora mesmo."
+          titleHighlightGradient="linear-gradient(135deg, #86efac, #4ade80)"
+          description="Questões comentadas, gabarito instantâneo e ranking nacional. Prepare-se para o ENEM com simulados gratuitos."
+          ctaLabel="Fazer simulado grátis"
+          ctaBackground="linear-gradient(135deg, #16a34a, #15803d)"
+          ctaShadow="0 8px 24px rgba(22,163,74,0.45)"
+          iconEmoji="🎓"
+          iconBg="rgba(22,163,74,0.15)"
+          iconBorder="rgba(22,163,74,0.25)"
+          domainLabel="simulenem.com"
+        />
       </section>
 
-      {/* ── PROMO NOTAON ── */}
       <section>
-        <a
+        <PromoCard
           href="https://cursonotaon.com.br"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
-          style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e3a5f 100%)" }}
-        >
-          <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#818cf8] opacity-25 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#6366f1] opacity-20 blur-3xl" />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-
-          <div className="relative z-10 flex flex-1 flex-col gap-4 p-8 md:p-10">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#818cf8]/30 bg-[#818cf8]/10 px-3 py-1.5">
-              <span className="text-sm">🎯</span>
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#a5b4fc]">
-                BrasUX Educação
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-black text-white md:text-4xl">
-                Tire nota{" "}
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: "linear-gradient(135deg, #c7d2fe, #818cf8)" }}
-                >
-                  1000 no ENEM.
-                </span>
-              </h2>
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
-                Curso completo com videoaulas, material didático e correção de redação. Do zero à nota máxima.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-all group-hover:scale-[1.03]"
-                style={{
-                  background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-                  boxShadow: "0 8px 24px rgba(99,102,241,0.45)",
-                }}
-              >
-                Conhecer o curso <ArrowRight size={15} />
-              </span>
-              <span className="text-xs text-[#64748b]">cursonotaon.com.br</span>
-            </div>
-          </div>
-
-          <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
-            <span
-              className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
-              style={{
-                background: "rgba(99,102,241,0.15)",
-                border: "1px solid rgba(99,102,241,0.25)",
-              }}
-            >
-              🎯
-            </span>
-          </div>
-        </a>
+          background="linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e3a5f 100%)"
+          blobAColor="#818cf8"
+          blobBColor="#6366f1"
+          badgeEmoji="🎯"
+          badgeLabel="BrasUX Educação"
+          badgeTextColor="#a5b4fc"
+          badgeBorderColor="rgba(129,140,248,0.30)"
+          badgeBgColor="rgba(129,140,248,0.10)"
+          titleBefore="Tire nota"
+          titleHighlight="1000 no ENEM."
+          titleHighlightGradient="linear-gradient(135deg, #c7d2fe, #818cf8)"
+          description="Curso completo com videoaulas, material didático e correção de redação. Do zero à nota máxima."
+          ctaLabel="Conhecer o curso"
+          ctaBackground="linear-gradient(135deg, #6366f1, #4f46e5)"
+          ctaShadow="0 8px 24px rgba(99,102,241,0.45)"
+          iconEmoji="🎯"
+          iconBg="rgba(99,102,241,0.15)"
+          iconBorder="rgba(99,102,241,0.25)"
+          domainLabel="cursonotaon.com.br"
+        />
       </section>
 
-      {/* ── PROMO BRASUX CAIXA ── */}
       <section>
-        <a
+        <PromoCard
           href="https://brasux-caixa-livre.vercel.app"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
-          style={{ background: "linear-gradient(135deg, #022c22 0%, #064e3b 40%, #065f46 100%)" }}
-        >
-          {/* Blobs */}
-          <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#10b981] opacity-25 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#34d399] opacity-20 blur-3xl" />
-
-          {/* Grid overlay */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-
-          <div className="relative z-10 flex flex-1 flex-col gap-4 p-8 md:p-10">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#10b981]/30 bg-[#10b981]/10 px-3 py-1.5">
-              <span className="text-sm">🧾</span>
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#6ee7b7]">
-                BrasUX Comercial
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-black text-white md:text-4xl">
-                PDV para o seu{" "}
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: "linear-gradient(135deg, #6ee7b7, #34d399)" }}
-                >
-                  negócio.
-                </span>
-              </h2>
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
-                Caixa e gestão comercial completos — vendas, estoque, fluxo de caixa e dashboard. Simples, poderoso e acessível.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-[#022c22] transition-all group-hover:scale-[1.03]"
-                style={{
-                  background: "linear-gradient(135deg, #34d399, #10b981)",
-                  boxShadow: "0 8px 24px rgba(16,185,129,0.45)",
-                }}
-              >
-                Conhecer o Caixa <ArrowRight size={15} />
-              </span>
-              <span className="text-xs text-[#64748b]">caixa.brasux.com.br</span>
-            </div>
-          </div>
-
-          {/* Right icon */}
-          <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
-            <span
-              className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
-              style={{
-                background: "rgba(16,185,129,0.15)",
-                border: "1px solid rgba(16,185,129,0.25)",
-              }}
-            >
-              🧾
-            </span>
-          </div>
-        </a>
+          background="linear-gradient(135deg, #022c22 0%, #064e3b 40%, #065f46 100%)"
+          blobAColor="#10b981"
+          blobBColor="#34d399"
+          badgeEmoji="🧾"
+          badgeLabel="BrasUX Comercial"
+          badgeTextColor="#6ee7b7"
+          badgeBorderColor="rgba(16,185,129,0.30)"
+          badgeBgColor="rgba(16,185,129,0.10)"
+          titleBefore="PDV para o seu"
+          titleHighlight="negócio."
+          titleHighlightGradient="linear-gradient(135deg, #6ee7b7, #34d399)"
+          description="Caixa e gestão comercial completos — vendas, estoque, fluxo de caixa e dashboard. Simples, poderoso e acessível."
+          ctaLabel="Conhecer o Caixa"
+          ctaBackground="linear-gradient(135deg, #34d399, #10b981)"
+          ctaShadow="0 8px 24px rgba(16,185,129,0.45)"
+          ctaTextColor="#022c22"
+          iconEmoji="🧾"
+          iconBg="rgba(16,185,129,0.15)"
+          iconBorder="rgba(16,185,129,0.25)"
+          domainLabel="caixa.brasux.com.br"
+        />
       </section>
 
-      {/* ── PROMO BRASUX SERVIÇOS ── */}
       <section>
-        <Link
+        <PromoCard
           to="/servicos"
-          className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
-          style={{ background: "linear-gradient(135deg, #0d0a1e 0%, #1a0938 40%, #0a1628 100%)" }}
-        >
-          {/* Blobs */}
-          <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#7c3aed] opacity-25 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#06b6d4] opacity-20 blur-3xl" />
-
-          {/* Grid overlay */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-
-          <div className="relative z-10 flex flex-1 flex-col gap-4 p-8 md:p-10">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#7c3aed]/30 bg-[#7c3aed]/10 px-3 py-1.5">
-              <span className="text-sm">⚡</span>
-              <span className="text-[11px] font-black uppercase tracking-widest text-[#c4b5fd]">
-                BrasUX Serviços
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-black text-white md:text-4xl">
-                Soluções tech para o{" "}
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: "linear-gradient(135deg, #c4b5fd, #67e8f9)" }}
-                >
-                  seu negócio.
-                </span>
-              </h2>
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
-                IA, dados, arquitetura de software, desenvolvimento e consultoria. Da ideia à solução, do código ao impacto.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-all group-hover:scale-[1.03]"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                  boxShadow: "0 8px 24px rgba(124,58,237,0.45)",
-                }}
-              >
-                Ver todos os serviços <ArrowRight size={15} />
-              </span>
-            </div>
-          </div>
-
-          {/* Right icon */}
-          <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
-            <span
-              className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
-              style={{
-                background: "rgba(124,58,237,0.15)",
-                border: "1px solid rgba(124,58,237,0.25)",
-              }}
-            >
-              🚀
-            </span>
-          </div>
-        </Link>
+          background="linear-gradient(135deg, #0d0a1e 0%, #1a0938 40%, #0a1628 100%)"
+          blobAColor="#7c3aed"
+          blobBColor="#06b6d4"
+          badgeEmoji="⚡"
+          badgeLabel="BrasUX Serviços"
+          badgeTextColor="#c4b5fd"
+          badgeBorderColor="rgba(124,58,237,0.30)"
+          badgeBgColor="rgba(124,58,237,0.10)"
+          titleBefore="Soluções tech para o"
+          titleHighlight="seu negócio."
+          titleHighlightGradient="linear-gradient(135deg, #c4b5fd, #67e8f9)"
+          description="IA, dados, arquitetura de software, desenvolvimento e consultoria. Da ideia à solução, do código ao impacto."
+          ctaLabel="Ver todos os serviços"
+          ctaBackground="linear-gradient(135deg, #7c3aed, #4f46e5)"
+          ctaShadow="0 8px 24px rgba(124,58,237,0.45)"
+          iconEmoji="🚀"
+          iconBg="rgba(124,58,237,0.15)"
+          iconBorder="rgba(124,58,237,0.25)"
+        />
       </section>
 
-      {/* ── PROMO LANDING PAGE ── */}
       <section>
-        <a
+        <PromoCard
           href="https://produtos.brasux.com.br"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center"
-          style={{ background: "linear-gradient(135deg, #0c0a00 0%, #1c1400 40%, #0f1a00 100%)" }}
-        >
-          {/* Blobs */}
-          <div className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full bg-[#f59e0b] opacity-20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full bg-[#84cc16] opacity-15 blur-3xl" />
-
-          {/* Grid overlay */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-
-          <div className="relative z-10 flex flex-1 flex-col gap-4 p-8 md:p-10">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#f59e0b]/30 bg-[#f59e0b]/10 px-3 py-1.5">
-                <span className="text-sm">🌐</span>
-                <span className="text-[11px] font-black uppercase tracking-widest text-[#fcd34d]">
-                  BrasUX Web
-                </span>
-              </div>
+          background="linear-gradient(135deg, #0c0a00 0%, #1c1400 40%, #0f1a00 100%)"
+          blobAColor="#f59e0b"
+          blobAOpacity={0.2}
+          blobBColor="#84cc16"
+          blobBOpacity={0.15}
+          badgeEmoji="🌐"
+          badgeLabel="BrasUX Web"
+          badgeTextColor="#fcd34d"
+          badgeBorderColor="rgba(245,158,11,0.30)"
+          badgeBgColor="rgba(245,158,11,0.10)"
+          extraBadge={
+            <div className="flex flex-col gap-1.5">
               <div
                 className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5"
                 style={{
@@ -575,69 +622,60 @@ export default function HomePage() {
                   boxShadow: "0 4px 16px rgba(245,158,11,0.4)",
                 }}
               >
-                <span className="text-[11px] font-black text-[#0c0a00]">apenas R$ 499</span>
+                <span className="text-[11px] font-black text-[#0c0a00]">🏷️ BrasUX Web</span>
               </div>
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-black text-white md:text-4xl">
-                Landing Page +{" "}
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{ backgroundImage: "linear-gradient(135deg, #fcd34d, #84cc16)" }}
-                >
-                  botão WhatsApp.
-                </span>
-              </h2>
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
-                Site profissional, responsivo e pronto para converter — com botão direto pro seu WhatsApp. Entrega em até 5 dias úteis.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span
-                className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-[#0c0a00] transition-all group-hover:scale-[1.03]"
-                style={{
-                  background: "linear-gradient(135deg, #f59e0b, #84cc16)",
-                  boxShadow: "0 8px 24px rgba(245,158,11,0.45)",
-                }}
-              >
-                Quero minha landing page <ArrowRight size={15} />
-              </span>
-              <span className="text-xs text-[#64748b]">produtos.brasux.com.br</span>
-            </div>
-          </div>
-
-          {/* Right icon */}
-          <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
-            <div className="flex flex-col items-center gap-3">
-              <span
-                className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
+              <div
+                className="inline-flex flex-col rounded-2xl px-4 py-2.5"
                 style={{
                   background: "rgba(245,158,11,0.12)",
-                  border: "1px solid rgba(245,158,11,0.25)",
+                  border: "1px solid rgba(245,158,11,0.30)",
                 }}
               >
-                🌐
-              </span>
-              <div
-                className="flex items-center gap-2 rounded-2xl px-4 py-2"
-                style={{
-                  background: "rgba(37,211,102,0.12)",
-                  border: "1px solid rgba(37,211,102,0.25)",
-                }}
-              >
-                <span className="text-lg">💬</span>
-                <span className="text-sm font-black text-[#25d166]">WhatsApp</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#fcd34d]/70">
+                  a partir de
+                </span>
+                <span
+                  className="text-2xl font-black"
+                  style={{
+                    background: "linear-gradient(135deg, #fcd34d, #84cc16)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  R$ 499,00
+                </span>
               </div>
             </div>
-          </div>
-        </a>
+          }
+          titleBefore="Landing Page +"
+          titleHighlight="botão WhatsApp."
+          titleHighlightGradient="linear-gradient(135deg, #fcd34d, #84cc16)"
+          description="Site profissional, responsivo e pronto para converter — com botão direto pro seu WhatsApp. Entrega em até 5 dias úteis."
+          ctaLabel="Quero minha landing page"
+          ctaBackground="linear-gradient(135deg, #f59e0b, #84cc16)"
+          ctaShadow="0 8px 24px rgba(245,158,11,0.45)"
+          ctaTextColor="#0c0a00"
+          iconEmoji="🌐"
+          iconBg="rgba(245,158,11,0.12)"
+          iconBorder="rgba(245,158,11,0.25)"
+          iconExtra={
+            <div
+              className="flex items-center gap-2 rounded-2xl px-4 py-2"
+              style={{
+                background: "rgba(37,211,102,0.12)",
+                border: "1px solid rgba(37,211,102,0.25)",
+              }}
+            >
+              <span className="text-lg">💬</span>
+              <span className="text-sm font-black text-[#25d166]">WhatsApp</span>
+            </div>
+          }
+          domainLabel="produtos.brasux.com.br"
+        />
       </section>
 
       {/* ── CTAs ── */}
       <section className="grid gap-4 md:grid-cols-2">
-        {/* Seller CTA */}
         <div
           className="relative overflow-hidden rounded-3xl p-8"
           style={{ background: "linear-gradient(135deg, #001640 0%, #002776 50%, #003d1a 100%)" }}
@@ -671,7 +709,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Courier CTA */}
         <div className="flex items-start gap-5 rounded-3xl border border-[#e2e8f0] bg-white p-8 shadow-sm">
           <div
             className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
@@ -734,134 +771,62 @@ function SectionHeader({
   );
 }
 
-// ProductCard mantido para uso em outras páginas (SearchPage, etc.)
-export function ProductCard({ product }: { product: StoreProduct }) {
+function FlashSaleTimer() {
+  const [time, setTime] = useState(() => {
+    const now = new Date();
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 0);
+    return Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
+  });
+
+  useEffect(() => {
+    const id = setInterval(() => setTime((t) => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const h = String(Math.floor(time / 3600)).padStart(2, "0");
+  const m = String(Math.floor((time % 3600) / 60)).padStart(2, "0");
+  const s = String(time % 60).padStart(2, "0");
+
+  return (
+    <div className="flex items-center gap-1">
+      {[h, m, s].map((v, i) => (
+        <span key={i}>
+          <span className="rounded-lg bg-[#0f172a] px-2 py-1 font-mono text-sm font-black text-white">{v}</span>
+          {i < 2 && <span className="mx-0.5 font-black text-[#64748b]">:</span>}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function FlashSaleCard({ product }: { product: StoreProduct }) {
+  const discount = product.promotionalPrice
+    ? Math.round(((product.price - product.promotionalPrice) / product.price) * 100)
+    : 0;
+
   return (
     <Link
       to={`/lojas/${product.storeId}/produto/${product.id}`}
-      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
-      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
+      className="group flex w-40 shrink-0 flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="product-img-bg flex h-40 items-center justify-center p-3">
-        <ProductImage
-          imageUrl={product.imageUrl}
-          alt={product.imageAlt || product.name}
-          category={product.category}
-          containerClassName="h-32 w-full rounded-2xl"
-          className="h-32 w-full object-contain transition-transform group-hover:scale-105"
-        />
-      </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-[#94a3b8] truncate">
-          {product.category}
-        </p>
-        <h3 className="mt-1 flex-1 text-sm font-black text-[#0f172a] line-clamp-2 leading-tight">
-          {product.name}
-        </h3>
-        <div className="mt-3">
-          {product.promotionalPrice ? (
-            <>
-              <p className="text-[10px] font-bold text-[#94a3b8] line-through">
-                {formatBRL(Number(product.price))}
-              </p>
-              <p className="text-base font-black text-[#16a34a]">
-                {formatBRL(Number(product.promotionalPrice))}
-              </p>
-            </>
-          ) : (
-            <p className="text-base font-black text-[#16a34a]">
-              {formatBRL(Number(product.price))}
-            </p>
-          )}
-        </div>
-        <div
-          className="mt-3 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-black text-white transition-all group-hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
-        >
-          Ver produto
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function StoreCard({ store }: { store: Store }) {
-  const deliveryFeeText =
-    Number(store.deliveryFee) === 0
-      ? "Grátis"
-      : formatBRL(Number(store.deliveryFee));
-
-  return (
-    <Link
-      to={`/lojas/${store.id}`}
-      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
-      style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
-    >
-      {/* Banner */}
-      <div
-        className="relative h-28"
-        style={{
-          background:
-            "radial-gradient(circle at 80% 30%, rgba(0,39,118,0.55), transparent 55%), linear-gradient(135deg, #0a1628 0%, #001640 100%)",
-        }}
-      >
-        <span
-          className={`absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
-            store.isOpen
-              ? "border-green-700/40 bg-green-900/30 text-green-400"
-              : "border-white/15 bg-white/10 text-[#94a3b8]"
-          }`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
-          {store.isOpen ? "Aberto" : "Fechado"}
-        </span>
-
-        <span
-          className="absolute -bottom-6 left-5 flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl text-base font-black text-white"
-          style={{
-            background: "linear-gradient(135deg, #16a34a, #15803d)",
-            boxShadow: "0 4px 16px rgba(22,163,74,0.5)",
-          }}
-        >
-          <StoreLogo logoUrl={store.logoUrl} name={store.name} />
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col px-5 pb-5 pt-9">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">
-          {store.category}
-        </p>
-        <h3 className="mt-0.5 text-lg font-black text-[#0f172a]">{store.name}</h3>
-        {store.description && (
-          <p className="mt-1 text-xs text-[#64748b] line-clamp-2 leading-relaxed">{store.description}</p>
+      <div className="relative flex h-32 items-center justify-center bg-[#f8fafc] p-3">
+        {discount > 0 && (
+          <span className="absolute right-2 top-2 rounded-xl bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">
+            -{discount}%
+          </span>
         )}
-
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <StatBadge icon={<Clock3 size={12} />} label="Entrega" value={`${store.deliveryTimeMin}-${store.deliveryTimeMax}min`} />
-          <StatBadge icon={<Bike size={12} />} label="Taxa" value={deliveryFeeText} />
-          <StatBadge icon={<Star size={12} />} label="Nota" value={Number(store.rating).toFixed(1)} />
-        </div>
-
-        <div
-          className="mt-4 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-black text-white transition-opacity group-hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
-        >
-          Ver catálogo
-          <ArrowRight size={16} />
-        </div>
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt={product.name} className="h-24 w-full object-contain" loading="lazy" />
+        ) : (
+          <div className="text-4xl">🛍️</div>
+        )}
+      </div>
+      <div className="flex flex-col gap-0.5 p-3">
+        <p className="line-clamp-2 text-xs font-black leading-tight text-[#0f172a]">{product.name}</p>
+        <p className="text-[10px] text-[#94a3b8] line-through">{formatBRL(product.price)}</p>
+        <p className="text-sm font-black text-red-500">{formatBRL(product.promotionalPrice!)}</p>
       </div>
     </Link>
-  );
-}
-
-function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-[#f1f5f9] bg-[#f8fafc] px-2 py-2">
-      <div className="flex items-center gap-1 text-[#94a3b8]">
-        {icon}
-        <span className="text-[9px] font-bold uppercase tracking-wide">{label}</span>
-      </div>
-      <div className="mt-0.5 text-xs font-black text-[#0f172a]">{value}</div>
-    </div>
   );
 }

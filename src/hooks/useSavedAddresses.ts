@@ -1,4 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  getMySavedAddresses,
+  insertSavedAddress,
+  updateSavedAddress,
+  deleteSavedAddress,
+} from "../services/gizApi";
+import { useAuthStore } from "../stores/authStore";
 
 export type SavedAddress = {
   id: string;
@@ -9,51 +16,109 @@ export type SavedAddress = {
   number: string;
   complement: string;
   neighborhood: string;
+  city: string;
 };
 
-const KEY = "brasux-addresses";
+const LOCAL_KEY = "brasux-addresses";
 
-function load(): SavedAddress[] {
+function loadLocal(): SavedAddress[] {
   try {
-    const d = JSON.parse(localStorage.getItem(KEY) ?? "[]");
+    const d = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? "[]");
     return Array.isArray(d) ? d : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
-function persist(addresses: SavedAddress[]) {
-  localStorage.setItem(KEY, JSON.stringify(addresses));
+function persistLocal(addresses: SavedAddress[]) {
+  localStorage.setItem(LOCAL_KEY, JSON.stringify(addresses));
 }
 
 export function useSavedAddresses() {
-  const [addresses, setAddresses] = useState<SavedAddress[]>(load);
+  const user = useAuthStore((s) => s.user);
+  const initialized = useAuthStore((s) => s.initialized);
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const save = useCallback((addr: Omit<SavedAddress, "id">) => {
-    const next: SavedAddress = { ...addr, id: crypto.randomUUID() };
-    setAddresses((prev) => {
-      const updated = [...prev, next];
-      persist(updated);
-      return updated;
-    });
-    return next;
-  }, []);
+  useEffect(() => {
+    if (!initialized) return;
 
-  const update = useCallback((id: string, patch: Partial<Omit<SavedAddress, "id">>) => {
-    setAddresses((prev) => {
-      const updated = prev.map((a) => (a.id === id ? { ...a, ...patch } : a));
-      persist(updated);
-      return updated;
-    });
-  }, []);
+    if (!user) {
+      setAddresses(loadLocal());
+      return;
+    }
 
-  const remove = useCallback((id: string) => {
-    setAddresses((prev) => {
-      const updated = prev.filter((a) => a.id !== id);
-      persist(updated);
-      return updated;
-    });
-  }, []);
+    setLoading(true);
+    getMySavedAddresses()
+      .then((rows) => {
+        setAddresses(
+          rows.map((r) => ({
+            id: r.id,
+            label: r.label,
+            phone: r.phone ?? "",
+            cep: r.cep ?? "",
+            address: r.address,
+            number: r.number,
+            complement: r.complement ?? "",
+            neighborhood: r.neighborhood,
+            city: r.city ?? "",
+          }))
+        );
+      })
+      .catch(() => setAddresses(loadLocal()))
+      .finally(() => setLoading(false));
+  }, [user, initialized]);
 
-  return { addresses, save, update, remove };
+  const save = useCallback(
+    async (addr: Omit<SavedAddress, "id">): Promise<SavedAddress> => {
+      if (user) {
+        const saved = await insertSavedAddress(addr);
+        const normalized: SavedAddress = {
+          id: saved.id,
+          label: saved.label,
+          phone: saved.phone ?? "",
+          cep: saved.cep ?? "",
+          address: saved.address,
+          number: saved.number,
+          complement: saved.complement ?? "",
+          neighborhood: saved.neighborhood,
+          city: saved.city ?? "",
+        };
+        setAddresses((prev) => [...prev, normalized]);
+        return normalized;
+      }
+      const next: SavedAddress = { ...addr, id: crypto.randomUUID() };
+      setAddresses((prev) => {
+        const updated = [...prev, next];
+        persistLocal(updated);
+        return updated;
+      });
+      return next;
+    },
+    [user]
+  );
+
+  const update = useCallback(
+    async (id: string, patch: Partial<Omit<SavedAddress, "id">>) => {
+      if (user) await updateSavedAddress(id, patch);
+      setAddresses((prev) => {
+        const updated = prev.map((a) => (a.id === id ? { ...a, ...patch } : a));
+        if (!user) persistLocal(updated);
+        return updated;
+      });
+    },
+    [user]
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (user) await deleteSavedAddress(id);
+      setAddresses((prev) => {
+        const updated = prev.filter((a) => a.id !== id);
+        if (!user) persistLocal(updated);
+        return updated;
+      });
+    },
+    [user]
+  );
+
+  return { addresses, loading, save, update, remove };
 }

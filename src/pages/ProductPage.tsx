@@ -1,4 +1,8 @@
 import { useMemo, useState } from "react";
+import { usePageMeta } from "../hooks/usePageMeta";
+import { useJsonLd } from "../hooks/useJsonLd";
+import { buildProductSchema, buildBreadcrumbSchema, canonicalUrl } from "../lib/seo";
+import Breadcrumbs from "../components/seo/Breadcrumbs";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,6 +18,8 @@ import {
 } from "../services/gizApi";
 import { useCartStore } from "../stores/cartStore";
 import { useFavoritesStore } from "../stores/favoritesStore";
+import { useToastStore } from "../stores/toastStore";
+import { useAuthStore } from "../stores/authStore";
 import { useProductReviews } from "../hooks/useProductReviews";
 import { formatBRL } from "../utils/format";
 import ProductImage from "../components/ui/ProductImage";
@@ -48,8 +54,9 @@ export default function ProductPage() {
   const cartItem = items.find((i) => i.id === productId);
 
   const toggleProduct = useFavoritesStore((s) => s.toggleProduct);
-  const isProductFavorite = useFavoritesStore((s) => s.isProductFavorite);
-  const isFav = product ? isProductFavorite(product.id) : false;
+  const isFav = useFavoritesStore((s) =>
+    product ? s.products.some((p) => p.id === product.id) : false,
+  );
 
   function handleAdd() {
     if (!product) return;
@@ -67,6 +74,47 @@ export default function ProductPage() {
     });
   }
 
+  usePageMeta({
+    title: product?.name,
+    description: product?.description ?? undefined,
+    imageUrl: product?.imageUrl ? getProductImageUrl(product.imageUrl) : undefined,
+    ogType: "product",
+    canonical: canonicalUrl(`/lojas/${storeId}/produto/${productId}`),
+  });
+
+  const { stats } = useProductReviews(productId);
+
+  const productSchema = useMemo(() => {
+    if (!product || !store) return null;
+    return buildProductSchema({
+      id: product.id,
+      name: product.name,
+      description: product.description ?? undefined,
+      imageUrl: product.imageUrl ? getProductImageUrl(product.imageUrl) : undefined,
+      price: Number(product.price),
+      promotionalPrice: product.promotionalPrice ? Number(product.promotionalPrice) : null,
+      brand: product.brand ?? undefined,
+      category: product.category,
+      stock: product.stock,
+      storeId: store.id,
+      storeName: store.name,
+      averageRating: stats.average > 0 ? stats.average : undefined,
+      reviewCount: stats.total > 0 ? stats.total : undefined,
+    });
+  }, [product, store, stats]);
+
+  const breadcrumbSchema = useMemo(() => {
+    if (!product || !store) return null;
+    return buildBreadcrumbSchema([
+      { name: "Início", path: "/" },
+      { name: "Lojas", path: "/lojas" },
+      { name: store.name, path: `/lojas/${storeId}` },
+      { name: product.name, path: `/lojas/${storeId}/produto/${productId}` },
+    ]);
+  }, [product, store, storeId, productId]);
+
+  useJsonLd(productSchema && breadcrumbSchema ? [productSchema, breadcrumbSchema] : null);
+
   function handleShare() {
     const url = window.location.href;
     const title = product?.name ?? "Produto BrasUX";
@@ -74,7 +122,7 @@ export default function ProductPage() {
       navigator.share({ title, url }).catch(() => null);
     } else {
       navigator.clipboard.writeText(url).then(() => {
-        alert("Link copiado!");
+        useToastStore.getState().show("Link copiado!", "success");
       });
     }
   }
@@ -130,6 +178,17 @@ export default function ProductPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumbs */}
+      {store && product && (
+        <Breadcrumbs
+          items={[
+            { name: "Lojas", path: "/lojas" },
+            { name: store.name, path: `/lojas/${storeId}` },
+            { name: product.name, path: `/lojas/${storeId}/produto/${productId}` },
+          ]}
+        />
+      )}
+
       {/* Back + actions */}
       <div className="flex items-center justify-between">
         <Link
@@ -172,8 +231,10 @@ export default function ProductPage() {
             imageUrl={product.imageUrl}
             alt={product.imageAlt || product.name}
             category={product.category}
-            containerClassName="h-64 w-full"
+            containerClassName="h-64 w-full rounded-2xl overflow-hidden"
             className="h-64 w-full object-contain"
+            fetchpriority="high"
+            eager
           />
         </div>
 
@@ -330,98 +391,159 @@ export default function ProductPage() {
 }
 
 function ProductReviewSection({ productId }: { productId: string }) {
-  const { review, submit, remove } = useProductReviews(productId);
-  const [hovered, setHovered] = useState(review?.stars ?? 0);
-  const [selected, setSelected] = useState(review?.stars ?? 0);
-  const [comment, setComment] = useState(review?.comment ?? "");
-  const [submitted, setSubmitted] = useState(!!review);
-  const [editing, setEditing] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const {
+    allReviews, myReview, stats,
+    isEditing, editStars, editComment,
+    setEditStars, setEditComment,
+    startEdit, cancelEdit,
+    submit, remove,
+    submitting, removing, error,
+  } = useProductReviews(productId);
 
-  function handleSubmit() {
-    if (!selected) return;
-    submit(selected, comment);
-    setSubmitted(true);
-    setEditing(false);
-  }
+  const [hovered, setHovered] = useState(0);
+
+  const activeStars = hovered || editStars;
 
   return (
-    <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4">
-      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
-        Sua avaliação
-      </p>
-
-      {submitted && !editing ? (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="flex gap-0.5">
+    <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 space-y-4">
+      {/* Aggregate stats */}
+      {stats.total > 0 && (
+        <div className="flex items-center gap-4">
+          <div className="text-center">
+            <p className="text-3xl font-black text-[#0f172a]">{stats.average.toFixed(1)}</p>
+            <div className="flex gap-0.5 justify-center">
               {[1, 2, 3, 4, 5].map((s) => (
-                <span key={s} className={`text-lg ${s <= (review?.stars ?? 0) ? "text-yellow-400" : "text-[#e2e8f0]"}`}>★</span>
+                <span key={s} className={`text-sm ${s <= Math.round(stats.average) ? "text-yellow-400" : "text-[#e2e8f0]"}`}>★</span>
               ))}
             </div>
-            <span className="text-xs font-bold text-[#64748b]">
-              {new Date(review?.date ?? "").toLocaleDateString("pt-BR")}
-            </span>
+            <p className="text-[10px] text-[#94a3b8] mt-0.5">{stats.total} {stats.total === 1 ? "avaliação" : "avaliações"}</p>
           </div>
-          {review?.comment && (
-            <p className="text-sm italic text-[#475569]">"{review.comment}"</p>
-          )}
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setEditing(true); setSelected(review?.stars ?? 0); setHovered(review?.stars ?? 0); setComment(review?.comment ?? ""); }}
-              className="text-xs font-bold text-[#16a34a]"
-            >
-              Editar
-            </button>
-            <button onClick={() => { remove(); setSubmitted(false); setSelected(0); setHovered(0); setComment(""); }} className="text-xs font-bold text-red-500">
-              Remover
-            </button>
+          <div className="flex-1 space-y-1">
+            {([5, 4, 3, 2, 1] as const).map((s) => {
+              const count = stats.distribution[s];
+              const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+              return (
+                <div key={s} className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-[#64748b] w-3">{s}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-[#f1f5f9] overflow-hidden">
+                    <div className="h-full rounded-full bg-yellow-400 transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="text-[10px] text-[#94a3b8] w-6 text-right">{count}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
-      ) : (
-        <div>
-          <div className="flex gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                onMouseEnter={() => setHovered(star)}
-                onMouseLeave={() => setHovered(selected)}
-                onClick={() => setSelected(star)}
-                className="text-2xl transition-transform hover:scale-125 focus:outline-none"
-              >
-                <span className={star <= (hovered || selected) ? "text-yellow-400" : "text-[#e2e8f0]"}>★</span>
-              </button>
-            ))}
-          </div>
-          {selected > 0 && (
-            <>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Deixe um comentário (opcional)…"
-                rows={2}
-                className="mt-3 w-full resize-none rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
-              />
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={handleSubmit}
-                  className="flex-1 rounded-xl bg-[#16a34a] py-2.5 text-xs font-black text-white"
-                >
-                  {editing ? "Atualizar avaliação" : "Enviar avaliação"}
-                </button>
-                {editing && (
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="rounded-xl border border-[#e2e8f0] px-4 py-2.5 text-xs font-black text-[#64748b]"
-                  >
-                    Cancelar
-                  </button>
-                )}
+      )}
+
+      {/* Minha avaliação */}
+      <div>
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+          Sua avaliação
+        </p>
+
+        {!user ? (
+          <p className="text-xs text-[#94a3b8]">Faça login para avaliar este produto.</p>
+        ) : myReview && !isEditing ? (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <span key={s} className={`text-lg ${s <= myReview.stars ? "text-yellow-400" : "text-[#e2e8f0]"}`}>★</span>
+                ))}
               </div>
-            </>
-          )}
-          {!selected && (
-            <p className="mt-2 text-xs text-[#94a3b8]">Clique nas estrelas para avaliar.</p>
-          )}
+              <span className="text-xs text-[#94a3b8]">
+                {new Date(myReview.createdAt).toLocaleDateString("pt-BR")}
+              </span>
+            </div>
+            {myReview.comment && (
+              <p className="text-sm italic text-[#475569]">"{myReview.comment}"</p>
+            )}
+            <div className="flex gap-3 pt-1">
+              <button onClick={startEdit} className="text-xs font-bold text-[#16a34a]">Editar</button>
+              <button
+                onClick={remove}
+                disabled={removing}
+                className="text-xs font-bold text-red-500 disabled:opacity-50"
+              >
+                {removing ? "Removendo…" : "Remover"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onMouseEnter={() => setHovered(star)}
+                  onMouseLeave={() => setHovered(0)}
+                  onClick={() => setEditStars(star)}
+                  className="text-2xl transition-transform hover:scale-125 focus:outline-none"
+                >
+                  <span className={star <= activeStars ? "text-yellow-400" : "text-[#e2e8f0]"}>★</span>
+                </button>
+              ))}
+            </div>
+            {editStars > 0 && (
+              <>
+                <textarea
+                  value={editComment}
+                  onChange={(e) => setEditComment(e.target.value)}
+                  placeholder="Deixe um comentário (opcional)…"
+                  rows={2}
+                  className="mt-3 w-full resize-none rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
+                />
+                {error && <p className="mt-1 text-xs font-bold text-red-500">{error}</p>}
+                <div className="mt-2 flex gap-2">
+                  <button
+                    onClick={() => submit(editStars, editComment)}
+                    disabled={submitting}
+                    className="flex-1 rounded-xl bg-[#16a34a] py-2.5 text-xs font-black text-white disabled:opacity-60"
+                  >
+                    {submitting ? "Salvando…" : isEditing ? "Atualizar avaliação" : "Enviar avaliação"}
+                  </button>
+                  {isEditing && (
+                    <button
+                      onClick={cancelEdit}
+                      className="rounded-xl border border-[#e2e8f0] px-4 py-2.5 text-xs font-black text-[#64748b]"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+            {!editStars && <p className="mt-2 text-xs text-[#94a3b8]">Clique nas estrelas para avaliar.</p>}
+          </div>
+        )}
+      </div>
+
+      {/* Avaliações públicas */}
+      {allReviews.length > 0 && (
+        <div className="space-y-3 border-t border-[#f1f5f9] pt-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+            O que outros acharam
+          </p>
+          {allReviews.slice(0, 5).map((r) => (
+            <div key={r.id} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#16a34a]/10 text-[10px] font-black text-[#16a34a]">
+                    {r.userName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs font-bold text-[#0f172a]">{r.userName}</span>
+                </div>
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <span key={s} className={`text-xs ${s <= r.stars ? "text-yellow-400" : "text-[#e2e8f0]"}`}>★</span>
+                  ))}
+                </div>
+              </div>
+              {r.comment && <p className="pl-8 text-xs text-[#64748b]">{r.comment}</p>}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -434,7 +556,7 @@ function RelatedCard({ product, storeId }: { product: StoreProduct; storeId: str
       to={`/lojas/${storeId}/produto/${product.id}`}
       className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="flex h-36 items-center justify-center overflow-hidden bg-[#f8fafc] p-4">
+      <div className="flex h-36 items-center justify-center overflow-hidden rounded-t-3xl bg-[#f8fafc] p-4">
         <ProductImage
           imageUrl={product.imageUrl}
           alt={product.imageAlt || product.name}
