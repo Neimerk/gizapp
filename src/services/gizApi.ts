@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { shoppingDb } from "./shoppingSupabase";
 import { useAuthStore } from "../stores/authStore";
 
 const IMAGE_BASE_URL =
@@ -259,7 +260,7 @@ function mapStoreProduct(row: Record<string, unknown>): StoreProduct {
 
 /** Retorna os produtos marcados como destaque (featured=true) com o nome da loja. */
 export async function getFeaturedProducts(): Promise<StoreProduct[]> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("store_products")
     .select("*, stores(name)")
     .eq("featured", true)
@@ -398,7 +399,7 @@ function mapOrder(row: OrderRow): Order {
 /* ── STORES API ──────────────────────────────────────────── */
 
 export async function getStores(): Promise<Store[]> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("stores")
     .select("*")
     .order("featured", { ascending: false })
@@ -408,7 +409,7 @@ export async function getStores(): Promise<Store[]> {
 }
 
 export async function getStoreById(storeId: string): Promise<Store> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("stores")
     .select("*")
     .eq("id", storeId)
@@ -420,7 +421,7 @@ export async function getStoreById(storeId: string): Promise<Store> {
 /* ── STORE PRODUCTS API ──────────────────────────────────── */
 
 export async function getStoreProducts(params?: StoreProductsQuery): Promise<StoreProduct[]> {
-  let query = supabase.from("store_products").select("*");
+  let query = shoppingDb.from("store_products").select("*");
 
   if (params?.storeId) query = query.eq("store_id", params.storeId);
   if (params?.available !== false) query = query.eq("available", true);
@@ -439,7 +440,7 @@ export async function getStoreProductsByCategory(
   category: string,
   storeId?: string
 ): Promise<StoreProduct[]> {
-  let query = supabase
+  let query = shoppingDb
     .from("store_products")
     .select("*")
     .eq("category", category)
@@ -460,7 +461,7 @@ export async function getProducts(params?: ProductQuery): Promise<PagedProducts>
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  let query = supabase.from("store_products").select("*", { count: "exact" });
+  let query = shoppingDb.from("store_products").select("*", { count: "exact" });
 
   if (params?.available !== false) query = query.eq("available", true);
   if (params?.category) query = query.eq("category", params.category);
@@ -543,7 +544,7 @@ export async function getSearchSuggestions(
 }
 
 export async function getProductBySlug(slug: string): Promise<Product> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("store_products")
     .select("*")
     .eq("slug", slug)
@@ -582,7 +583,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
 
   const user = useAuthStore.getState().user;
 
-  const { data: store, error: storeErr } = await supabase
+  const { data: store, error: storeErr } = await shoppingDb
     .from("stores")
     .select("id, name, delivery_fee")
     .eq("id", payload.storeId)
@@ -590,7 +591,7 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
   if (storeErr || !store) throw new Error("Loja não encontrada.");
 
   const productIds = payload.items.map((i) => i.storeProductId);
-  const { data: products, error: prodErr } = await supabase
+  const { data: products, error: prodErr } = await shoppingDb
     .from("store_products")
     .select("id, name, price, promotional_price, image_url")
     .in("id", productIds);
@@ -954,7 +955,7 @@ export type StorePayload = {
 export async function getMyStore(): Promise<Store | null> {
   const user = useAuthStore.getState().user;
   if (!user) return null;
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("stores")
     .select("*")
     .eq("owner_id", user.id)
@@ -966,7 +967,7 @@ export async function getMyStore(): Promise<Store | null> {
 export async function createStore(payload: StorePayload): Promise<Store> {
   const user = useAuthStore.getState().user;
   if (!user) throw new Error("Não autenticado.");
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("stores")
     .insert({
       name: payload.name,
@@ -1001,7 +1002,7 @@ export async function createStore(payload: StorePayload): Promise<Store> {
 }
 
 export async function updateStore(storeId: string, payload: Partial<StorePayload>): Promise<Store> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("stores")
     .update({
       ...(payload.name !== undefined && { name: payload.name }),
@@ -1054,7 +1055,7 @@ export type StoreProductPayload = {
 };
 
 export async function getMyStoreProducts(storeId: string): Promise<StoreProduct[]> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("store_products")
     .select("*")
     .eq("store_id", storeId)
@@ -1064,7 +1065,7 @@ export async function getMyStoreProducts(storeId: string): Promise<StoreProduct[
 }
 
 export async function createStoreProduct(storeId: string, payload: StoreProductPayload): Promise<StoreProduct> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("store_products")
     .insert({
       store_id: storeId,
@@ -1093,7 +1094,7 @@ export async function updateStoreProduct(
   storeId: string,
   payload: Partial<StoreProductPayload>,
 ): Promise<StoreProduct> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("store_products")
     .update({
       ...(payload.name !== undefined && { name: payload.name }),
@@ -1119,7 +1120,7 @@ export async function updateStoreProduct(
 }
 
 export async function deleteStoreProduct(productId: string, storeId: string): Promise<void> {
-  const { error, count } = await supabase
+  const { error, count } = await shoppingDb
     .from("store_products")
     .delete({ count: "exact" })
     .eq("id", productId)
@@ -1955,7 +1956,7 @@ function mapAdminBanner(b: Record<string, unknown>): AdminBanner {
 }
 
 export async function adminGetBanners(): Promise<AdminBanner[]> {
-  const { data, error } = await supabase
+  const { data, error } = await shoppingDb
     .from("banners")
     .select("*")
     .order("sort_order", { ascending: true })
@@ -1982,7 +1983,7 @@ function validateBannerLink(link: string | undefined): void {
 
 export async function adminCreateBanner(payload: BannerPayload): Promise<void> {
   validateBannerLink(payload.link);
-  const { error } = await supabase.from("banners").insert({
+  const { error } = await shoppingDb.from("banners").insert({
     title: payload.title,
     description: payload.description ?? null,
     image_url: payload.imageUrl,
@@ -2010,17 +2011,17 @@ export async function adminUpdateBanner(id: string, patch: Partial<BannerPayload
   if (patch.sortOrder   !== undefined) update.sort_order  = patch.sortOrder;
   if (patch.startsAt    !== undefined) update.starts_at   = patch.startsAt ?? null;
   if (patch.endsAt      !== undefined) update.ends_at     = patch.endsAt ?? null;
-  const { error } = await supabase.from("banners").update(update).eq("id", id);
+  const { error } = await shoppingDb.from("banners").update(update).eq("id", id);
   if (error) throw new Error("Erro ao atualizar banner.");
 }
 
 export async function adminDeleteBanner(id: string): Promise<void> {
-  const { error } = await supabase.from("banners").delete().eq("id", id);
+  const { error } = await shoppingDb.from("banners").delete().eq("id", id);
   if (error) throw new Error("Erro ao excluir banner.");
 }
 
 export async function getActiveBanners(): Promise<Banner[]> {
-  const { data } = await supabase
+  const { data } = await shoppingDb
     .from("banners")
     .select("*")
     .order("sort_order", { ascending: true });
@@ -2136,7 +2137,7 @@ export const DEFAULT_OPENING_HOURS: OpeningHours = {
 };
 
 export async function updateStoreOpeningHours(storeId: string, hours: OpeningHours): Promise<void> {
-  const { error } = await supabase
+  const { error } = await shoppingDb
     .from("stores")
     .update({ opening_hours: hours })
     .eq("id", storeId);
@@ -2144,7 +2145,7 @@ export async function updateStoreOpeningHours(storeId: string, hours: OpeningHou
 }
 
 export async function getStoreOpeningHours(storeId: string): Promise<OpeningHours | null> {
-  const { data } = await supabase
+  const { data } = await shoppingDb
     .from("stores")
     .select("opening_hours")
     .eq("id", storeId)
