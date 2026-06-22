@@ -127,23 +127,30 @@ export default function PromoCard({
         </div>
       </div>
 
-      <div className="relative z-10 flex items-center justify-center px-8 pb-8 md:pb-0 md:pr-10">
-        <div className="flex flex-col items-center gap-3">
-          {iconSrc ? (
-            <img
-              src={iconSrc}
-              alt={iconEmoji}
-              className="h-32 w-32 rounded-3xl object-cover"
-              style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.35)" }}
-            />
-          ) : (
-            <span
-              className="flex h-24 w-24 items-center justify-center rounded-3xl text-5xl"
-              style={{ background: iconBg, border: `1px solid ${iconBorder}` }}
-            >
-              {iconEmoji}
-            </span>
-          )}
+      <div className={`relative z-10 flex items-center justify-center ${
+        iconSrc
+          ? "h-52 shrink-0 self-stretch overflow-hidden md:h-auto md:w-5/12"
+          : "px-8 pb-8 md:pb-0 md:pr-10"
+      }`}>
+        {iconSrc && (
+          <img
+            src={iconSrc}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        <div className="relative z-10 flex flex-col items-center gap-3 p-6">
+          <span
+            className="flex h-20 w-20 items-center justify-center rounded-2xl text-4xl"
+            style={{
+              background: iconBg,
+              border: `1px solid ${iconBorder}`,
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            {iconEmoji}
+          </span>
           {iconExtra}
         </div>
       </div>
