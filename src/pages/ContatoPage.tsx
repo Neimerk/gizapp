@@ -1,8 +1,28 @@
 import { Link } from "react-router-dom";
-import { MessageCircle, Mail, Instagram, Linkedin, MapPin, Clock, ArrowRight } from "lucide-react";
+import { MessageCircle, Mail, MapPin, Clock, ArrowRight } from "lucide-react";
 import Breadcrumbs from "../components/seo/Breadcrumbs";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { canonicalUrl } from "../lib/seo";
+
+function IconInstagram({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+      <circle cx="12" cy="12" r="4"/>
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+
+function IconLinkedin({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+      <rect x="2" y="9" width="4" height="12"/>
+      <circle cx="4" cy="4" r="2"/>
+    </svg>
+  );
+}
 
 const WA_NUMBER = "(48) 98447-0474";
 const WA_LINK = "https://wa.me/5548984470474?text=Olá!%20Gostaria%20de%20falar%20com%20a%20equipe%20BrasUX.";
@@ -36,7 +56,7 @@ const CONTACTS = [
     highlight: false,
   },
   {
-    icon: Instagram,
+    icon: IconInstagram,
     color: "#ec4899",
     bg: "#fdf2f8",
     border: "#fce7f3",
@@ -49,7 +69,7 @@ const CONTACTS = [
     highlight: false,
   },
   {
-    icon: Linkedin,
+    icon: IconLinkedin,
     color: "#0ea5e9",
     bg: "#f0f9ff",
     border: "#e0f2fe",
