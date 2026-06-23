@@ -241,7 +241,7 @@ export default function HomePage() {
           src="/home.webp"
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[75%] w-auto max-w-[60%] object-contain opacity-[0.22]"
+          className="pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 h-full w-auto object-cover opacity-40"
           style={{ zIndex: 2 }}
         />
 
