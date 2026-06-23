@@ -1,48 +1,9 @@
-import { ChevronRight, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { categories, type Category } from "../data/categories";
-import { categoryIcons } from "../data/categoryIcons";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { canonicalUrl } from "../lib/seo";
-
-// ── Gradiente + sombra únicos por categoria ─────────────────────────────────
-
-const CAT_STYLE: Record<string, { gradient: string; shadow: string }> = {
-  restaurantes:          { gradient: "linear-gradient(135deg,#dc2626,#9a3412)", shadow: "rgba(220,38,38,0.35)" },
-  mercearia:             { gradient: "linear-gradient(135deg,#16a34a,#14532d)", shadow: "rgba(22,163,74,0.35)" },
-  cervejas:              { gradient: "linear-gradient(135deg,#d97706,#7c2d12)", shadow: "rgba(217,119,6,0.35)" },
-  "destilados-e-vinhos": { gradient: "linear-gradient(135deg,#7c3aed,#4c1d95)", shadow: "rgba(124,58,237,0.35)" },
-  "nao-alcoolicos":      { gradient: "linear-gradient(135deg,#0891b2,#164e63)", shadow: "rgba(8,145,178,0.35)" },
-  farmacia:              { gradient: "linear-gradient(135deg,#dc2626,#7f1d1d)", shadow: "rgba(220,38,38,0.35)" },
-  lanches:               { gradient: "linear-gradient(135deg,#ea580c,#9a3412)", shadow: "rgba(234,88,12,0.35)" },
-  pizzarias:             { gradient: "linear-gradient(135deg,#b91c1c,#7f1d1d)", shadow: "rgba(185,28,28,0.35)" },
-  "acai-sorvetes":       { gradient: "linear-gradient(135deg,#a855f7,#6d28d9)", shadow: "rgba(168,85,247,0.35)" },
-  cafeterias:            { gradient: "linear-gradient(135deg,#92400e,#1c0a00)", shadow: "rgba(146,64,14,0.35)" },
-  padaria:               { gradient: "linear-gradient(135deg,#b45309,#7c2d12)", shadow: "rgba(180,83,9,0.35)" },
-  doces:                 { gradient: "linear-gradient(135deg,#db2777,#831843)", shadow: "rgba(219,39,119,0.35)" },
-  conveniencia:          { gradient: "linear-gradient(135deg,#0f766e,#134e4a)", shadow: "rgba(15,118,110,0.35)" },
-  hortifruti:            { gradient: "linear-gradient(135deg,#22c55e,#14532d)", shadow: "rgba(34,197,94,0.35)" },
-  carnes:                { gradient: "linear-gradient(135deg,#991b1b,#450a0a)", shadow: "rgba(153,27,27,0.35)" },
-  petshop:               { gradient: "linear-gradient(135deg,#f59e0b,#7c2d12)", shadow: "rgba(245,158,11,0.35)" },
-  beleza:                { gradient: "linear-gradient(135deg,#e11d48,#831843)", shadow: "rgba(225,29,72,0.35)" },
-  moda:                  { gradient: "linear-gradient(135deg,#1e3a5f,#0f172a)", shadow: "rgba(30,58,95,0.35)" },
-  fitness:               { gradient: "linear-gradient(135deg,#059669,#0e7490)", shadow: "rgba(5,150,105,0.35)" },
-  bebes:                 { gradient: "linear-gradient(135deg,#3b82f6,#7c3aed)", shadow: "rgba(59,130,246,0.35)" },
-  "casa-cozinha":        { gradient: "linear-gradient(135deg,#92400e,#1c1917)", shadow: "rgba(146,64,14,0.35)" },
-  utilidades:            { gradient: "linear-gradient(135deg,#475569,#1e293b)", shadow: "rgba(71,85,105,0.35)" },
-  ferramentas:           { gradient: "linear-gradient(135deg,#374151,#111827)", shadow: "rgba(55,65,81,0.35)" },
-  construcao:            { gradient: "linear-gradient(135deg,#ea580c,#7c2d12)", shadow: "rgba(234,88,12,0.35)" },
-  eletronicos:           { gradient: "linear-gradient(135deg,#1d4ed8,#1e1b4b)", shadow: "rgba(29,78,216,0.35)" },
-  papelaria:             { gradient: "linear-gradient(135deg,#4338ca,#1e1b4b)", shadow: "rgba(67,56,202,0.35)" },
-  brinquedos:            { gradient: "linear-gradient(135deg,#dc2626,#7c3aed)", shadow: "rgba(220,38,38,0.35)" },
-  presentes:             { gradient: "linear-gradient(135deg,#7c3aed,#db2777)", shadow: "rgba(124,58,237,0.35)" },
-  automotivo:            { gradient: "linear-gradient(135deg,#334155,#0f172a)", shadow: "rgba(51,65,85,0.35)" },
-  servicos:              { gradient: "linear-gradient(135deg,#4f46e5,#1e3a5f)", shadow: "rgba(79,70,229,0.35)" },
-  "cursos-online":       { gradient: "linear-gradient(135deg,#002776,#16a34a)", shadow: "rgba(0,39,118,0.35)" },
-  "assistencia-tecnica": { gradient: "linear-gradient(135deg,#374151,#1e3a5f)", shadow: "rgba(55,65,81,0.35)" },
-  outros:                { gradient: "linear-gradient(135deg,#16a34a,#002776)", shadow: "rgba(22,163,74,0.35)" },
-};
 
 // ── Seções semânticas ────────────────────────────────────────────────────────
 
@@ -275,61 +236,29 @@ function SectionHeader({ section }: { section: SectionDef }) {
 // ── Category Card ─────────────────────────────────────────────────────────────
 
 function CategoryCard({ cat }: { cat: Category }) {
-  const icon = categoryIcons[cat.slug] ?? "✨";
-  const style = CAT_STYLE[cat.slug] ?? {
-    gradient: "linear-gradient(135deg,#16a34a,#002776)",
-    shadow: "rgba(22,163,74,0.35)",
-  };
-
   return (
     <Link
       to={`/categorias/${cat.slug}`}
-      className="group flex flex-col items-center gap-2"
+      className="group flex flex-col items-center gap-2.5"
     >
       {/* tile */}
       <div
-        className="relative w-full overflow-hidden rounded-3xl transition-all duration-300 group-hover:-translate-y-1"
-        style={{
-          aspectRatio: "1 / 1",
-          background: style.gradient,
-          boxShadow: `0 4px 16px ${style.shadow}`,
-        }}
+        className="relative w-full overflow-hidden rounded-3xl shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+        style={{ aspectRatio: "1 / 1" }}
       >
-        {/* gloss */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-white/5 to-transparent" />
-
-        {/* decorative circle top-right */}
-        <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/12" />
-        {/* decorative circle bottom-left */}
-        <div className="absolute -bottom-5 -left-5 h-20 w-20 rounded-full bg-black/12" />
-
-        {/* hover inner glow */}
-        <div
-          className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          style={{
-            background:
-              "radial-gradient(circle at 50% 35%,rgba(255,255,255,0.22) 0%,transparent 65%)",
-          }}
+        <img
+          src={`/categorias/${cat.slug}.webp`}
+          alt={cat.name}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
+          loading="lazy"
+          decoding="async"
         />
-
-        {/* emoji */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-4xl drop-shadow-xl transition-transform duration-300 group-hover:scale-[1.15] group-hover:-translate-y-0.5">
-            {icon}
-          </span>
-        </div>
-
-        {/* hover arrow badge */}
-        <div className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-white/0 transition-all duration-300 group-hover:bg-white/20">
-          <ChevronRight
-            size={11}
-            className="text-white/0 transition-all duration-300 group-hover:text-white/90"
-          />
-        </div>
+        {/* subtle hover scrim */}
+        <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/8 rounded-3xl" />
       </div>
 
-      {/* label */}
-      <h3 className="text-center text-[10px] font-black uppercase leading-tight tracking-wide text-[#475569] line-clamp-2">
+      {/* label — texto maior e mais legível */}
+      <h3 className="text-center text-xs font-black uppercase leading-tight tracking-wide text-[#374151] line-clamp-2">
         {cat.name}
       </h3>
     </Link>
