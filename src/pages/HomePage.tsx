@@ -237,6 +237,14 @@ export default function HomePage() {
           }}
         />
 
+        <img
+          src="/home.webp"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[75%] w-auto max-w-[60%] object-contain opacity-[0.22]"
+          style={{ zIndex: 2 }}
+        />
+
         <div className="relative z-10 flex flex-col items-start gap-8 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
