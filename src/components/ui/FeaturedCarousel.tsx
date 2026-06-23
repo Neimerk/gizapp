@@ -36,11 +36,7 @@ export default function FeaturedCarousel({ store }: Props) {
           className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg text-[10px] font-black text-white"
           style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
         >
-          {store.storeLogoUrl ? (
-            <img src={store.storeLogoUrl} alt={store.storeName} className="h-full w-full object-cover" />
-          ) : (
-            store.storeName[0]
-          )}
+          {store.storeName[0]}
         </div>
         <span className="flex-1 truncate text-xs font-black text-white">{store.storeName}</span>
         <span className="flex shrink-0 items-center gap-1 rounded-full bg-yellow-400/20 px-2 py-0.5 text-[9px] font-black text-yellow-300">
