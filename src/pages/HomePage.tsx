@@ -288,7 +288,7 @@ export default function HomePage() {
           </div>
 
           <div className="flex shrink-0 flex-col items-center gap-6">
-            <div className="mt-16 grid grid-cols-3 gap-3">
+            <div className="mt-36 grid grid-cols-3 gap-3">
               {[
                 { icon: <Bike size={15} className="text-[#4ade80]" />, value: "15min", label: "entrega" },
                 { icon: <Clock3 size={15} className="text-[#34d399]" />, value: "24h", label: "disponível" },
