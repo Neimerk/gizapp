@@ -18,18 +18,19 @@ import {
 } from "lucide-react";
 import BrasUXLogo from "../components/ui/BrasUXLogo";
 import BannerCarousel from "../components/ui/BannerCarousel";
-import FeaturedProductCarousel from "../components/ui/FeaturedProductCarousel";
 import { Link } from "react-router-dom";
 
 import {
   getStores,
   getFeaturedProducts,
+  getFeaturedByStore,
   getActiveBanners,
   getProducts,
   getMyOrders,
   queryKeys,
   type StoreProduct,
 } from "../services/gizApi";
+import FeaturedCarousel from "../components/ui/FeaturedCarousel";
 import { useAuthStore } from "../stores/authStore";
 import { categories } from "../data/categories";
 import { formatBRL } from "../utils/format";
@@ -86,9 +87,15 @@ export default function HomePage() {
     select: (data) => data.filter((s) => s.active),
   });
 
-  const { data: featuredProducts = [], isLoading: loadingFeatured } = useQuery({
+  const { data: featuredProducts = [] } = useQuery({
     queryKey: queryKeys.featuredProducts(),
     queryFn:  getFeaturedProducts,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: featuredStores = [], isLoading: loadingFeaturedStores } = useQuery({
+    queryKey: queryKeys.featuredByStore(),
+    queryFn:  getFeaturedByStore,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -375,27 +382,38 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── PRODUTOS EM DESTAQUE ── */}
-      {(featuredProducts.length > 0 || loadingFeatured) && (
+      {/* ── LOJAS EM DESTAQUE ── */}
+      {(featuredStores.length > 0 || loadingFeaturedStores) && (
         <section>
           <SectionHeader
             label="ofertas"
-            title="Produtos em destaque"
-            linkTo="/buscar"
+            title="Lojas em destaque"
+            linkTo="/lojas/destaque"
             linkLabel="Ver mais"
             color="#16a34a"
           />
           <div className="mt-5">
-            {loadingFeatured ? (
-              <div className="mx-auto w-full max-w-sm animate-pulse rounded-3xl bg-white p-4 shadow-sm">
-                <div className="h-10 rounded-xl bg-[#f1f5f9]" />
-                <div className="mt-3 h-48 rounded-2xl bg-[#f1f5f9]" />
-                <div className="mt-4 h-4 w-3/4 rounded bg-[#f1f5f9]" />
-                <div className="mt-2 h-6 w-1/2 rounded bg-[#f1f5f9]" />
-                <div className="mt-4 h-10 rounded-2xl bg-[#f1f5f9]" />
+            {loadingFeaturedStores ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-72 animate-pulse rounded-3xl bg-white shadow-sm" />
+                ))}
               </div>
             ) : (
-              <FeaturedProductCarousel products={featuredProducts} />
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {featuredStores.slice(0, 3).map((store) => (
+                    <FeaturedCarousel key={store.storeId} store={store} />
+                  ))}
+                </div>
+                {featuredStores.length > 3 && (
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {featuredStores.slice(3, 6).map((store) => (
+                      <FeaturedCarousel key={store.storeId} store={store} />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>

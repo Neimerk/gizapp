@@ -2,15 +2,15 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { formatBRL } from "../../utils/format";
-import type { FeaturedProduct, ShoppingStore } from "../../services/shoppingSupabase";
+import type { FeaturedStore } from "../../services/gizApi";
 
 type Props = {
-  store: ShoppingStore;
-  products: FeaturedProduct[];
+  store: FeaturedStore;
 };
 
-export default function FeaturedCarousel({ store, products }: Props) {
+export default function FeaturedCarousel({ store }: Props) {
   const [idx, setIdx] = useState(0);
+  const products = store.products;
 
   useEffect(() => {
     if (products.length <= 1) return;
@@ -27,7 +27,8 @@ export default function FeaturedCarousel({ store, products }: Props) {
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)" }}
     >
       {/* Store header */}
-      <div
+      <Link
+        to={`/lojas/${store.storeId}`}
         className="flex items-center gap-2.5 px-4 py-3"
         style={{ background: "linear-gradient(135deg, #001640 0%, #002776 60%, #003d1a 100%)" }}
       >
@@ -35,29 +36,29 @@ export default function FeaturedCarousel({ store, products }: Props) {
           className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg text-[10px] font-black text-white"
           style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
         >
-          {store.logo_url ? (
-            <img src={store.logo_url} alt={store.name} className="h-full w-full object-cover" />
+          {store.storeLogoUrl ? (
+            <img src={store.storeLogoUrl} alt={store.storeName} className="h-full w-full object-cover" />
           ) : (
-            store.name[0]
+            store.storeName[0]
           )}
         </div>
-        <span className="flex-1 truncate text-xs font-black text-white">{store.name}</span>
+        <span className="flex-1 truncate text-xs font-black text-white">{store.storeName}</span>
         <span className="flex shrink-0 items-center gap-1 rounded-full bg-yellow-400/20 px-2 py-0.5 text-[9px] font-black text-yellow-300">
           <Star size={8} className="fill-yellow-300" /> Destaque
         </span>
-      </div>
+      </Link>
 
-      {/* Product — vertical layout */}
+      {/* Product */}
       <Link
-        to={`/lojas/${store.id}/produto/${product.id}`}
-        className="group flex flex-col flex-1 p-4"
+        to={`/lojas/${store.storeId}/produto/${product.id}`}
+        className="group flex flex-1 flex-col p-4"
       >
         {/* Image */}
         <div className="relative mx-auto mb-3 h-36 w-full overflow-hidden rounded-2xl bg-[#f8fafc]">
-          {product.image_url ? (
+          {product.imageUrl ? (
             <img
-              src={product.image_url}
-              alt={product.image_alt || product.name}
+              src={product.imageUrl}
+              alt={product.imageAlt || product.name}
               className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
@@ -66,20 +67,20 @@ export default function FeaturedCarousel({ store, products }: Props) {
         </div>
 
         {/* Info */}
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#94a3b8] truncate">
+        <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
           {product.category}{product.brand ? ` · ${product.brand}` : ""}
         </p>
-        <h3 className="mt-1 text-sm font-black text-[#0f172a] line-clamp-2 leading-tight">
+        <h3 className="mt-1 line-clamp-2 text-sm font-black leading-tight text-[#0f172a]">
           {product.name}
         </h3>
         <div className="mt-2">
-          {product.promotional_price ? (
+          {product.promotionalPrice ? (
             <>
               <p className="text-[10px] font-bold text-[#94a3b8] line-through">
                 {formatBRL(product.price)}
               </p>
               <p className="text-base font-black text-[#16a34a]">
-                {formatBRL(product.promotional_price)}
+                {formatBRL(product.promotionalPrice)}
               </p>
             </>
           ) : (
@@ -101,6 +102,7 @@ export default function FeaturedCarousel({ store, products }: Props) {
             <button
               key={i}
               onClick={() => setIdx(i)}
+              aria-label={`Produto ${i + 1}`}
               className={`h-1.5 rounded-full transition-all ${
                 i === idx ? "w-4 bg-[#16a34a]" : "w-1.5 bg-[#e2e8f0]"
               }`}

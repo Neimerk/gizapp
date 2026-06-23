@@ -273,6 +273,44 @@ export async function getFeaturedProducts(): Promise<StoreProduct[]> {
   }));
 }
 
+export type FeaturedStore = {
+  storeId: string;
+  storeName: string;
+  storeLogoUrl?: string;
+  products: StoreProduct[];
+};
+
+/** Retorna produtos em destaque agrupados por loja — para a home. */
+export async function getFeaturedByStore(): Promise<FeaturedStore[]> {
+  const { data, error } = await supabase
+    .from("store_products")
+    .select("*, stores(id, name, logo_url)")
+    .eq("featured", true)
+    .eq("available", true)
+    .order("name");
+  if (error) throw new Error("Erro ao buscar destaques por loja.");
+
+  const map = new Map<string, FeaturedStore>();
+  for (const row of data ?? []) {
+    const storeRow = row.stores as { id: string; name: string; logo_url?: string } | null;
+    const storeId = row.store_id as string;
+    if (!map.has(storeId)) {
+      map.set(storeId, {
+        storeId,
+        storeName: storeRow?.name ?? "Loja",
+        storeLogoUrl: storeRow?.logo_url ?? undefined,
+        products: [],
+      });
+    }
+    map.get(storeId)!.products.push({
+      ...mapStoreProduct(row),
+      storeName: storeRow?.name ?? "Loja",
+    });
+  }
+
+  return Array.from(map.values());
+}
+
 /* ── ORDER TYPES ─────────────────────────────────────────── */
 
 export type CreateOrderItem = { storeProductId: string; quantity: number };
@@ -2168,6 +2206,7 @@ export const queryKeys = {
   myAddresses: () => ["addresses", "my"] as const,
   banners: () => ["banners"] as const,
   featuredProducts:  () => ["products", "featured"] as const,
+  featuredByStore:   () => ["featured-by-store"] as const,
   adminCoupons:      () => ["admin", "coupons"] as const,
   adminWithdrawals:  () => ["admin", "withdrawals"] as const,
   suggestions: (query: string) => ["suggestions", query] as const,
