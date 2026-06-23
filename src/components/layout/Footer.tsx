@@ -14,7 +14,7 @@ const CATEGORIES = [
 ];
 
 const ECOSYSTEM = [
-  { name: "BrasUX Loja",          href: "https://lojas.brasux.com.br",             badge: "Lojistas" },
+  { name: "BrasUX Loja",          href: "https://brasux.store",             badge: "Lojistas" },
   { name: "BrasUX Entregas",      href: "https://entregas.brasux.com.br",           badge: "Entregadores" },
   { name: "SimulENEM",            href: "https://simulenem.com",                    badge: "Edu" },
   { name: "SimulaiOAB",           href: "https://simulaioab.com",                   badge: "Edu" },
@@ -31,11 +31,9 @@ const COMPANY = [
 ];
 
 const SUPPORT = [
-  { name: "Central de ajuda",      href: "mailto:contato@brasux.com.br" },
-  { name: "Fale conosco",          href: "mailto:contato@brasux.com.br" },
-  { name: "Política de privacidade", href: "#" },
-  { name: "Termos de uso",          href: "#" },
-  { name: "Cookies",                href: "#" },
+  { name: "Central de ajuda",        to: "/ajuda" },
+  { name: "Fale conosco",            to: "/contato" },
+  { name: "Política de privacidade", to: "/privacidade" },
 ];
 
 const SOCIAL = [
@@ -52,7 +50,7 @@ const SOCIAL = [
   },
   {
     label: "LinkedIn",
-    href: "https://linkedin.com/company/brasux",
+    href: "https://www.linkedin.com/company/brasux-solutec/?viewAsMember=true",
     svg: (
       <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
         <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
@@ -103,7 +101,7 @@ export default function Footer() {
           </div>
           <div className="flex flex-wrap gap-3">
             <a
-              href="https://lojas.brasux.com.br"
+              href="https://brasux.store"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-5 py-3 text-sm font-black text-white transition-opacity hover:opacity-90"
@@ -162,6 +160,7 @@ export default function Footer() {
             <div className="mt-6 flex items-center gap-2 rounded-xl border border-white/8 bg-white/4 px-3 py-2.5">
               <span className="text-lg">📱</span>
               <div>
+                <h2>EM breve...</h2>
                 <p className="text-[11px] font-black text-white/70">Instale o app</p>
                 <p className="text-[10px] text-[#475569]">Disponível no Android e iPhone</p>
               </div>
@@ -246,12 +245,12 @@ export default function Footer() {
               <ul className="space-y-2.5">
                 {SUPPORT.map((item) => (
                   <li key={item.name}>
-                    <a
-                      href={item.href}
+                    <Link
+                      to={item.to}
                       className="text-sm text-[#64748b] transition-colors hover:text-white"
                     >
                       {item.name}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>

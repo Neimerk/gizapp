@@ -25,6 +25,8 @@ const ServicesPage = lazy(() => import("../pages/ServicesPage"));
 const CourierPage  = lazy(() => import("../pages/CourierPage"));
 const SobrePage    = lazy(() => import("../pages/SobrePage"));
 const PrivacyPage  = lazy(() => import("../pages/PrivacyPage"));
+const AjudaPage    = lazy(() => import("../pages/AjudaPage"));
+const ContatoPage  = lazy(() => import("../pages/ContatoPage"));
 
 function PageSpinner() {
   return (
@@ -111,6 +113,8 @@ export const router = createBrowserRouter([
       { path: "servicos", element: <ServicesPage /> },
       { path: "sobre",       element: <SobrePage /> },
       { path: "privacidade", element: <PrivacyPage /> },
+      { path: "ajuda",       element: <AjudaPage /> },
+      { path: "contato",     element: <ContatoPage /> },
       {
         path: "entregador",
         element: (
