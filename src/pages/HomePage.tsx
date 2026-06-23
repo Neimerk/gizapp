@@ -16,7 +16,6 @@ import {
   MapPin,
   Package,
 } from "lucide-react";
-import BrasUXLogo from "../components/ui/BrasUXLogo";
 import BannerCarousel from "../components/ui/BannerCarousel";
 import { Link } from "react-router-dom";
 
