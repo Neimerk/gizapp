@@ -276,7 +276,6 @@ export async function getFeaturedProducts(): Promise<StoreProduct[]> {
 export type FeaturedStore = {
   storeId: string;
   storeName: string;
-  storeLogoUrl?: string;
   products: StoreProduct[];
 };
 
@@ -284,7 +283,7 @@ export type FeaturedStore = {
 export async function getFeaturedByStore(): Promise<FeaturedStore[]> {
   const { data, error } = await supabase
     .from("store_products")
-    .select("*, stores(id, name, logo_url)")
+    .select("*, stores(name)")
     .eq("featured", true)
     .eq("available", true)
     .order("name");
@@ -292,19 +291,14 @@ export async function getFeaturedByStore(): Promise<FeaturedStore[]> {
 
   const map = new Map<string, FeaturedStore>();
   for (const row of data ?? []) {
-    const storeRow = row.stores as { id: string; name: string; logo_url?: string } | null;
+    const storeName = (row.stores as { name: string } | null)?.name ?? "Loja";
     const storeId = row.store_id as string;
     if (!map.has(storeId)) {
-      map.set(storeId, {
-        storeId,
-        storeName: storeRow?.name ?? "Loja",
-        storeLogoUrl: storeRow?.logo_url ?? undefined,
-        products: [],
-      });
+      map.set(storeId, { storeId, storeName, products: [] });
     }
     map.get(storeId)!.products.push({
       ...mapStoreProduct(row),
-      storeName: storeRow?.name ?? "Loja",
+      storeName,
     });
   }
 
