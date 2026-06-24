@@ -345,7 +345,7 @@ export default function HomePage() {
                 >
                   <span className="text-3xl">{categoryIcons[cat.slug] ?? "✨"}</span>
                 </div>
-                <span className="w-16 text-center text-[10px] font-black uppercase tracking-wide text-[#475569] line-clamp-1">
+                <span className="w-16 text-center text-[10px] font-black uppercase leading-tight tracking-wide text-[#475569] line-clamp-2">
                   {cat.name}
                 </span>
               </Link>

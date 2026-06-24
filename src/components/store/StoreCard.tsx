@@ -5,6 +5,18 @@ import { type Store } from "../../services/gizApi";
 import { formatBRL } from "../../utils/format";
 import { formatDistance } from "../../utils/geo";
 import StoreLogo from "../ui/StoreLogo";
+import { categories as allCategories } from "../../data/categories";
+
+function parseCategoryNames(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+    .map((slug) => {
+      const match = allCategories.find((c) => c.slug === slug);
+      return match?.name ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    });
+}
 
 interface Props {
   store: Store;
@@ -60,10 +72,17 @@ export default function StoreCard({ store, distanceKm }: Props) {
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col px-5 pb-5 pt-9">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">
-          {store.category}
-        </p>
+      <div className="flex flex-1 flex-col px-5 pb-5 pt-10">
+        <div className="flex flex-wrap gap-1">
+          {parseCategoryNames(store.category).map((name) => (
+            <span
+              key={name}
+              className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#64748b]"
+            >
+              {name}
+            </span>
+          ))}
+        </div>
         <h3 className="mt-0.5 text-lg font-black text-[#0f172a]">{store.name}</h3>
         {store.description && (
           <p className="mt-1 text-xs leading-relaxed text-[#64748b] line-clamp-2">
