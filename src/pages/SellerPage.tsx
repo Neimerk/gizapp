@@ -225,7 +225,7 @@ function ProductModal({
               <textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={2} placeholder="Descreva o produto…" className={`${inp} resize-none`} />
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div>
                 <label className={lbl}>Preço (R$) *</label>
                 <input type="number" step="0.01" min="0" value={form.price} onChange={(e) => set("price", e.target.value)} placeholder="0,00" className={inp} />
@@ -234,7 +234,7 @@ function ProductModal({
                 <label className={lbl}>Preço promocional</label>
                 <input type="number" step="0.01" min="0" value={form.promotionalPrice} onChange={(e) => set("promotionalPrice", e.target.value)} placeholder="0,00" className={inp} />
               </div>
-              <div>
+              <div className="col-span-2 sm:col-span-1">
                 <label className={lbl}>Estoque</label>
                 <input type="number" min="0" value={form.stock} onChange={(e) => set("stock", e.target.value)} className={inp} />
               </div>
@@ -468,7 +468,7 @@ function StoreForm({ store, onSave }: { store?: Store | null; onSave: (s: Store)
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div>
           <label className={lbl}>Taxa entrega (R$)</label>
           <input type="number" min="0" step="0.50" value={form.deliveryFee} onChange={(e) => set("deliveryFee", e.target.value)} className={inp} />
@@ -477,7 +477,7 @@ function StoreForm({ store, onSave }: { store?: Store | null; onSave: (s: Store)
           <label className={lbl}>Tempo mín (min)</label>
           <input type="number" min="5" value={form.deliveryTimeMin} onChange={(e) => set("deliveryTimeMin", e.target.value)} className={inp} />
         </div>
-        <div>
+        <div className="col-span-2 sm:col-span-1">
           <label className={lbl}>Tempo máx (min)</label>
           <input type="number" min="5" value={form.deliveryTimeMax} onChange={(e) => set("deliveryTimeMax", e.target.value)} className={inp} />
         </div>

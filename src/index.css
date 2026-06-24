@@ -7,10 +7,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
+  overflow-x: clip; /* Prevents any element from causing page-level horizontal scroll */
 }
 
 body {
   margin: 0;
+  overflow-x: clip;
   background: #f7f9fc;
   color: #111827;
   /* Inter Variable — self-hosted, sem request externo (CWV: LCP) */

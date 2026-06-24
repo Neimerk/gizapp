@@ -88,7 +88,7 @@ export default function AppLayout() {
   const isListening = voiceStatus === "listening";
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc]">
+    <div className="min-h-screen overflow-x-clip bg-[#f7f9fc]">
       <Onboarding />
 
       {/* ── TOP HEADER ── */}
@@ -199,7 +199,7 @@ export default function AppLayout() {
             <ShoppingCart size={18} />
             {totalItems > 0 && (
               <span
-                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black text-white"
+                className="absolute right-0 top-0 flex h-5 w-5 -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full text-[10px] font-black text-white"
                 style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
               >
                 {totalItems > 9 ? "9+" : totalItems}

@@ -70,7 +70,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc]">
+    <div className="min-h-screen overflow-x-clip bg-[#f7f9fc]">
       {/* Header */}
       <header
         className="sticky top-0 z-50"
