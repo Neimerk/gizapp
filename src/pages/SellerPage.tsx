@@ -4,7 +4,7 @@ import {
   Loader2, ToggleLeft, ToggleRight, Image as ImageIcon,
   ChevronDown, ChevronUp, LayoutDashboard, ClipboardList,
   TrendingUp, AlertTriangle, Phone, MapPin, CreditCard, RefreshCw,
-  Locate, Star, Wallet, Clock3,
+  Locate, Star, Wallet, Clock3, MessageCircle, Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -573,6 +573,26 @@ function StoreForm({ store, onSave }: { store?: Store | null; onSave: (s: Store)
 // HELPERS
 // ══════════════════════════════════════════════════════════════
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "agora";
+  if (mins < 60) return `há ${mins}min`;
+  const h = Math.floor(mins / 60);
+  return `há ${h}h${mins % 60 > 0 ? ` ${mins % 60}min` : ""}`;
+}
+
+function whatsappUrl(phone: string, orderId: string): string {
+  const num = phone.replace(/\D/g, "");
+  if (!num || num.length < 8) return "";
+  const msg = encodeURIComponent(`Olá! Sobre o pedido #${orderId.slice(0, 8).toUpperCase()} via BrasUX 🛍️`);
+  return `https://wa.me/55${num}?text=${msg}`;
+}
+
+function isUrgentOrder(order: Order): boolean {
+  return order.status === 1 && (Date.now() - new Date(order.createdAt).getTime()) > 15 * 60 * 1000;
+}
+
 function playNewOrderSound() {
   try {
     const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -903,27 +923,39 @@ function MiniBarChart({ orders }: { orders: Order[] }) {
 
 function PainelTab({ orders, products, store }: { orders: Order[]; products: StoreProduct[]; store: Store }) {
   const today  = new Date().toDateString();
-  const week   = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
   const paid     = orders.filter((o) => o.status >= 1 && o.status < 5);
   const pending  = orders.filter((o) => o.status === 1);          // pago, aguardando seller
   const today_o  = orders.filter((o) => new Date(o.createdAt).toDateString() === today);
-  const week_o   = orders.filter((o) => new Date(o.createdAt).getTime() >= week && o.status >= 1 && o.status < 5);
   const lowStock = products.filter((p) => p.available && p.stock > 0 && p.stock <= 3);
   const outStock = products.filter((p) => p.available && p.stock === 0);
 
   const totalRevenue = paid.reduce((s, o) => s + o.total, 0);
-  const weekRevenue  = week_o.reduce((s, o) => s + o.total, 0);
+
+  const avgOrderValue = paid.length > 0 ? totalRevenue / paid.length : 0;
+  const hasUrgent = orders.some(isUrgentOrder);
 
   const metrics = [
     { label: "Receita total",     value: formatBRL(totalRevenue), icon: <TrendingUp size={18} />,    accent: false },
-    { label: "Receita (7 dias)",  value: formatBRL(weekRevenue),  icon: <TrendingUp size={18} />,    accent: false },
+    { label: "Ticket médio",      value: formatBRL(avgOrderValue), icon: <Star size={18} />,          accent: false },
     { label: "Pedidos hoje",      value: String(today_o.length),  icon: <ClipboardList size={18} />, accent: false },
     { label: "Aguardando ação",   value: String(pending.length),  icon: <AlertTriangle size={18} />, accent: pending.length > 0 },
   ];
 
   return (
     <div className="space-y-5">
+      {/* Alerta de urgência — pedidos aguardando aceite > 15 min */}
+      {hasUrgent && (
+        <div className="flex items-center gap-3 rounded-2xl border border-orange-300 bg-orange-50 p-4 animate-pulse">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-100">
+            <Zap size={18} className="text-orange-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-black text-orange-700">Pedidos aguardando há mais de 15 min!</p>
+            <p className="text-xs text-orange-600">Aceite os pedidos para não perder clientes.</p>
+          </div>
+        </div>
+      )}
+
       {/* Métricas */}
       <div className="grid grid-cols-2 gap-3">
         {metrics.map((m) => (
@@ -984,12 +1016,16 @@ function PainelTab({ orders, products, store }: { orders: Order[]; products: Sto
           <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Últimos pedidos</p>
           <div className="space-y-2">
             {orders.slice(0, 5).map((o) => {
-              const cfg = STATUS_CFG[o.status as keyof typeof STATUS_CFG] ?? STATUS_CFG[0];
+              const cfg    = STATUS_CFG[o.status as keyof typeof STATUS_CFG] ?? STATUS_CFG[0];
+              const urgent = isUrgentOrder(o);
               return (
-                <div key={o.id} className="flex items-center justify-between rounded-xl border border-[#e8eaf0] bg-white p-3">
+                <div key={o.id} className={`flex items-center justify-between rounded-xl border p-3 ${urgent ? "border-orange-200 bg-orange-50" : "border-[#e8eaf0] bg-white"}`}>
                   <div>
-                    <p className="text-xs font-black text-[#0f172a]">#{o.id.slice(0, 8).toUpperCase()}</p>
-                    <p className="text-[11px] text-[#64748b]">{o.customerName} · {formatBRL(o.total)}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-black text-[#0f172a]">#{o.id.slice(0, 8).toUpperCase()}</p>
+                      {urgent && <span className="text-[9px] font-black text-orange-600 bg-orange-100 rounded-full px-1.5 py-0.5">URGENTE</span>}
+                    </div>
+                    <p className="text-[11px] text-[#64748b]">{o.customerName} · {formatBRL(o.total)} · {timeAgo(o.createdAt)}</p>
                   </div>
                   <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
@@ -1092,7 +1128,16 @@ function PedidosTab({
     }
   }
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const rawFiltered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  // Pedidos aguardando aceite aparecem do mais antigo para o mais novo (maior urgência primeiro)
+  const filtered = filter === 1 || filter === "all"
+    ? [...rawFiltered].sort((a, b) => {
+        if (a.status === 1 && b.status !== 1) return -1;
+        if (a.status !== 1 && b.status === 1) return 1;
+        if (a.status === 1 && b.status === 1) return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+    : rawFiltered;
 
   const pendingCount = orders.filter((o) => o.status === 1).length;
 
@@ -1143,28 +1188,34 @@ function PedidosTab({
             const paymentCfg = PAYMENT_CFG[order.paymentStatus] ?? PAYMENT_CFG.PENDING;
             const isExpanded = expandedId === order.id;
 
+            const urgent = isUrgentOrder(order);
             return (
-              <div key={order.id} className="overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
+              <div key={order.id} className={`overflow-hidden rounded-3xl border bg-white shadow-sm transition-all ${urgent ? "border-orange-300 shadow-orange-100" : "border-[#e8eaf0]"}`}>
                 {/* Linha compacta (sempre visível) */}
                 <div
                   className="flex cursor-pointer items-center gap-3 p-4"
                   onClick={() => setExpandedId(isExpanded ? null : order.id)}
                 >
                   {/* Status dot */}
-                  <div className={`h-3 w-3 shrink-0 rounded-full ${cfg.dot}`} />
+                  <div className={`h-3 w-3 shrink-0 rounded-full ${urgent ? "animate-pulse bg-orange-500" : cfg.dot}`} />
 
                   {/* Info principal */}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-black text-[#0f172a]">
                         #{order.id.slice(0, 8).toUpperCase()}
                       </p>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${cfg.bg} ${cfg.text}`}>
                         {cfg.label}
                       </span>
+                      {urgent && (
+                        <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black text-orange-700">
+                          ⚡ URGENTE
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-[#64748b] truncate">
-                      {order.customerName} · {order.items.length} {order.items.length === 1 ? "item" : "itens"}
+                      {order.customerName} · {order.items.length} {order.items.length === 1 ? "item" : "itens"} · {timeAgo(order.createdAt)}
                     </p>
                   </div>
 
@@ -1209,6 +1260,17 @@ function PedidosTab({
                       <div className="flex items-center gap-2 text-xs text-[#64748b]">
                         <Phone size={12} />
                         <span>{order.customerName} — {order.customerPhone}</span>
+                        {whatsappUrl(order.customerPhone, order.id) && (
+                          <a
+                            href={whatsappUrl(order.customerPhone, order.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="ml-auto flex items-center gap-1 rounded-lg bg-green-50 border border-green-200 px-2 py-1 text-[10px] font-black text-green-700 hover:bg-green-100"
+                          >
+                            <MessageCircle size={11} /> WhatsApp
+                          </a>
+                        )}
                       </div>
                       <div className="flex items-start gap-2 text-xs text-[#64748b]">
                         <MapPin size={12} className="mt-0.5 shrink-0" />

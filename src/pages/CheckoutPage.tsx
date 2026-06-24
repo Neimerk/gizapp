@@ -1,6 +1,6 @@
 import {
   ArrowLeft, CheckCircle2, CreditCard, Loader2, MapPin,
-  Plus, ReceiptText, ShoppingBag, Star, Tag, Trash2, X,
+  Plus, ReceiptText, ShoppingBag, Star, Tag, Trash2, User, X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -125,6 +125,9 @@ export default function CheckoutPage() {
   const subtotal     = useCartStore((s) => s.totalPrice());
   const auth         = getAuth();
 
+  const [guestInfo, setGuestInfo] = useState({ name: "", phone: "", email: "" });
+  const guestReady = !!auth || guestInfo.name.trim().length >= 2;
+
   const storeId = items[0]?.storeId ?? "";
   const { data: store } = useQuery({
     queryKey: queryKeys.store(storeId),
@@ -224,7 +227,7 @@ export default function CheckoutPage() {
         const status = await getOrderPaymentStatus(orderId);
         if (status === "CONFIRMED" || status === "RECEIVED") {
           stopped = true;
-          earnPoints(finalTotal, `Pedido #${orderId.slice(0, 8)}`);
+          if (auth) earnPoints(finalTotal, `Pedido #${orderId.slice(0, 8)}`);
           setPixConfirmed(true);
         }
       } catch { /* silencioso */ }
@@ -248,9 +251,12 @@ export default function CheckoutPage() {
   }
 
   async function handleFinish() {
-    if (!auth) { navigate("/login", { state: { from: "/checkout" } }); return; }
-    if (auth.role !== "Customer" && auth.role !== "Admin") {
+    if (auth && auth.role !== "Customer" && auth.role !== "Admin") {
       useToastStore.getState().show("Use uma conta de cliente para finalizar pedidos.");
+      return;
+    }
+    if (!auth && !guestInfo.name.trim()) {
+      useToastStore.getState().show("Informe seu nome para continuar.");
       return;
     }
     if (!selectedAddress) { useToastStore.getState().show("Selecione um endereço de entrega."); return; }
@@ -262,8 +268,8 @@ export default function CheckoutPage() {
 
       const order = await createOrder({
         storeId,
-        customerName:         auth.name,
-        customerPhone:        selectedAddress.phone || "—",
+        customerName:         auth?.name ?? guestInfo.name.trim(),
+        customerPhone:        selectedAddress.phone || guestInfo.phone || "—",
         deliveryAddress:      selectedAddress.address,
         deliveryNumber:       selectedAddress.number,
         deliveryComplement:   selectedAddress.complement,
@@ -323,17 +329,17 @@ export default function CheckoutPage() {
             ccv:         card.cvv,
           },
           {
-            name:          auth.name,
-            email:         auth.email,
+            name:          auth?.name ?? guestInfo.name.trim(),
+            email:         auth?.email ?? guestInfo.email.trim(),
             cpfCnpj:       num(card.cpf),
             postalCode:    num(selectedAddress.cep),
             addressNumber: selectedAddress.number,
-            phone:         num(selectedAddress.phone),
+            phone:         num(selectedAddress.phone || guestInfo.phone),
           },
         );
 
         if (result.confirmed) {
-          earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
+          if (auth) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
           setPaymentResult({ method: "card", orderId: order.id, confirmed: true });
         } else {
           setPaymentResult({
@@ -356,8 +362,9 @@ export default function CheckoutPage() {
     return (
       <PaymentResultScreen
         result={paymentResult}
-        onContinue={() => navigate("/pedidos")}
+        onContinue={() => auth ? navigate("/pedidos") : navigate("/")}
         pixConfirmed={pixConfirmed}
+        isGuest={!auth}
       />
     );
   }
@@ -400,6 +407,51 @@ export default function CheckoutPage() {
     return (
       <div className="space-y-4">
         {header}
+
+        {/* Guest info — só aparece quando não logado */}
+        {!auth && (
+          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#6366f1]/10">
+                  <User size={15} className="text-[#6366f1]" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-[#0f172a]">Suas informações</h2>
+                  <p className="text-[10px] text-[#94a3b8]">
+                    Compra sem conta.{" "}
+                    <Link to="/login" state={{ from: "/checkout" }} className="font-black text-[#6366f1]">
+                      Entrar →
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <input
+                value={guestInfo.name}
+                onChange={(e) => setGuestInfo((g) => ({ ...g, name: e.target.value }))}
+                placeholder="Seu nome completo *"
+                className={inputCls}
+              />
+              <input
+                value={guestInfo.phone}
+                onChange={(e) => setGuestInfo((g) => ({ ...g, phone: fmtPhone(e.target.value) }))}
+                placeholder="Celular (WhatsApp) *"
+                inputMode="numeric"
+                className={inputCls}
+              />
+              <input
+                value={guestInfo.email}
+                onChange={(e) => setGuestInfo((g) => ({ ...g, email: e.target.value }))}
+                placeholder="E-mail (opcional)"
+                type="email"
+                inputMode="email"
+                className={inputCls}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
@@ -487,16 +539,20 @@ export default function CheckoutPage() {
 
         <button
           onClick={() => {
+            if (!auth && !guestInfo.name.trim()) {
+              useToastStore.getState().show("Informe seu nome para continuar.");
+              return;
+            }
             if (!hasFullAddress) {
               useToastStore.getState().show("Selecione ou preencha um endereço de entrega.");
               return;
             }
             setStep(2);
           }}
-          disabled={!hasFullAddress}
+          disabled={!hasFullAddress || !guestReady}
           className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#15803d] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 transition-transform active:scale-[0.98] disabled:opacity-60"
         >
-          {hasFullAddress ? "Continuar para pagamento →" : "Selecione um endereço para continuar"}
+          {hasFullAddress && guestReady ? "Continuar para pagamento →" : "Preencha os campos obrigatórios"}
         </button>
       </div>
     );
@@ -845,38 +901,53 @@ export default function CheckoutPage() {
       </div>
 
       {/* Botão de confirmação */}
-      {!auth ? (
-        <button
-          onClick={() => navigate("/login", { state: { from: "/checkout" } })}
-          className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#15803d] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 transition-transform active:scale-[0.98]"
-        >
-          Entrar para confirmar o pedido
-        </button>
-      ) : (
-        <button
-          onClick={handleFinish}
-          disabled={saving || loadingFee}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 transition-transform active:scale-[0.98] disabled:opacity-60"
-        >
-          {saving
-            ? <><Loader2 size={16} className="animate-spin" /> Processando…</>
-            : "Confirmar pedido"}
-        </button>
-      )}
+      <button
+        onClick={handleFinish}
+        disabled={saving || loadingFee}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 transition-transform active:scale-[0.98] disabled:opacity-60"
+      >
+        {saving
+          ? <><Loader2 size={16} className="animate-spin" /> Processando…</>
+          : "Confirmar pedido"}
+      </button>
     </div>
   );
 }
 
 // ── Tela de resultado de pagamento ──────────────────────────────
 
+function GuestOrderBox({ orderId }: { orderId: string }) {
+  return (
+    <div className="w-full rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4 text-center">
+      <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+        Guarde o número do seu pedido
+      </p>
+      <p className="mt-1 font-mono text-xl font-black text-[#0f172a]">
+        #{orderId.slice(0, 8).toUpperCase()}
+      </p>
+      <p className="mt-1 text-xs text-[#64748b]">
+        Você precisará dele para acompanhar a entrega.
+      </p>
+      <Link
+        to="/login"
+        className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[#6366f1] px-4 py-2 text-xs font-black text-white"
+      >
+        Criar conta para rastrear facilmente →
+      </Link>
+    </div>
+  );
+}
+
 function PaymentResultScreen({
   result,
   onContinue,
   pixConfirmed,
+  isGuest,
 }: {
   result: PaymentResult;
   onContinue: () => void;
   pixConfirmed?: boolean;
+  isGuest?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -898,11 +969,12 @@ function PaymentResultScreen({
             Pagamento recebido. Seu pedido está sendo preparado!
           </p>
         </div>
+        {isGuest && <GuestOrderBox orderId={result.orderId} />}
         <button
           onClick={onContinue}
           className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
         >
-          Ver meus pedidos
+          {isGuest ? "Voltar ao início" : "Ver meus pedidos"}
         </button>
       </div>
     );
@@ -943,11 +1015,12 @@ function PaymentResultScreen({
           <h2 className="text-xl font-black text-[#0f172a]">Pagamento aprovado!</h2>
           <p className="mt-2 text-sm text-[#64748b]">Seu pedido foi confirmado e o lojista já foi notificado.</p>
         </div>
+        {isGuest && <GuestOrderBox orderId={result.orderId} />}
         <button
           onClick={onContinue}
           className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
         >
-          Ver meus pedidos
+          {isGuest ? "Voltar ao início" : "Ver meus pedidos"}
         </button>
       </div>
     );

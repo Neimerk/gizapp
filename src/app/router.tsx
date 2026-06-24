@@ -23,6 +23,7 @@ const FavoritesPage = lazy(() => import("../pages/FavoritesPage"));
 const ComparePage = lazy(() => import("../pages/ComparePage"));
 const ChatPage = lazy(() => import("../pages/ChatPage"));
 const ServicesPage = lazy(() => import("../pages/ServicesPage"));
+const SellerPage   = lazy(() => import("../pages/SellerPage"));
 const CourierPage  = lazy(() => import("../pages/CourierPage"));
 const SobrePage    = lazy(() => import("../pages/SobrePage"));
 const PrivacyPage  = lazy(() => import("../pages/PrivacyPage"));
@@ -86,11 +87,7 @@ export const router = createBrowserRouter([
       { path: "carrinho", element: <CartPage /> },
       {
         path: "checkout",
-        element: (
-          <ProtectedRoute>
-            <CheckoutPage />
-          </ProtectedRoute>
-        ),
+        element: <CheckoutPage />,
       },
       {
         path: "pedidos",
@@ -117,6 +114,14 @@ export const router = createBrowserRouter([
       { path: "privacidade", element: <PrivacyPage /> },
       { path: "ajuda",       element: <AjudaPage /> },
       { path: "contato",     element: <ContatoPage /> },
+      {
+        path: "lojista",
+        element: (
+          <ProtectedRoute role="Seller">
+            <SellerPage />
+          </ProtectedRoute>
+        ),
+      },
       {
         path: "entregador",
         element: (
