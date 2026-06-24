@@ -1735,7 +1735,7 @@ export async function updateDeliveryStatus(
     await supabase.from("orders").update({ status: orderStatus }).eq("id", delivery.order_id);
   }
 
-  // Credita ganho ao entregador quando entrega é concluída
+  // Credita ganho ao entregador e libera saldo HELD quando entrega é concluída
   if (newStatus === "DELIVERED") {
     await supabase.from("courier_earnings").insert({
       courier_id: user.id,
@@ -1743,6 +1743,11 @@ export async function updateDeliveryStatus(
       amount: Number(delivery.earnings),
       description: `Entrega #${(delivery.order_id as string).slice(0, 8).toUpperCase()}`,
     });
+
+    // Libera saldo HELD → AVAILABLE para vendedor e entregador via Edge Function
+    supabase.functions.invoke("release-balance", {
+      body: { orderId: delivery.order_id },
+    }).catch(() => null); // fire-and-forget: o split já está registrado; falha não bloqueia o fluxo
   }
 }
 

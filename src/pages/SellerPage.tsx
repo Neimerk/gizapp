@@ -5,6 +5,8 @@ import {
   ChevronDown, ChevronUp, LayoutDashboard, ClipboardList,
   TrendingUp, AlertTriangle, Phone, MapPin, CreditCard, RefreshCw,
   Locate, Star, Wallet, Clock3, MessageCircle, Zap,
+  ArrowDownCircle, ArrowUpCircle, BadgePercent, Crown, CheckCircle2,
+  CircleDollarSign, TrendingDown, Ban,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -15,17 +17,20 @@ import {
   getMyStore, createStore, updateStore,
   getMyStoreProducts, createStoreProduct, updateStoreProduct, deleteStoreProduct,
   getStoreOrders, sellerUpdateOrderStatus, sendPushToUser,
-  getSellerWithdrawals, requestSellerWithdrawal,
   getStoreOpeningHours, updateStoreOpeningHours, DEFAULT_OPENING_HOURS,
   queryKeys,
   type Store, type StoreProduct, type Order,
   type StorePayload, type StoreProductPayload,
-  type SellerWithdrawal, type OpeningHours, type DayHours,
+  type OpeningHours, type DayHours,
 } from "../services/gizApi";
 import { supabase } from "../lib/supabase";
 import { formatBRL } from "../utils/format";
 import ImagePicker from "../components/seller/ImagePicker";
 import { useToastStore } from "../stores/toastStore";
+import { useMyWallet, useMySubscription } from "../hooks/useWallet";
+import { useWithdrawals } from "../hooks/useWithdrawal";
+import { PLAN_CONFIG } from "../types/payment";
+import type { PixKeyType, WalletTransaction } from "../types/payment";
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -745,130 +750,347 @@ function StoreHoursPanel({
 // FINANCEIRO TAB
 // ══════════════════════════════════════════════════════════════
 
-function FinanceiroTab({
-  orders,
-  withdrawals,
-  onRefetch,
-}: {
-  orders: Order[];
-  withdrawals: SellerWithdrawal[];
-  onRefetch: () => void;
-}) {
-  const showToast   = useToastStore((s) => s.show);
-  const queryClient = useQueryClient();
+// ── Helpers financeiros ─────────────────────────────────────
+
+function txIcon(tx: WalletTransaction) {
+  if (tx.direction === "out") return <ArrowUpCircle size={16} className="text-red-500" />;
+  if (tx.status === "held")   return <Clock3 size={16} className="text-yellow-500" />;
+  return <ArrowDownCircle size={16} className="text-green-500" />;
+}
+
+function txColor(tx: WalletTransaction): string {
+  if (tx.direction === "out") return "text-red-600";
+  if (tx.status === "held")   return "text-yellow-600";
+  return "text-green-600";
+}
+
+function txSign(tx: WalletTransaction): string {
+  return tx.direction === "out" ? "−" : "+";
+}
+
+const PIX_KEY_TYPES: { value: PixKeyType; label: string }[] = [
+  { value: "cpf",    label: "CPF" },
+  { value: "cnpj",   label: "CNPJ" },
+  { value: "email",  label: "E-mail" },
+  { value: "phone",  label: "Celular" },
+  { value: "random", label: "Aleatória" },
+];
+
+// ══════════════════════════════════════════════════════════════
+// FINANCEIRO TAB — Carteira, Extrato, Saque, Assinatura
+// ══════════════════════════════════════════════════════════════
+
+function FinanceiroTab({ orders }: { orders: Order[] }) {
+  const showToast = useToastStore((s) => s.show);
+
+  const { wallet, statement, isLoading: walletLoading, refetch: refetchWallet } = useMyWallet();
+  const { data: subscription } = useMySubscription();
+  const { withdrawals, isRequesting, pendingTotal, paidTotal, request: requestWd } = useWithdrawals();
+
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [pixKey, setPixKey] = useState(() => localStorage.getItem("seller-pix-key") ?? "");
+  const [pixKey, setPixKey]         = useState(() => localStorage.getItem("seller-pix-key") ?? "");
+  const [pixKeyType, setPixKeyType]  = useState<PixKeyType>(() => (localStorage.getItem("seller-pix-key-type") as PixKeyType) ?? "cpf");
+  const [activeSection, setActiveSection] = useState<"overview" | "statement" | "withdraw">("overview");
 
   useEffect(() => {
-    if (pixKey) localStorage.setItem("seller-pix-key", pixKey);
+    if (pixKey)     localStorage.setItem("seller-pix-key", pixKey);
   }, [pixKey]);
+  useEffect(() => {
+    localStorage.setItem("seller-pix-key-type", pixKeyType);
+  }, [pixKeyType]);
 
-  const paid    = orders.filter((o) => o.status >= 1 && o.status < 5);
-  const pending = orders.filter((o) => o.status < 4 && o.status !== 5).length;
-  const totalRevenue = paid.reduce((s, o) => s + o.total, 0);
+  const paid        = orders.filter((o) => o.status >= 1 && o.status < 5);
+  const totalOrders = paid.length;
+  const planCfg     = subscription ? PLAN_CONFIG[subscription.plan] : PLAN_CONFIG.free;
+  const commPct     = Math.round((planCfg.commissionRate) * 100);
 
-  const pendingWithdrawal = withdrawals.filter((w) => w.status === "PENDING").reduce((s, w) => s + w.amount, 0);
-  const paidWithdrawal    = withdrawals.filter((w) => w.status === "PAID").reduce((s, w) => s + w.amount, 0);
+  const availableBRL = wallet?.balance.available ?? 0;
+  const heldBRL      = wallet?.balance.held ?? 0;
 
-  const canWithdraw = Number(withdrawAmount.replace(",", ".")) >= 10 && pixKey.trim().length > 0;
+  const amount    = Number(withdrawAmount.replace(",", "."));
+  const canWithdraw = isFinite(amount) && amount >= 10 && amount <= availableBRL && pixKey.trim().length > 0;
 
-  const withdrawMutation = useMutation({
-    mutationFn: () => requestSellerWithdrawal(Number(withdrawAmount.replace(",", ".")), pixKey),
-    onSuccess: () => {
+  async function handleWithdraw() {
+    try {
+      await requestWd({ amount, pixKey: pixKey.trim(), pixKeyType });
       setWithdrawAmount("");
-      queryClient.invalidateQueries({ queryKey: queryKeys.sellerWithdrawals() });
-      onRefetch();
-      showToast("Saque solicitado! Processaremos em até 24h.", "success");
-    },
-    onError: (e) => showToast(e instanceof Error ? e.message : "Erro ao solicitar saque.", "error"),
-  });
+      refetchWallet();
+      showToast("Saque solicitado com sucesso! Processamos em até 24h úteis.", "success");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Erro ao solicitar saque.", "error");
+    }
+  }
+
+  if (walletLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={24} className="animate-spin text-[#16a34a]" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      {/* Resumo */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { label: "Receita total",     value: formatBRL(totalRevenue),      color: "#16a34a" },
-          { label: "Pedidos ativos",    value: String(pending),              color: "#2563eb" },
-          { label: "Saques pendentes",  value: formatBRL(pendingWithdrawal), color: "#f59e0b" },
-          { label: "Total sacado",      value: formatBRL(paidWithdrawal),    color: "#64748b" },
-        ].map((m) => (
-          <div key={m.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
-            <p className="text-2xl font-black" style={{ color: m.color }}>{m.value}</p>
-            <p className="mt-0.5 text-[11px] text-[#64748b]">{m.label}</p>
+
+      {/* ── Plano de assinatura ───────────────────────────────── */}
+      <div
+        className="rounded-3xl p-5 text-white shadow-lg"
+        style={{ background: `linear-gradient(135deg, ${planCfg.color}dd, ${planCfg.color})` }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Crown size={18} />
+            <span className="text-xs font-black uppercase tracking-widest opacity-80">Plano atual</span>
           </div>
+          <span className="rounded-full bg-white/20 px-3 py-0.5 text-xs font-black">
+            {planCfg.label}
+          </span>
+        </div>
+        <div className="mt-3 flex items-end justify-between">
+          <div>
+            <p className="text-3xl font-black">
+              {planCfg.monthlyPrice > 0 ? formatBRL(planCfg.monthlyPrice) + "/mês" : "Gratuito"}
+            </p>
+            <p className="mt-1 text-xs opacity-75">
+              Comissão BrasUX: <span className="font-black">{commPct}%</span> sobre produtos
+            </p>
+          </div>
+          {subscription?.status === "overdue" && (
+            <span className="flex items-center gap-1 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-black">
+              <Ban size={10} /> Em atraso
+            </span>
+          )}
+          {subscription?.status === "trial" && (
+            <span className="flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-black">
+              <CheckCircle2 size={10} /> Trial ativo
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* ── Saldo da carteira ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 mb-1">
+            <CircleDollarSign size={14} className="text-green-600" />
+            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Disponível para saque</p>
+          </div>
+          <p className="text-2xl font-black text-green-600">{formatBRL(availableBRL)}</p>
+        </div>
+        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Clock3 size={14} className="text-yellow-500" />
+            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Aguardando entrega</p>
+          </div>
+          <p className="text-2xl font-black text-yellow-600">{formatBRL(heldBRL)}</p>
+        </div>
+        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingUp size={14} className="text-blue-500" />
+            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Pedidos pagos</p>
+          </div>
+          <p className="text-2xl font-black text-[#0f172a]">{totalOrders}</p>
+        </div>
+        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-1.5 mb-1">
+            <TrendingDown size={14} className="text-[#64748b]" />
+            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Total sacado</p>
+          </div>
+          <p className="text-2xl font-black text-[#0f172a]">{formatBRL(paidTotal)}</p>
+        </div>
+      </div>
+
+      {/* ── Navegação de seções ───────────────────────────────── */}
+      <div className="flex gap-2">
+        {(["overview", "statement", "withdraw"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setActiveSection(s)}
+            className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${
+              activeSection === s
+                ? "bg-[#0f172a] text-white shadow-sm"
+                : "bg-[#f1f5f9] text-[#64748b]"
+            }`}
+          >
+            {s === "overview" ? "Resumo" : s === "statement" ? "Extrato" : "Saque"}
+          </button>
         ))}
       </div>
 
-      {/* Formulário de saque */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Wallet size={16} className="text-[#16a34a]" />
-          <h2 className="font-black text-[#0f172a]">Solicitar saque via Pix</h2>
-        </div>
-        <p className="text-xs text-[#64748b]">Processado em até 24h úteis. Mínimo: R$ 10,00.</p>
-
-        <div>
-          <label className={lbl}>Valor (R$)</label>
-          <input
-            type="number" min="10" step="0.01"
-            value={withdrawAmount}
-            onChange={(e) => setWithdrawAmount(e.target.value)}
-            placeholder="Ex: 150,00"
-            className={inp}
-          />
-        </div>
-        <div>
-          <label className={lbl}>Chave Pix</label>
-          <input
-            value={pixKey}
-            onChange={(e) => setPixKey(e.target.value)}
-            placeholder="CPF, e-mail, celular ou chave aleatória"
-            className={inp}
-          />
-        </div>
-
-        <button
-          onClick={() => withdrawMutation.mutate()}
-          disabled={withdrawMutation.isPending || !canWithdraw}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-black text-white disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
-        >
-          {withdrawMutation.isPending
-            ? <><Loader2 size={15} className="animate-spin" /> Solicitando…</>
-            : <><Wallet size={15} /> Solicitar saque</>
-          }
-        </button>
-      </div>
-
-      {/* Histórico */}
-      {withdrawals.length > 0 ? (
-        <div>
-          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Histórico de saques</p>
-          <div className="space-y-2">
-            {withdrawals.map((w) => (
-              <div key={w.id} className="flex items-center justify-between rounded-2xl border border-[#e8eaf0] bg-white p-3">
-                <div>
-                  <p className="text-sm font-black text-[#0f172a]">{formatBRL(w.amount)}</p>
-                  <p className="text-[10px] text-[#94a3b8]">{w.pixKey}</p>
-                  <p className="text-[10px] text-[#94a3b8]">{new Date(w.createdAt).toLocaleDateString("pt-BR")}</p>
+      {/* ── SEÇÃO: Extrato ─────────────────────────────────────── */}
+      {activeSection === "statement" && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+            Extrato — últimas {statement.length} movimentações
+          </p>
+          {statement.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-10 text-center">
+              <CircleDollarSign size={28} className="text-[#cbd5e1]" />
+              <p className="font-black text-[#0f172a]">Sem movimentações ainda</p>
+              <p className="text-sm text-[#64748b]">O extrato aparece após o primeiro pedido pago.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#f1f5f9] rounded-2xl border border-[#e8eaf0] bg-white overflow-hidden">
+              {statement.map((tx) => (
+                <div key={tx.id} className="flex items-center gap-3 p-3.5">
+                  <div className="flex-shrink-0">{txIcon(tx)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-semibold text-[#0f172a]">{tx.description}</p>
+                    <p className="text-[10px] text-[#94a3b8]">
+                      {new Date(tx.createdAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                      })}
+                      {tx.status === "held" && " · Aguardando entrega"}
+                    </p>
+                  </div>
+                  <p className={`text-sm font-black ${txColor(tx)}`}>
+                    {txSign(tx)}{formatBRL(tx.amount)}
+                  </p>
                 </div>
-                <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
-                  w.status === "PAID"     ? "bg-green-50 text-green-700"   :
-                  w.status === "REJECTED" ? "bg-red-50 text-red-600"       :
-                                            "bg-yellow-50 text-yellow-700"
-                }`}>
-                  {w.status === "PAID" ? "Pago" : w.status === "REJECTED" ? "Recusado" : "Pendente"}
-                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SEÇÃO: Saque ──────────────────────────────────────── */}
+      {activeSection === "withdraw" && (
+        <div className="space-y-4">
+          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-2">
+              <Wallet size={16} className="text-[#16a34a]" />
+              <h2 className="font-black text-[#0f172a]">Solicitar saque via Pix</h2>
+            </div>
+            <div className="flex items-start gap-2 rounded-xl bg-blue-50 p-3">
+              <BadgePercent size={14} className="mt-0.5 flex-shrink-0 text-blue-600" />
+              <p className="text-xs text-blue-700">
+                Saldo disponível: <span className="font-black">{formatBRL(availableBRL)}</span>.
+                Mínimo R$ 10,00. Processado em até 24h úteis.
+              </p>
+            </div>
+
+            <div>
+              <label className={lbl}>Tipo de chave Pix</label>
+              <select
+                value={pixKeyType}
+                onChange={(e) => setPixKeyType(e.target.value as PixKeyType)}
+                className={inp}
+              >
+                {PIX_KEY_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={lbl}>Chave Pix</label>
+              <input
+                value={pixKey}
+                onChange={(e) => setPixKey(e.target.value)}
+                placeholder={
+                  pixKeyType === "cpf"    ? "000.000.000-00"    :
+                  pixKeyType === "cnpj"   ? "00.000.000/0000-00" :
+                  pixKeyType === "email"  ? "seu@email.com"     :
+                  pixKeyType === "phone"  ? "+55 11 99999-9999" :
+                  "Cole a chave aleatória"
+                }
+                className={inp}
+              />
+            </div>
+
+            <div>
+              <label className={lbl}>Valor a sacar (R$)</label>
+              <input
+                type="number" min="10" step="0.01" max={availableBRL}
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                placeholder="Mínimo: 10,00"
+                className={inp}
+              />
+              {amount > availableBRL && (
+                <p className="mt-1 text-xs text-red-500">Valor superior ao saldo disponível.</p>
+              )}
+            </div>
+
+            <button
+              onClick={handleWithdraw}
+              disabled={isRequesting || !canWithdraw}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-black text-white disabled:opacity-50"
+              style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
+            >
+              {isRequesting
+                ? <><Loader2 size={15} className="animate-spin" /> Solicitando…</>
+                : <><Wallet size={15} /> Solicitar Saque Pix</>
+              }
+            </button>
+          </div>
+
+          {/* Histórico de saques */}
+          {withdrawals.length > 0 && (
+            <div>
+              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+                Histórico de saques
+              </p>
+              <div className="space-y-2">
+                {withdrawals.map((w) => (
+                  <div key={w.id} className="flex items-center justify-between rounded-2xl border border-[#e8eaf0] bg-white p-3">
+                    <div>
+                      <p className="text-sm font-black text-[#0f172a]">{formatBRL(w.amountGross)}</p>
+                      <p className="text-[10px] text-[#94a3b8]">{w.pixKey} ({w.pixKeyType.toUpperCase()})</p>
+                      <p className="text-[10px] text-[#94a3b8]">
+                        {new Date(w.createdAt).toLocaleDateString("pt-BR")}
+                        {w.processedAt && ` · Pago ${new Date(w.processedAt).toLocaleDateString("pt-BR")}`}
+                      </p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
+                      w.status === "paid"       ? "bg-green-50 text-green-700"   :
+                      w.status === "failed"     ? "bg-red-50 text-red-600"       :
+                      w.status === "processing" ? "bg-blue-50 text-blue-700"     :
+                                                  "bg-yellow-50 text-yellow-700"
+                    }`}>
+                      {w.status === "paid"       ? "Pago"       :
+                       w.status === "failed"     ? "Falhou"     :
+                       w.status === "processing" ? "Processando" :
+                       w.status === "cancelled"  ? "Cancelado"  : "Pendente"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SEÇÃO: Resumo ─────────────────────────────────────── */}
+      {activeSection === "overview" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Como funciona o split</p>
+            {[
+              { icon: <CircleDollarSign size={14} className="text-green-600" />, label: "Você recebe", desc: `Valor dos produtos menos ${commPct}% de comissão BrasUX` },
+              { icon: <Wallet size={14} className="text-purple-600" />,          label: "Entregador recebe", desc: "100% da taxa de entrega — BrasUX não retém nada" },
+              { icon: <BadgePercent size={14} className="text-blue-600" />,      label: "BrasUX recebe", desc: `${commPct}% sobre produtos + taxa operacional do comprador` },
+              { icon: <Clock3 size={14} className="text-yellow-500" />,          label: "Liberação", desc: "Saldo liberado para saque após confirmação da entrega" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-start gap-2.5">
+                <div className="mt-0.5 flex-shrink-0">{item.icon}</div>
+                <div>
+                  <p className="text-sm font-black text-[#0f172a]">{item.label}</p>
+                  <p className="text-xs text-[#64748b]">{item.desc}</p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-10 text-center">
-          <Wallet size={28} className="text-[#cbd5e1]" />
-          <p className="font-black text-[#0f172a]">Nenhum saque ainda</p>
-          <p className="text-sm text-[#64748b]">Solicite saques a qualquer momento via Pix.</p>
+
+          {/* Saques pendentes */}
+          {pendingTotal > 0 && (
+            <div className="flex items-center gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 p-3">
+              <AlertTriangle size={16} className="text-yellow-600 flex-shrink-0" />
+              <p className="text-sm text-yellow-700">
+                <span className="font-black">{formatBRL(pendingTotal)}</span> em saques pendentes de processamento.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1380,13 +1602,6 @@ export default function SellerPage() {
     refetchInterval: 30_000,
   });
 
-  // Saques do vendedor
-  const { data: sellerWithdrawals = [], refetch: refetchWithdrawals } = useQuery({
-    queryKey: queryKeys.sellerWithdrawals(),
-    queryFn: getSellerWithdrawals,
-    enabled: !!storeId,
-  });
-
   // Horários de funcionamento da loja
   const { data: openingHours = null } = useQuery({
     queryKey: queryKeys.storeHours(storeId),
@@ -1660,11 +1875,7 @@ export default function SellerPage() {
 
           {/* Financeiro */}
           {activeTab === "financeiro" && (
-            <FinanceiroTab
-              orders={orders}
-              withdrawals={sellerWithdrawals}
-              onRefetch={() => refetchWithdrawals()}
-            />
+            <FinanceiroTab orders={orders} />
           )}
         </>
       )}

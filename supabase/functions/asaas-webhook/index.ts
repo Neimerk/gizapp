@@ -104,6 +104,38 @@ serve(async (req) => {
 
     if (CONFIRMED_EVENTS.has(event)) {
       await admin.from("orders").update({ payment_status: "CONFIRMED", status: 1 }).eq("id", orderId);
+
+      // Registra evento na tabela payment_transactions (idempotente via unique constraint)
+      const { data: paymentRow } = await admin
+        .from("payments")
+        .select("id")
+        .eq("order_id", orderId)
+        .maybeSingle();
+
+      if (paymentRow?.id) {
+        await admin.from("payment_transactions").insert({
+          payment_id:       paymentRow.id,
+          event_type:       event,
+          gateway_event_id: `${event}_${payment.id}`,
+          amount:           payment.value,
+          status:           "approved",
+          metadata:         { raw: payment },
+        }).then(() => null);  // ignora conflito de idempotência
+
+        // Executa split financeiro via edge function interna
+        const internalKey = Deno.env.get("INTERNAL_FUNCTION_KEY") ?? "";
+        if (internalKey) {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/execute-split`, {
+            method: "POST",
+            headers: {
+              "Content-Type":   "application/json",
+              "x-internal-key": internalKey,
+            },
+            body: JSON.stringify({ orderId, paymentId: paymentRow.id }),
+          }).catch((e) => console.error("[webhook] execute-split call failed:", e));
+        }
+      }
+
       await admin.rpc("earn_points_on_payment", { p_order_id: orderId });
 
       // Email + push ao comprador e push ao lojista
