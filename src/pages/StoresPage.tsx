@@ -8,23 +8,27 @@ import { useGeolocation } from "../hooks/useGeolocation";
 import { haversineKm } from "../utils/geo";
 import StoreCard from "../components/store/StoreCard";
 import { usePageMeta } from "../hooks/usePageMeta";
-
-const CATEGORIES = [
-  "Todas", "Restaurante", "Mercearia", "Bebidas", "Farmácia",
-  "Pet Shop", "Padaria", "Hortifruti", "Conveniência", "Tecnologia",
-];
+import { categories } from "../data/categories";
+import { categoryIcons } from "../data/categoryIcons";
 
 type SortKey = "rating" | "time" | "fee" | "distance";
 type RadiusKm = 2 | 5 | 10 | 0; // 0 = sem filtro
+
+function storeMatchesSlug(storeCategory: string, slug: string): boolean {
+  return storeCategory
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .some((s) => s === slug || s.includes(slug) || slug.includes(s));
+}
 
 export default function StoresPage() {
   usePageMeta({ title: "Lojas" });
   const [params] = useSearchParams();
 
-  const [search,   setSearch]   = useState(params.get("q") ?? "");
-  const [category, setCategory] = useState("Todas");
-  const [sort,     setSort]     = useState<SortKey>("rating");
-  const [radius,   setRadius]   = useState<RadiusKm>(0);
+  const [search,      setSearch]      = useState(params.get("q") ?? "");
+  const [activeSlug,  setActiveSlug]  = useState("todas");
+  const [sort,        setSort]        = useState<SortKey>("rating");
+  const [radius,      setRadius]      = useState<RadiusKm>(0);
 
   const { position, loading: loadingGeo, request: requestGeo } = useGeolocation();
 
@@ -48,9 +52,9 @@ export default function StoresPage() {
   const filtered = useMemo(() => {
     let list = storesWithDistance;
 
-    // Filtro de categoria
-    if (category !== "Todas")
-      list = list.filter((s) => s.category.toLowerCase().includes(category.toLowerCase()));
+    // Filtro de categoria por slug
+    if (activeSlug !== "todas")
+      list = list.filter((s) => storeMatchesSlug(s.category, activeSlug));
 
     // Busca por nome
     if (search.trim()) {
@@ -73,7 +77,11 @@ export default function StoresPage() {
       list = [...list].sort((a, b) => a.deliveryFee - b.deliveryFee);
 
     return list;
-  }, [storesWithDistance, category, search, sort, radius, position]);
+  }, [storesWithDistance, activeSlug, search, sort, radius, position]);
+
+  const activeLabel = activeSlug === "todas"
+    ? "Todas"
+    : (categories.find((c) => c.slug === activeSlug)?.name ?? activeSlug);
 
   const SORT_OPTIONS: { key: SortKey; label: string }[] = [
     { key: "rating",   label: "Nota" },
@@ -155,17 +163,30 @@ export default function StoresPage() {
         </div>
       )}
 
-      {/* Category chips */}
-      <div className="flex flex-wrap gap-2">
-        {CATEGORIES.map((cat) => (
+      {/* Category scroll */}
+      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          onClick={() => setActiveSlug("todas")}
+          className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition-colors ${
+            activeSlug === "todas"
+              ? "bg-[#16a34a] text-white"
+              : "border border-[#e2e8f0] bg-white text-[#0f172a]"
+          }`}
+        >
+          Todas
+        </button>
+        {categories.map((cat) => (
           <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={`rounded-full px-4 py-2 text-sm font-black transition-colors ${
-              category === cat ? "bg-[#16a34a] text-white" : "border border-[#e2e8f0] bg-white text-[#0f172a]"
+            key={cat.slug}
+            onClick={() => setActiveSlug(cat.slug)}
+            className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition-colors ${
+              activeSlug === cat.slug
+                ? "bg-[#16a34a] text-white"
+                : "border border-[#e2e8f0] bg-white text-[#0f172a]"
             }`}
           >
-            {cat}
+            <span>{categoryIcons[cat.slug] ?? "✨"}</span>
+            {cat.name}
           </button>
         ))}
       </div>
@@ -194,7 +215,7 @@ export default function StoresPage() {
         <>
           <p className="text-sm font-bold text-[#94a3b8]">
             {filtered.length} {filtered.length === 1 ? "loja" : "lojas"}
-            {category !== "Todas" ? ` · ${category}` : ""}
+            {activeSlug !== "todas" ? ` · ${activeLabel}` : ""}
             {radius > 0 ? ` · até ${radius}km` : ""}
           </p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
