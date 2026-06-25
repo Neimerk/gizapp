@@ -23,7 +23,7 @@ import { getAuth, logout } from "../services/auth";
 import { updateMyProfile, getMyProfile, getProductImageUrl } from "../services/gizApi";
 import { useFavoritesStore } from "../stores/favoritesStore";
 import { usePointsStore, type PointsEntry } from "../stores/pointsStore";
-import { formatBRL } from "../utils/format";
+import { formatBRL, fmtCPF, validateCPF } from "../utils/format";
 
 const ACCOUNT_KEY = "brasux-account";
 
@@ -56,11 +56,6 @@ function load(): AccountForm {
 }
 
 const num = (v: string) => v.replace(/\D/g, "");
-const fmtCPF = (v: string) =>
-  num(v).slice(0, 11)
-    .replace(/^(\d{3})(\d)/, "$1.$2")
-    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
 const fmtPhone = (v: string) =>
   num(v).slice(0, 11)
     .replace(/^(\d{2})(\d)/, "($1) $2")
@@ -84,6 +79,7 @@ export default function AccountPage() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [cpfError, setCpfError] = useState<string | null>(null);
   const { lookup: lookupCep, loading: cepLoading, error: cepError } = useCepLookup();
 
   // Carrega dados do Supabase ao montar e mescla com localStorage
@@ -128,6 +124,13 @@ export default function AccountPage() {
   async function handleSave() {
     setSaving(true);
     setSaveError(null);
+    setCpfError(null);
+
+    if (form.cpf && !validateCPF(form.cpf)) {
+      setCpfError("CPF inválido. Verifique os dígitos.");
+      setSaving(false);
+      return;
+    }
 
     // Always persist locally (covers payment fields and offline use)
     localStorage.setItem(ACCOUNT_KEY, JSON.stringify(form));
@@ -284,11 +287,12 @@ export default function AccountPage() {
           <Field label="CPF">
             <input
               value={form.cpf}
-              onChange={(e) => update("cpf", fmtCPF(e.target.value))}
+              onChange={(e) => { setCpfError(null); update("cpf", fmtCPF(e.target.value)); }}
               placeholder="000.000.000-00"
               inputMode="numeric"
-              className={inputCls}
+              className={`${inputCls} ${cpfError ? "border-red-500 ring-1 ring-red-500" : ""}`}
             />
+            {cpfError && <p className="mt-1 text-xs text-red-500">{cpfError}</p>}
           </Field>
         </SectionCard>
 

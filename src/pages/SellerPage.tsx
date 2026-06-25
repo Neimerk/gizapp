@@ -24,7 +24,7 @@ import {
   type OpeningHours, type DayHours,
 } from "../services/gizApi";
 import { supabase } from "../lib/supabase";
-import { formatBRL } from "../utils/format";
+import { formatBRL, fmtCPF, fmtCNPJ, validateCPF, validateCNPJ } from "../utils/format";
 import ImagePicker from "../components/seller/ImagePicker";
 import { useToastStore } from "../stores/toastStore";
 import { useMyWallet, useMySubscription } from "../hooks/useWallet";
@@ -790,6 +790,7 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [pixKey, setPixKey]         = useState(() => localStorage.getItem("seller-pix-key") ?? "");
   const [pixKeyType, setPixKeyType]  = useState<PixKeyType>(() => (localStorage.getItem("seller-pix-key-type") as PixKeyType) ?? "cpf");
+  const [pixKeyError, setPixKeyError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"overview" | "statement" | "withdraw">("overview");
 
   useEffect(() => {
@@ -808,7 +809,21 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
   const heldBRL      = wallet?.balance.held ?? 0;
 
   const amount    = Number(withdrawAmount.replace(",", "."));
-  const canWithdraw = isFinite(amount) && amount >= 10 && amount <= availableBRL && pixKey.trim().length > 0;
+
+  function applyPixKeyMask(value: string, type: PixKeyType): string {
+    if (type === "cpf")  return fmtCPF(value);
+    if (type === "cnpj") return fmtCNPJ(value);
+    return value;
+  }
+
+  function validatePixKey(value: string, type: PixKeyType): string | null {
+    if (type === "cpf"  && value && !validateCPF(value))  return "CPF inválido. Verifique os dígitos.";
+    if (type === "cnpj" && value && !validateCNPJ(value)) return "CNPJ inválido. Verifique os dígitos.";
+    return null;
+  }
+
+  const pixKeyValid = pixKeyError === null && pixKey.trim().length > 0;
+  const canWithdraw = isFinite(amount) && amount >= 10 && amount <= availableBRL && pixKeyValid;
 
   async function handleWithdraw() {
     try {
@@ -973,7 +988,12 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
               <label className={lbl}>Tipo de chave Pix</label>
               <select
                 value={pixKeyType}
-                onChange={(e) => setPixKeyType(e.target.value as PixKeyType)}
+                onChange={(e) => {
+                  const t = e.target.value as PixKeyType;
+                  setPixKeyType(t);
+                  setPixKey("");
+                  setPixKeyError(null);
+                }}
                 className={inp}
               >
                 {PIX_KEY_TYPES.map((t) => (
@@ -986,7 +1006,12 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
               <label className={lbl}>Chave Pix</label>
               <input
                 value={pixKey}
-                onChange={(e) => setPixKey(e.target.value)}
+                onChange={(e) => {
+                  const masked = applyPixKeyMask(e.target.value, pixKeyType);
+                  setPixKey(masked);
+                  setPixKeyError(validatePixKey(masked, pixKeyType));
+                }}
+                onBlur={() => setPixKeyError(validatePixKey(pixKey, pixKeyType))}
                 placeholder={
                   pixKeyType === "cpf"    ? "000.000.000-00"    :
                   pixKeyType === "cnpj"   ? "00.000.000/0000-00" :
@@ -994,8 +1019,10 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
                   pixKeyType === "phone"  ? "+55 11 99999-9999" :
                   "Cole a chave aleatória"
                 }
-                className={inp}
+                inputMode={pixKeyType === "cpf" || pixKeyType === "cnpj" ? "numeric" : "text"}
+                className={`${inp} ${pixKeyError ? "border-red-500 ring-1 ring-red-500" : ""}`}
               />
+              {pixKeyError && <p className="mt-1 text-xs text-red-500">{pixKeyError}</p>}
             </div>
 
             <div>
