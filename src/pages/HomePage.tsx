@@ -264,7 +264,7 @@ export default function HomePage() {
               </span>
             </h1>
             <p className="mt-4 max-w-lg text-base leading-relaxed text-[#94a3b8]">
-              Educação, IA, Desenvolvimento, Gestão, Dados, APIs e Marketplace — tudo em um único ecossistema digital.
+              Marketplace, Gestão, Dados, IA, API, Desenvolvimento, Educação — tudo em um único ecossistema digital.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -276,7 +276,7 @@ export default function HomePage() {
                   boxShadow: "0 8px 24px rgba(0,39,118,0.45)",
                 }}
               >
-                <Package size={16} /> Explorar soluções
+                <Package size={16} /> Explorar Marketplace
               </Link>
               <Link
                 to="/lojas"
@@ -290,7 +290,7 @@ export default function HomePage() {
           <div className="flex shrink-0 flex-col items-center gap-6">
             <div className="mt-36 grid grid-cols-3 gap-3">
               {[
-                { icon: <Bike size={15} className="text-[#4ade80]" />, value: "15min", label: "entrega" },
+                { icon: <Bike size={15} className="text-[#4ade80]" />, value: "20min", label: "entrega" },
                 { icon: <Clock3 size={15} className="text-[#34d399]" />, value: "24h", label: "disponível" },
                 { icon: <Star size={15} className="text-[#ffd400]" />, value: "5.0", label: "avaliação" },
               ].map((s) => (
@@ -342,7 +342,7 @@ export default function HomePage() {
                   className="group flex shrink-0 flex-col items-center gap-2.5"
                 >
                   <div
-                    className="relative flex h-[72px] w-[72px] items-center justify-center rounded-2xl transition-all duration-200 group-hover:scale-110"
+                    className="relative flex h-18 w-18 items-center justify-center rounded-2xl transition-all duration-200 group-hover:scale-110"
                     style={{
                       background: theme.bg,
                       boxShadow: `0 4px 18px ${theme.glow}, 0 1px 3px rgba(0,0,0,0.25)`,
@@ -352,7 +352,7 @@ export default function HomePage() {
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl" style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.10), transparent)" }} />
                     <span className="relative text-[32px] drop-shadow-sm">{categoryIcons[cat.slug] ?? "✨"}</span>
                   </div>
-                  <span className="w-[72px] text-center text-[10px] font-black uppercase leading-tight tracking-wide text-[#475569] line-clamp-2">
+                  <span className="w-18 text-center text-[10px] font-black uppercase leading-tight tracking-wide text-[#475569] line-clamp-2">
                     {cat.name}
                   </span>
                 </Link>
@@ -529,12 +529,12 @@ export default function HomePage() {
         </section>
       )}
 
-      <br />
+      <hr className="my-6 border-0 h-px bg-gray-200" />
 
       {/* ── PROMOS ── */}
 
       <div>
-        <h1 className="text-3xl font-bold text-[#0a6d65]">Explore nossas soluções:</h1>
+        <h1 className="text-3xl font-bold text-[#08635b]">Explore nossas soluções:</h1>
       </div>
 
       <section>
