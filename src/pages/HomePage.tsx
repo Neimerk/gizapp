@@ -481,8 +481,8 @@ export default function HomePage() {
           <p className="mt-4 text-sm text-[#64748b]">Nenhuma loja disponível.</p>
         ) : (
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {storesSorted.slice(0, 6).map((store) => (
-              <StoreCard key={store.id} store={store} distanceKm={store.distanceKm} />
+            {storesSorted.slice(0, 6).map((store, i) => (
+              <StoreCard key={store.id} store={store} distanceKm={store.distanceKm} index={i} />
             ))}
           </div>
         )}

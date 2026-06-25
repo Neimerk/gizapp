@@ -18,12 +18,32 @@ function parseCategoryNames(raw: string): string[] {
     });
 }
 
+const CARD_THEMES = [
+  {
+    banner:
+      "radial-gradient(circle at 80% 30%, rgba(37,99,235,0.55), transparent 55%), linear-gradient(135deg, #0a1628 0%, #1e3a8a 100%)",
+    button: "linear-gradient(135deg, #1e3a8a, #1e40af)",
+  },
+  {
+    banner:
+      "radial-gradient(circle at 80% 30%, rgba(6,182,212,0.45), transparent 55%), linear-gradient(135deg, #0c1a2e 0%, #0c4a6e 100%)",
+    button: "linear-gradient(135deg, #0c4a6e, #0369a1)",
+  },
+  {
+    banner:
+      "radial-gradient(circle at 80% 30%, rgba(22,163,74,0.55), transparent 55%), linear-gradient(135deg, #052e16 0%, #14532d 100%)",
+    button: "linear-gradient(135deg, #14532d, #166534)",
+  },
+] as const;
+
 interface Props {
   store: Store;
   distanceKm?: number;
+  index?: number;
 }
 
-export default function StoreCard({ store, distanceKm }: Props) {
+export default function StoreCard({ store, distanceKm, index = 0 }: Props) {
+  const theme = CARD_THEMES[index % CARD_THEMES.length];
   const deliveryFeeText =
     Number(store.deliveryFee) === 0 ? "Grátis" : formatBRL(Number(store.deliveryFee));
 
@@ -35,10 +55,7 @@ export default function StoreCard({ store, distanceKm }: Props) {
     >
       <div
         className="relative h-28"
-        style={{
-          background:
-            "radial-gradient(circle at 80% 30%, rgba(0,39,118,0.55), transparent 55%), linear-gradient(135deg, #0a1628 0%, #1e293b 100%)",
-        }}
+        style={{ background: theme.banner }}
       >
         {/* Status aberto/fechado */}
         <span
@@ -98,7 +115,7 @@ export default function StoreCard({ store, distanceKm }: Props) {
 
         <div
           className="mt-4 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-black text-white transition-opacity group-hover:opacity-90"
-          style={{ background: "linear-gradient(135deg, #0f172a, #1e293b)" }}
+          style={{ background: theme.button }}
         >
           Ver catálogo
           <ArrowRight size={16} />
