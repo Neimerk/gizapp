@@ -529,56 +529,13 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* ── PROMOS ── */}
-      <section>
-        <PromoCard
-          href="https://simulenem.com"
-          background="linear-gradient(135deg, #001640 0%, #002776 40%, #003d1a 100%)"
-          blobAColor="#16a34a"
-          blobAOpacity={0.3}
-          blobBColor="#002776"
-          blobBOpacity={0.35}
-          badgeEmoji="📝"
-          badgeLabel="BrasUX Educação"
-          badgeTextColor="#4ade80"
-          badgeBorderColor="rgba(22,163,74,0.30)"
-          badgeBgColor="rgba(22,163,74,0.10)"
-          titleBefore="Simule o ENEM"
-          titleHighlight="agora mesmo."
-          titleHighlightGradient="linear-gradient(135deg, #86efac, #4ade80)"
-          description="Questões comentadas, gabarito instantâneo e ranking nacional. Prepare-se para o ENEM com simulados gratuitos."
-          ctaLabel="Fazer simulado grátis"
-          ctaBackground="linear-gradient(135deg, #16a34a, #15803d)"
-          ctaShadow="0 8px 24px rgba(22,163,74,0.45)"
-          imageUrl="/card-simulenem.webp"
-          illustration={<IllustrationEnem />}
-          domainLabel="simulenem.com"
-        />
-      </section>
+      <br />
 
-      <section>
-        <PromoCard
-          href="https://cursonotaon.com.br"
-          background="linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e3a5f 100%)"
-          blobAColor="#818cf8"
-          blobBColor="#6366f1"
-          badgeEmoji="🎯"
-          badgeLabel="BrasUX Educação"
-          badgeTextColor="#a5b4fc"
-          badgeBorderColor="rgba(129,140,248,0.30)"
-          badgeBgColor="rgba(129,140,248,0.10)"
-          titleBefore="Tire nota"
-          titleHighlight="1000 no ENEM."
-          titleHighlightGradient="linear-gradient(135deg, #c7d2fe, #818cf8)"
-          description="Curso completo com videoaulas, material didático e correção de redação. Do zero à nota máxima."
-          ctaLabel="Conhecer o curso"
-          ctaBackground="linear-gradient(135deg, #6366f1, #4f46e5)"
-          ctaShadow="0 8px 24px rgba(99,102,241,0.45)"
-          imageUrl="/card-notaon.webp"
-          illustration={<IllustrationNota1000 />}
-          domainLabel="cursonotaon.com.br"
-        />
-      </section>
+      {/* ── PROMOS ── */}
+
+      <div>
+        <h1 className="text-3xl font-bold text-[#0a6d65]">Explore nossas soluções:</h1>
+      </div>
 
       <section>
         <PromoCard
@@ -686,6 +643,56 @@ export default function HomePage() {
           imageUrl="/card-lp.webp"
           illustration={<IllustrationLandingPage />}
           domainLabel="produtos.brasux.com.br"
+        />
+      </section>
+
+      <section>
+        <PromoCard
+          href="https://simulenem.com"
+          background="linear-gradient(135deg, #001640 0%, #002776 40%, #003d1a 100%)"
+          blobAColor="#16a34a"
+          blobAOpacity={0.3}
+          blobBColor="#002776"
+          blobBOpacity={0.35}
+          badgeEmoji="📝"
+          badgeLabel="BrasUX Educação"
+          badgeTextColor="#4ade80"
+          badgeBorderColor="rgba(22,163,74,0.30)"
+          badgeBgColor="rgba(22,163,74,0.10)"
+          titleBefore="Simule o ENEM"
+          titleHighlight="agora mesmo."
+          titleHighlightGradient="linear-gradient(135deg, #86efac, #4ade80)"
+          description="Questões comentadas, gabarito instantâneo e ranking nacional. Prepare-se para o ENEM com simulados gratuitos."
+          ctaLabel="Fazer simulado grátis"
+          ctaBackground="linear-gradient(135deg, #16a34a, #15803d)"
+          ctaShadow="0 8px 24px rgba(22,163,74,0.45)"
+          imageUrl="/card-simulenem.webp"
+          illustration={<IllustrationEnem />}
+          domainLabel="simulenem.com"
+        />
+      </section>
+
+      <section>
+        <PromoCard
+          href="https://cursonotaon.com.br"
+          background="linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #1e3a5f 100%)"
+          blobAColor="#818cf8"
+          blobBColor="#6366f1"
+          badgeEmoji="🎯"
+          badgeLabel="BrasUX Educação"
+          badgeTextColor="#a5b4fc"
+          badgeBorderColor="rgba(129,140,248,0.30)"
+          badgeBgColor="rgba(129,140,248,0.10)"
+          titleBefore="Tire nota"
+          titleHighlight="1000 no ENEM."
+          titleHighlightGradient="linear-gradient(135deg, #c7d2fe, #818cf8)"
+          description="Curso completo com videoaulas, material didático e correção de redação. Do zero à nota máxima."
+          ctaLabel="Conhecer o curso"
+          ctaBackground="linear-gradient(135deg, #6366f1, #4f46e5)"
+          ctaShadow="0 8px 24px rgba(99,102,241,0.45)"
+          imageUrl="/card-notaon.webp"
+          illustration={<IllustrationNota1000 />}
+          domainLabel="cursonotaon.com.br"
         />
       </section>
 
