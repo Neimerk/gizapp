@@ -47,15 +47,15 @@ import {
 } from "../components/ui/PromoIllustrations";
 import StoreCard from "../components/store/StoreCard";
 
-const catGradients = [
-  "from-[#16a34a] to-[#15803d]",
-  "from-[#002776] to-[#001640]",
-  "from-[#0f172a] to-[#1e293b]",
-  "from-[#ec4899] to-[#be185d]",
-  "from-[#f59e0b] to-[#b45309]",
-  "from-[#1351b4] to-[#002776]",
-  "from-[#06b6d4] to-[#0e7490]",
-  "from-[#ef4444] to-[#b91c1c]",
+const CAT_THEMES = [
+  { bg: "radial-gradient(circle at 30% 30%, rgba(37,99,235,0.65), transparent 60%), linear-gradient(135deg, #0a1628 0%, #1e3a8a 100%)",   glow: "rgba(37,99,235,0.35)" },
+  { bg: "radial-gradient(circle at 30% 30%, rgba(6,182,212,0.60), transparent 60%), linear-gradient(135deg, #0c1a2e 0%, #0c4a6e 100%)",   glow: "rgba(6,182,212,0.30)" },
+  { bg: "radial-gradient(circle at 30% 30%, rgba(22,163,74,0.65), transparent 60%), linear-gradient(135deg, #052e16 0%, #14532d 100%)",    glow: "rgba(22,163,74,0.35)" },
+  { bg: "radial-gradient(circle at 30% 30%, rgba(30,64,175,0.65), transparent 60%), linear-gradient(135deg, #0f172a 0%, #1e40af 100%)",    glow: "rgba(30,64,175,0.35)" },
+  { bg: "radial-gradient(circle at 30% 30%, rgba(14,116,144,0.60), transparent 60%), linear-gradient(135deg, #0f1f2d 0%, #164e63 100%)",   glow: "rgba(14,116,144,0.30)" },
+  { bg: "radial-gradient(circle at 30% 30%, rgba(16,185,129,0.60), transparent 60%), linear-gradient(135deg, #052e16 0%, #065f46 100%)",   glow: "rgba(16,185,129,0.30)" },
+  { bg: "radial-gradient(circle at 30% 30%, rgba(56,189,248,0.55), transparent 60%), linear-gradient(135deg, #0c1a2e 0%, #075985 100%)",   glow: "rgba(56,189,248,0.28)" },
+  { bg: "radial-gradient(circle at 30% 30%, rgba(52,211,153,0.55), transparent 60%), linear-gradient(135deg, #042f2e 0%, #0f766e 100%)",   glow: "rgba(52,211,153,0.28)" },
 ];
 
 export default function HomePage() {
@@ -333,23 +333,31 @@ export default function HomePage() {
         />
         <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide md:-mx-8 md:px-8">
           <div className="flex gap-4 pb-2">
-            {categories.slice(0, 16).map((cat, i) => (
-              <Link
-                key={cat.id}
-                to={`/categorias/${cat.slug}`}
-                className="group flex shrink-0 flex-col items-center gap-2.5"
-              >
-                <div
-                  className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-linear-to-br shadow-lg transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl ${catGradients[i % catGradients.length]}`}
-                  style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.18)" }}
+            {categories.slice(0, 16).map((cat, i) => {
+              const theme = CAT_THEMES[i % CAT_THEMES.length];
+              return (
+                <Link
+                  key={cat.id}
+                  to={`/categorias/${cat.slug}`}
+                  className="group flex shrink-0 flex-col items-center gap-2.5"
                 >
-                  <span className="text-3xl">{categoryIcons[cat.slug] ?? "✨"}</span>
-                </div>
-                <span className="w-16 text-center text-[10px] font-black uppercase leading-tight tracking-wide text-[#475569] line-clamp-2">
-                  {cat.name}
-                </span>
-              </Link>
-            ))}
+                  <div
+                    className="relative flex h-[72px] w-[72px] items-center justify-center rounded-2xl transition-all duration-200 group-hover:scale-110"
+                    style={{
+                      background: theme.bg,
+                      boxShadow: `0 4px 18px ${theme.glow}, 0 1px 3px rgba(0,0,0,0.25)`,
+                    }}
+                  >
+                    {/* brilho superior */}
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl" style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.10), transparent)" }} />
+                    <span className="relative text-[32px] drop-shadow-sm">{categoryIcons[cat.slug] ?? "✨"}</span>
+                  </div>
+                  <span className="w-[72px] text-center text-[10px] font-black uppercase leading-tight tracking-wide text-[#475569] line-clamp-2">
+                    {cat.name}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
