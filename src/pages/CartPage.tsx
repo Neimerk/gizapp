@@ -155,7 +155,7 @@ export default function CartPage() {
 
             <Link
               to="/checkout"
-              className="mt-4 flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
+              className="mt-4 flex w-full items-center justify-center rounded-2xl bg-linear-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
             >
               Finalizar compra
             </Link>

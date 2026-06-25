@@ -12,7 +12,7 @@ import { categories } from "../data/categories";
 import { categoryIcons } from "../data/categoryIcons";
 
 type SortKey = "rating" | "time" | "fee" | "distance";
-type RadiusKm = 2 | 5 | 10 | 0; // 0 = sem filtro
+type RadiusKm = 2 | 5 | 10 | 20 | 30 | 0; // 0 = sem filtro
 
 function storeMatchesSlug(storeCategory: string, slug: string): boolean {
   return storeCategory
@@ -149,7 +149,7 @@ export default function StoresPage() {
       {position && (
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#94a3b8]">Raio:</span>
-          {([0, 2, 5, 10] as RadiusKm[]).map((r) => (
+          {([0, 2, 5, 10, 20, 30] as RadiusKm[]).map((r) => (
             <button
               key={r}
               onClick={() => setRadius(r)}
@@ -164,7 +164,7 @@ export default function StoresPage() {
       )}
 
       {/* Category scroll */}
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setActiveSlug("todas")}
           className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition-colors ${
@@ -187,6 +187,7 @@ export default function StoresPage() {
           >
             <span>{categoryIcons[cat.slug] ?? "✨"}</span>
             {cat.name}
+            
           </button>
         ))}
       </div>

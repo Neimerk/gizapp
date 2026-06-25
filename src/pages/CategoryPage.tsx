@@ -192,7 +192,7 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
       className="group relative flex flex-col overflow-hidden rounded-3xl transition-all hover:-translate-y-0.5 hover:shadow-xl"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.10)" }}
     >
-      <div className={`relative flex items-center gap-4 bg-gradient-to-br p-5 ${solution.gradient}`}>
+      <div className={`relative flex items-center gap-4 bg-linear-to-br p-5 ${solution.gradient}`}>
         <span className="text-4xl">{solution.icon}</span>
         <div className="flex-1 min-w-0">
           <span className="inline-block rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white/90">
@@ -204,7 +204,7 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
       </div>
       <div className="flex flex-1 flex-col bg-white px-5 pb-5 pt-4">
         <p className="flex-1 text-sm leading-relaxed text-[#64748b]">{solution.description}</p>
-        <div className={`mt-4 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r py-2.5 text-xs font-black text-white ${solution.gradient}`}>
+        <div className={`mt-4 flex items-center justify-center gap-2 rounded-xl bg-linear-to-r py-2.5 text-xs font-black text-white ${solution.gradient}`}>
           Acessar <ArrowRight size={13} />
         </div>
       </div>
