@@ -530,6 +530,7 @@ export default function HomePage() {
       )}
 
       <hr className="my-6 border-0 h-px bg-gray-200" />
+      <hr className="my-6 border-0 h-px bg-gray-200" />
 
       {/* ── PROMOS ── */}
 
@@ -646,6 +647,10 @@ export default function HomePage() {
         />
       </section>
 
+      <hr className="my-6 border-0 h-px bg-gray-200" />
+
+      <h1 className="text-3xl font-bold text-[#142588]">Soluções Educacionais:</h1>
+
       <section>
         <PromoCard
           href="https://simulenem.com"
@@ -695,6 +700,9 @@ export default function HomePage() {
           domainLabel="cursonotaon.com.br"
         />
       </section>
+
+      <hr className="my-6 border-0 h-px bg-gray-200" />
+      <hr className="my-6 border-0 h-px bg-gray-200" />
 
       {/* ── CTAs ── */}
       <section className="grid gap-4 md:grid-cols-2">
