@@ -1,17 +1,13 @@
 import { Suspense } from "react";
 import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
-  Bike,
   Heart,
-  Home,
   Mic,
   MicOff,
   Moon,
-  ReceiptText,
   Search,
   ShoppingCart,
   Sun,
-  User,
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import BottomNavigation from "./BottomNavigation";
@@ -31,31 +27,21 @@ import { useAuthStore, initAuth } from "../../stores/authStore";
 import { formatBRL } from "../../utils/format";
 import { prefetchCart, prefetchCheckout, prefetchOrders } from "../../utils/prefetch";
 import { useErrorMonitor } from "../../hooks/useErrorMonitor";
+import { getPrimaryNav } from "../../data/navigation";
 import CookieBanner from "../ui/CookieBanner";
-
-const baseNavLinks = [
-  { label: "Início", path: "/", icon: Home },
-  { label: "Lojas", path: "/lojas", icon: ShoppingCart },
-  { label: "Favoritos", path: "/favoritos", icon: Heart },
-  { label: "Pedidos", path: "/pedidos", icon: ReceiptText },
-  { label: "Conta", path: "/conta", icon: User },
-];
 
 export default function AppLayout() {
   useErrorMonitor();
 
   const authUser = useAuthStore((s) => s.user);
-  const isCourier = authUser?.role === "Courier";
-  const navLinks = isCourier
-    ? [baseNavLinks[0], { label: "Entregas", path: "/entregador", icon: Bike }, baseNavLinks[3], baseNavLinks[4]]
-    : baseNavLinks;
+  const navLinks = getPrimaryNav(authUser?.role);
 
   const totalItems = useCartStore((s) => s.totalItems());
   const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
 
   // Inicializa auth lazy — carrega Supabase apenas após primeiro render
-  useEffect(() => { initAuth(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { initAuth(); }, []);
 
   // Sync favorites, pontos e push subscription quando usuário loga/desloga
   const loadFavorites = useFavoritesStore((s) => s.loadFromDB);
@@ -88,7 +74,7 @@ export default function AppLayout() {
   const isListening = voiceStatus === "listening";
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-[#f7f9fc]">
+    <div className="min-h-screen overflow-x-clip bg-canvas">
       <Onboarding />
 
       {/* ── TOP HEADER ── */}
@@ -108,7 +94,7 @@ export default function AppLayout() {
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-2.5">
             <BrasUXLogo size={36} style={{ filter: "drop-shadow(0 4px 10px rgba(22,163,74,0.45))" }} />
-            <span className="hidden text-lg font-black text-[#0f172a] sm:block">
+            <span className="hidden text-lg font-black text-content sm:block">
               Bras<span className="text-[#16a34a]">UX</span>
             </span>
           </Link>
@@ -120,14 +106,14 @@ export default function AppLayout() {
               const q = (e.currentTarget.elements.namedItem("q") as HTMLInputElement).value.trim();
               navigate(q ? `/buscar?q=${encodeURIComponent(q)}` : "/buscar");
             }}
-            className="flex flex-1 items-center gap-2 rounded-2xl border bg-[#f8fafc] px-4 py-2.5 transition-all focus-within:bg-white"
+            className="flex flex-1 items-center gap-2 rounded-2xl border bg-subtle px-4 py-2.5 transition-all focus-within:bg-surface"
             style={{ borderColor: "rgba(22,163,74,0.15)" }}
           >
-            <Search size={16} className="shrink-0 text-[#94a3b8]" />
+            <Search size={16} className="shrink-0 text-faint" />
             <input
               name="q"
               placeholder="Buscar soluções, produtos, lojas…"
-              className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+              className="flex-1 bg-transparent text-sm font-medium text-content outline-none placeholder:text-faint"
             />
 
             {/* Voice search button */}
@@ -138,7 +124,7 @@ export default function AppLayout() {
                 className={`shrink-0 rounded-lg p-1 transition-colors ${
                   isListening
                     ? "text-red-500 animate-pulse"
-                    : "text-[#94a3b8] hover:text-[#16a34a]"
+                    : "text-faint hover:text-[#16a34a]"
                 }`}
                 aria-label={isListening ? "Parar gravação" : "Buscar por voz"}
               >
@@ -161,7 +147,7 @@ export default function AppLayout() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                end={item.path === "/"}
+                end={item.end ?? false}
                 onMouseEnter={() => {
                   if (item.path === "/carrinho") prefetchCart();
                   if (item.path === "/pedidos")  prefetchOrders();
@@ -171,7 +157,7 @@ export default function AppLayout() {
                   `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                     isActive
                       ? "bg-[#16a34a]/10 text-[#16a34a]"
-                      : "text-[#64748b] hover:bg-[#f7f9fc] hover:text-[#0f172a]"
+                      : "text-muted hover:bg-canvas hover:text-content"
                   }`
                 }
               >
@@ -184,17 +170,26 @@ export default function AppLayout() {
           {/* Dark mode toggle */}
           <button
             onClick={toggleTheme}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
             aria-label={isDark ? "Modo claro" : "Modo escuro"}
           >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
 
+          {/* Favoritos */}
+          <Link
+            to="/favoritos"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors hover:border-[#16a34a]/40 hover:text-[#e11d48]"
+            aria-label="Favoritos"
+          >
+            <Heart size={18} />
+          </Link>
+
           {/* Cart button */}
           <Link
             to="/carrinho"
             onMouseEnter={prefetchCart}
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-all hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-all hover:border-[#16a34a]/40 hover:text-[#16a34a]"
           >
             <ShoppingCart size={18} />
             {totalItems > 0 && (
@@ -253,7 +248,7 @@ export default function AppLayout() {
               </p>
             </div>
           </div>
-          <span className="rounded-xl bg-white px-3 py-1.5 text-xs font-black text-[#16a34a]">
+          <span className="rounded-xl bg-surface px-3 py-1.5 text-xs font-black text-[#16a34a]">
             Ver
           </span>
         </Link>
@@ -285,7 +280,7 @@ export default function AppLayout() {
                 {formatBRL(totalPrice)}
               </p>
             </div>
-            <span className="rounded-xl bg-white px-3 py-1.5 text-xs font-black text-[#16a34a]">
+            <span className="rounded-xl bg-surface px-3 py-1.5 text-xs font-black text-[#16a34a]">
               Ver carrinho
             </span>
           </Link>

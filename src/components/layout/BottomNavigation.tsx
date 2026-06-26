@@ -1,30 +1,13 @@
-import { Bike, Home, ReceiptText, Search, ShoppingCart, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useCartStore } from "../../stores/cartStore";
 import { useAuthStore } from "../../stores/authStore";
+import { getPrimaryNav } from "../../data/navigation";
 
-type NavItem = { label: string; path: string; icon: React.ComponentType<{ size: number; strokeWidth: number; className?: string }> };
-
-const DEFAULT_NAV: NavItem[] = [
-  { label: "Início",    path: "/",         icon: Home },
-  { label: "Buscar",    path: "/buscar",   icon: Search },
-  { label: "Carrinho",  path: "/carrinho", icon: ShoppingCart },
-  { label: "Pedidos",   path: "/pedidos",  icon: ReceiptText },
-  { label: "Conta",     path: "/conta",    icon: User },
-];
-
-const COURIER_NAV: NavItem[] = [
-  { label: "Início",    path: "/",           icon: Home },
-  { label: "Entregas",  path: "/entregador", icon: Bike },
-  { label: "Pedidos",   path: "/pedidos",    icon: ReceiptText },
-  { label: "Conta",     path: "/conta",      icon: User },
-];
-
+// Bottom nav (mobile) — mesma fonte de navegação do desktop (data/navigation.ts).
+// Busca e Carrinho ficam no header; Favoritos no header. Aqui só os destinos
+// primários: Início · Categorias · Lojas · Pedidos · Conta.
 export default function BottomNavigation() {
-  const cartCount = useCartStore((s) => s.totalItems());
-  const userRole  = useAuthStore((s) => s.user?.role);
-
-  const navItems = userRole === "Courier" ? COURIER_NAV : DEFAULT_NAV;
+  const userRole = useAuthStore((s) => s.user?.role);
+  const navItems = getPrimaryNav(userRole);
 
   return (
     <nav className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 md:hidden">
@@ -39,26 +22,18 @@ export default function BottomNavigation() {
       >
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isCart = item.path === "/carrinho";
           return (
-            <NavLink key={item.path} to={item.path} end={item.path === "/"} className="relative">
+            <NavLink key={item.path} to={item.path} end={item.end ?? false} className="relative">
               {({ isActive }) => (
                 <div
                   className="relative flex flex-col items-center gap-0.5 rounded-[22px] px-3 py-2.5 transition-all duration-200"
                   style={isActive ? { background: "#16a34a" } : {}}
                 >
-                  <div className="relative">
-                    <Icon
-                      size={20}
-                      strokeWidth={isActive ? 2.5 : 1.8}
-                      className={isActive ? "text-white" : "text-white/45"}
-                    />
-                    {isCart && cartCount > 0 && (
-                      <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white leading-none">
-                        {cartCount > 99 ? "99+" : cartCount}
-                      </span>
-                    )}
-                  </div>
+                  <Icon
+                    size={20}
+                    strokeWidth={isActive ? 2.5 : 1.8}
+                    className={isActive ? "text-white" : "text-white/45"}
+                  />
                   <span
                     className="text-[9px] font-black leading-none tracking-wide"
                     style={{ color: isActive ? "white" : "rgba(255,255,255,0.38)" }}

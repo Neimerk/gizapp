@@ -16,15 +16,20 @@ import { useQuery } from "@tanstack/react-query";
 import { getStores, getProductImageUrl, queryKeys, type Store } from "../services/gizApi";
 import { categoryIcons } from "../data/categoryIcons";
 import { categories as masterCategories } from "../data/categories";
+import { getDepartmentOf, getAccent } from "../data/taxonomy";
 import { brasuxSolutions, type BrasUXSolution } from "../data/brasuxSolutions";
 import { formatBRL } from "../utils/format";
 import StoreLogo from "../components/ui/StoreLogo";
 
+// Relação canônica loja↔categoria: a loja pertence à categoria quando o slug
+// está na lista (separada por vírgula) de slugs da loja. Match exato — sem
+// substring fuzzy, que cruzava categorias por acidente (ex.: "carnes"/"carne").
 function storeHasCategory(store: Store, slug: string): boolean {
+  if (!slug) return false;
   return store.category
     .split(",")
     .map((s) => s.trim().toLowerCase())
-    .some((s) => s === slug || s.includes(slug) || slug.includes(s));
+    .includes(slug);
 }
 
 export default function CategoryPage() {
@@ -34,6 +39,8 @@ export default function CategoryPage() {
   const master = masterCategories.find((c) => c.slug === categorySlug);
   const icon = categoryIcons[categorySlug] ?? "✨";
   const label = master?.name ?? categorySlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const department = getDepartmentOf(categorySlug);
+  const accent = getAccent(categorySlug);
 
   const { data: stores = [], isLoading: loading } = useQuery({
     queryKey: queryKeys.stores(),
@@ -70,6 +77,7 @@ export default function CategoryPage() {
       buildBreadcrumbSchema([
         { name: "Início", path: "/" },
         { name: "Categorias", path: "/categorias" },
+        ...(department ? [{ name: department.label, path: `/categorias#${department.key}` }] : []),
         { name: label, path: `/categorias/${categorySlug}` },
       ]),
       buildFaqSchema([
@@ -87,7 +95,7 @@ export default function CategoryPage() {
         },
       ]),
     ];
-  }, [filtered, label, categorySlug]);
+  }, [filtered, label, categorySlug, department]);
   useJsonLd(categorySchemas);
 
   return (
@@ -96,6 +104,7 @@ export default function CategoryPage() {
       <Breadcrumbs
         items={[
           { name: "Categorias", path: "/categorias" },
+          ...(department ? [{ name: department.label, path: `/categorias#${department.key}` }] : []),
           { name: label, path: `/categorias/${categorySlug}` },
         ]}
       />
@@ -103,25 +112,28 @@ export default function CategoryPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          to="/categorias"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+          to={department ? `/categorias#${department.key}` : "/categorias"}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors"
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = accent; e.currentTarget.style.color = accent; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#64748b"; }}
         >
           <ArrowLeft size={17} />
         </Link>
         <div
           className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-4xl shadow-md"
           style={{
-            background:
-              "radial-gradient(circle at 70% 30%, rgba(22,163,74,0.5), transparent 60%), linear-gradient(135deg,#0f172a,#1e293b)",
+            background: `radial-gradient(circle at 70% 30%, ${accent}80, transparent 60%), linear-gradient(135deg,#0f172a,#1e293b)`,
           }}
         >
           {icon}
         </div>
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-[#16a34a]">Categoria</p>
-          <h1 className="mt-0.5 text-3xl font-black text-[#0f172a]">{label}</h1>
+          <p className="text-xs font-black uppercase tracking-widest" style={{ color: accent }}>
+            {department ? department.label : "Categoria"}
+          </p>
+          <h1 className="mt-0.5 text-3xl font-black text-content">{label}</h1>
           {!loading && (
-            <p className="mt-0.5 text-sm text-[#64748b]">
+            <p className="mt-0.5 text-sm text-muted">
               {filtered.length} {filtered.length === 1 ? "loja disponível" : "lojas disponíveis"}
             </p>
           )}
@@ -132,7 +144,7 @@ export default function CategoryPage() {
       {solutions.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">Soluções BrasUX</span>
+            <span className="text-xs font-bold uppercase tracking-widest text-faint">Soluções BrasUX</span>
             <span className="rounded-full bg-[#16a34a]/10 px-2 py-0.5 text-[10px] font-black text-[#16a34a]">
               {solutions.length}
             </span>
@@ -149,20 +161,20 @@ export default function CategoryPage() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse rounded-3xl bg-white p-5 shadow-sm">
-              <div className="h-20 rounded-2xl bg-[#f1f5f9]" />
-              <div className="mt-10 h-4 w-1/2 rounded bg-[#f1f5f9]" />
-              <div className="mt-2 h-3 w-1/3 rounded bg-[#f1f5f9]" />
+            <div key={i} className="animate-pulse rounded-3xl bg-surface p-5 shadow-sm">
+              <div className="h-20 rounded-2xl bg-subtle-2" />
+              <div className="mt-10 h-4 w-1/2 rounded bg-subtle-2" />
+              <div className="mt-2 h-3 w-1/3 rounded bg-subtle-2" />
             </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-[#e2e8f0] bg-white p-16 text-center">
+        <div className="rounded-3xl border border-dashed border-line bg-surface p-16 text-center">
           <span className="text-5xl">{icon}</span>
-          <p className="mt-4 text-lg font-black text-[#0f172a]">
+          <p className="mt-4 text-lg font-black text-content">
             Nenhuma loja nessa categoria ainda
           </p>
-          <p className="mt-1 text-sm text-[#64748b]">
+          <p className="mt-1 text-sm text-muted">
             Em breve novos parceiros chegarão aqui.
           </p>
           <Link
@@ -202,8 +214,8 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
         </div>
         <ExternalLink size={16} className="shrink-0 text-white/60 transition-colors group-hover:text-white" />
       </div>
-      <div className="flex flex-1 flex-col bg-white px-5 pb-5 pt-4">
-        <p className="flex-1 text-sm leading-relaxed text-[#64748b]">{solution.description}</p>
+      <div className="flex flex-1 flex-col bg-surface px-5 pb-5 pt-4">
+        <p className="flex-1 text-sm leading-relaxed text-muted">{solution.description}</p>
         <div className={`mt-4 flex items-center justify-center gap-2 rounded-xl bg-linear-to-r py-2.5 text-xs font-black text-white ${solution.gradient}`}>
           Acessar <ArrowRight size={13} />
         </div>
@@ -227,7 +239,7 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
   return (
     <Link
       to={`/lojas/${store.id}?categoria=${categorySlug}`}
-      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-surface"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
       {/* Banner */}
@@ -251,10 +263,10 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
           className={`absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
             store.isOpen
               ? "border-green-700/40 bg-green-900/30 text-green-400"
-              : "border-white/15 bg-white/10 text-[#94a3b8]"
+              : "border-white/15 bg-white/10 text-faint"
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
+          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-faint"}`} />
           {store.isOpen ? "Aberto" : "Fechado"}
         </span>
 
@@ -271,20 +283,20 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
       </div>
 
       <div className="flex flex-1 flex-col px-5 pb-5 pt-9">
-        <h3 className="text-lg font-black text-[#0f172a]">{store.name}</h3>
+        <h3 className="text-lg font-black text-content">{store.name}</h3>
         {store.description && (
-          <p className="mt-1 text-xs leading-relaxed text-[#64748b] line-clamp-2">{store.description}</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted line-clamp-2">{store.description}</p>
         )}
 
         {/* Category type pills */}
         <div className="mt-2 flex flex-wrap gap-1">
           {typeLabels.map((t) => (
-            <span key={t} className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-bold text-[#475569]">
+            <span key={t} className="rounded-full bg-subtle-2 px-2 py-0.5 text-[10px] font-bold text-muted">
               {t}
             </span>
           ))}
           {typeSlugs.length > 3 && (
-            <span className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-bold text-[#94a3b8]">
+            <span className="rounded-full bg-subtle-2 px-2 py-0.5 text-[10px] font-bold text-faint">
               +{typeSlugs.length - 3}
             </span>
           )}
@@ -297,12 +309,12 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
             { icon: <Bike size={12} />, label: "Taxa", value: deliveryFeeText },
             { icon: <Star size={12} />, label: "Nota", value: Number(store.rating).toFixed(1) },
           ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-[#e8eaf0] bg-[#f8fafc] p-2">
-              <div className="flex items-center gap-1 text-[#94a3b8]">
+            <div key={s.label} className="rounded-xl border border-line-subtle bg-subtle p-2">
+              <div className="flex items-center gap-1 text-faint">
                 {s.icon}
                 <span className="text-[9px] font-bold uppercase tracking-wide">{s.label}</span>
               </div>
-              <div className="mt-0.5 text-xs font-black text-[#0f172a]">{s.value}</div>
+              <div className="mt-0.5 text-xs font-black text-content">{s.value}</div>
             </div>
           ))}
         </div>

@@ -50,7 +50,7 @@ export default function StoreCard({ store, distanceKm, index = 0 }: Props) {
   return (
     <Link
       to={`/lojas/${store.id}`}
-      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-surface"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
       <div
@@ -62,10 +62,10 @@ export default function StoreCard({ store, distanceKm, index = 0 }: Props) {
           className={`absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
             store.isOpen
               ? "border-green-700/40 bg-green-900/30 text-green-400"
-              : "border-white/15 bg-white/10 text-[#94a3b8]"
+              : "border-white/15 bg-white/10 text-faint"
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
+          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-faint"}`} />
           {store.isOpen ? "Aberto" : "Fechado"}
         </span>
 
@@ -94,15 +94,15 @@ export default function StoreCard({ store, distanceKm, index = 0 }: Props) {
           {parseCategoryNames(store.category).map((name) => (
             <span
               key={name}
-              className="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#64748b]"
+              className="rounded-full bg-subtle-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-muted"
             >
               {name}
             </span>
           ))}
         </div>
-        <h3 className="mt-0.5 text-lg font-black text-[#0f172a]">{store.name}</h3>
+        <h3 className="mt-0.5 text-lg font-black text-content">{store.name}</h3>
         {store.description && (
-          <p className="mt-1 text-xs leading-relaxed text-[#64748b] line-clamp-2">
+          <p className="mt-1 text-xs leading-relaxed text-muted line-clamp-2">
             {store.description}
           </p>
         )}
@@ -127,12 +127,12 @@ export default function StoreCard({ store, distanceKm, index = 0 }: Props) {
 
 function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#f1f5f9] bg-[#f8fafc] px-2 py-2">
-      <div className="flex items-center gap-1 text-[#94a3b8]">
+    <div className="rounded-xl border border-subtle-2 bg-subtle px-2 py-2">
+      <div className="flex items-center gap-1 text-faint">
         {icon}
         <span className="text-[9px] font-bold uppercase tracking-wide">{label}</span>
       </div>
-      <div className="mt-0.5 text-xs font-black text-[#0f172a]">{value}</div>
+      <div className="mt-0.5 text-xs font-black text-content">{value}</div>
     </div>
   );
 }
