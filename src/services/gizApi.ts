@@ -922,6 +922,28 @@ export async function getStoreOrders(storeId: string): Promise<Order[]> {
 
 const SELLER_ALLOWED_STATUSES = new Set([2, 3, 4, 5]); // preparando, saiu, entregue, cancelado
 
+const ORDER_STATUS_PUSH: Record<number, { title: string; body: string }> = {
+  2: { title: "Pedido confirmado 👨‍🍳", body: "A loja começou a preparar seu pedido." },
+  3: { title: "Saiu para entrega 🛵",   body: "Seu pedido está a caminho. Acompanhe o tempo estimado." },
+  4: { title: "Pedido entregue ✅",      body: "Bom apetite! Que tal avaliar seu entregador?" },
+  5: { title: "Pedido cancelado",        body: "Seu pedido foi cancelado." },
+};
+
+/** Dispara push ao comprador quando o status muda. Fire-and-forget. */
+export async function notifyOrderStatus(orderId: string, customerId: string | undefined, status: number): Promise<void> {
+  const msg = ORDER_STATUS_PUSH[status];
+  if (!msg) return;
+  let uid = customerId;
+  if (!uid) {
+    const { data } = await supabase.from("orders").select("customer_id").eq("id", orderId).maybeSingle();
+    uid = data?.customer_id as string | undefined;
+  }
+  if (!uid) return;
+  supabase.functions.invoke("send-push", {
+    body: { userId: uid, title: msg.title, body: msg.body, url: `/pedidos?o=${orderId}` },
+  }).catch(() => null);
+}
+
 export async function sellerUpdateOrderStatus(
   orderId: string,
   storeId: string,
@@ -937,6 +959,7 @@ export async function sellerUpdateOrderStatus(
     .eq("store_id", storeId);   // defesa em profundidade — RLS também verifica owner_id
   if (error) throw new Error("Erro ao atualizar status do pedido.");
   if (count === 0) throw new Error("Pedido não encontrado ou sem permissão.");
+  void notifyOrderStatus(orderId, undefined, status);
 }
 
 /* ── ADMIN ORDERS API ─────────────────────────────────────── */
@@ -954,6 +977,7 @@ export async function adminGetAllOrders(): Promise<Order[]> {
 export async function adminUpdateOrderStatus(id: string, status: number): Promise<void> {
   const { error } = await supabase.from("orders").update({ status }).eq("id", id);
   if (error) throw new Error("Erro ao atualizar status.");
+  void notifyOrderStatus(id, undefined, status);
 }
 
 /* ── SELLER: STORE MANAGEMENT ────────────────────────────── */
@@ -1733,6 +1757,7 @@ export async function updateDeliveryStatus(
   const orderStatus = newStatus === "PICKED_UP" ? 3 : newStatus === "DELIVERED" ? 4 : undefined;
   if (orderStatus !== undefined) {
     await supabase.from("orders").update({ status: orderStatus }).eq("id", delivery.order_id);
+    void notifyOrderStatus(delivery.order_id, undefined, orderStatus);
   }
 
   // Credita ganho ao entregador e libera saldo HELD quando entrega é concluída
