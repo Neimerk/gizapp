@@ -1,7 +1,7 @@
 import { ArrowRight, Bike, Store as StoreIcon } from "lucide-react";
 
 const SELLER_URL = "https://brasux.store";
-const DELIVERY_URL = "https://entregas.brasux.com.br";
+const DELIVERY_URL = "https://entregas.brasux.store";
 
 export default function JoinCtaSection() {
   return (
@@ -49,7 +49,7 @@ export default function JoinCtaSection() {
               <div className="flex-1">
                 <h3 className="text-xl font-black text-content">Quer fazer entregas?</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Qualquer veículo — a pé, bike, moto, carro. Receba por PIX a cada corrida.
+                  Qualquer veículo — bike, moto, carro, caminhão. Receba por PIX a cada corrida.
                 </p>
                 <a
                   href={DELIVERY_URL}

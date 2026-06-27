@@ -134,6 +134,8 @@ export default function HomePage() {
   return (
     <div className="space-y-10">
 
+      <h1 className="text-3xl text-content">Shopping <strong className="text-blue-950">Bras</strong><strong className="text-green-500">UX</strong></h1>
+
       {/* ── BANNER CAROUSEL ── */}
       {banners.length > 0 && <BannerCarousel banners={banners} />}
 
