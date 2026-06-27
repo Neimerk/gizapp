@@ -287,49 +287,23 @@ export async function adminGetFinancialSummary(
   startDate: string,
   endDate: string,
 ): Promise<FinancialSummary> {
-  const [ordersRes, splitsRes, refundsRes, withdrawalsRes] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id, total, payment_status, status", { count: "exact" })
-      .gte("created_at", startDate)
-      .lte("created_at", endDate),
-    supabase
-      .from("split_rules")
-      .select("commission_amount, service_fee")
-      .not("executed_at", "is", null)
-      .gte("created_at", startDate)
-      .lte("created_at", endDate),
-    supabase
-      .from("refunds")
-      .select("amount")
-      .gte("created_at", startDate)
-      .lte("created_at", endDate),
-    supabase
-      .from("withdrawals")
-      .select("amount_gross")
-      .eq("status", "pending")
-      .gte("created_at", startDate)
-      .lte("created_at", endDate),
-  ]);
+  // Agregação feita no servidor (antes era reduce de TODOS os pedidos no cliente).
+  const { data, error } = await supabase.rpc("admin_financial_summary", {
+    p_start: startDate,
+    p_end:   endDate,
+  });
+  if (error) throw new Error("Erro ao carregar resumo financeiro.");
 
-  const orders = ordersRes.data ?? [];
-  const splits = splitsRes.data ?? [];
-  const refunds = refundsRes.data ?? [];
-  const pendingWd = withdrawalsRes.data ?? [];
-
-  const paidOrders = orders.filter((o) => o.payment_status === "CONFIRMED" || o.payment_status === "RECEIVED");
-  const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total), 0);
-  const platformRevenue = splits.reduce((s, r) => s + Number(r.commission_amount) + Number(r.service_fee), 0);
-
+  const d = (data ?? {}) as Record<string, number>;
   return {
     period:             `${startDate} → ${endDate}`,
-    totalRevenue,
-    platformRevenue,
-    totalOrders:        orders.length,
-    paidOrders:         paidOrders.length,
-    splitExecuted:      splits.length,
-    totalRefunds:       refunds.reduce((s, r) => s + Number(r.amount), 0),
-    pendingWithdrawals: pendingWd.reduce((s, w) => s + Number(w.amount_gross), 0),
+    totalRevenue:       Number(d.totalRevenue ?? 0),
+    platformRevenue:    Number(d.platformRevenue ?? 0),
+    totalOrders:        Number(d.totalOrders ?? 0),
+    paidOrders:         Number(d.paidOrders ?? 0),
+    splitExecuted:      Number(d.splitExecuted ?? 0),
+    totalRefunds:       Number(d.totalRefunds ?? 0),
+    pendingWithdrawals: Number(d.pendingWithdrawals ?? 0),
   };
 }
 

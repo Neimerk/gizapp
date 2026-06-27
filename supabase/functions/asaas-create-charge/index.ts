@@ -1,33 +1,10 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { json, optionsResponse } from "../_shared/cors.ts";
 
 // ── Config ────────────────────────────────────────────────────
 const ASAAS_BASE = Deno.env.get("ASAAS_API_URL") ?? "https://sandbox.asaas.com/api/v3";
 const ASAAS_KEY  = Deno.env.get("ASAAS_API_KEY") ?? "";
-
-const ALLOWED_ORIGINS = [
-  "https://shopping.brasux.com.br",
-  "https://brasux.com.br",
-  "https://brasux.vercel.app",
-];
-
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("Origin") ?? "";
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin":  allowed,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Vary": "Origin",
-  };
-}
-
-function json(data: unknown, status = 200, req?: Request) {
-  const cors = req ? corsHeaders(req) : { "Access-Control-Allow-Origin": ALLOWED_ORIGINS[0] };
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...cors, "Content-Type": "application/json" },
-  });
-}
 
 async function asaas(path: string, method = "GET", body?: unknown) {
   const res = await fetch(`${ASAAS_BASE}${path}`, {
@@ -54,7 +31,7 @@ function dueDate(msFromNow: number): string {
 
 // ── Serve ─────────────────────────────────────────────────────
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
+  if (req.method === "OPTIONS") return optionsResponse(req);
 
   const supabaseUrl    = Deno.env.get("SUPABASE_URL")!;
   const anonKey        = Deno.env.get("SUPABASE_ANON_KEY")!;

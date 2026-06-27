@@ -1,6 +1,7 @@
 export const ALLOWED_ORIGINS = [
   "https://shopping.brasux.com.br",
   "https://brasux.com.br",
+  "https://brasux.store",
   "https://brasux.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
