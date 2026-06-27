@@ -1,16 +1,13 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Clock3, LogIn, Package, ReceiptText, RefreshCw } from "lucide-react";
-
-const MapTrack = lazy(() => import("../components/ui/MapTrack"));
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getMyOrders, getProductImageUrl, queryKeys, upsertReview, type Order } from "../services/gizApi";
-import { logger } from "../utils/logger";
-import type { CourierPosition } from "../components/ui/MapTrack";
-import { ordersConnection, startOrdersConnection } from "../services/signalr";
+import { supabase } from "../lib/supabase";
 import { formatBRL } from "../utils/format";
 import { getAuth } from "../services/auth";
+import DeliveryTracking from "../components/order/DeliveryTracking";
 
 const STATUS_STEPS = [
   { status: 0, label: "Recebido" },
@@ -105,46 +102,33 @@ export default function OrdersPage() {
     staleTime: 30 * 1000,
   });
 
+  // Realtime: refetch dos pedidos quando algo muda (Supabase, substitui SignalR)
   useEffect(() => {
     if (!auth) return;
-
     requestNotificationPermission();
-
-    async function setupSignalR() {
-      try {
-        await startOrdersConnection();
-        ordersConnection.off("OrderCreated");
-        ordersConnection.off("OrderStatusUpdated");
-
-        ordersConnection.on("OrderCreated", (order: Order) => {
-          queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
-            cur.some((o) => o.id === order.id) ? cur : [order, ...cur]
-          );
-        });
-
-        ordersConnection.on("OrderStatusUpdated", (updated: Order) => {
-          queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
-            cur.map((o) => (o.id === updated.id ? updated : o))
-          );
-          showOrderNotification(updated);
-          if (updated.status === 4 && updated.items.length > 0) {
-            const alreadyRated = localStorage.getItem(`brasux-rating-${updated.id}`);
-            if (!alreadyRated) {
-              setTimeout(() => setAutoReviewOrder(updated), 1500);
-            }
-          }
-        });
-      } catch (e) {
-        logger.error("SignalR:", e);
-      }
-    }
-    setupSignalR();
-
-    return () => {
-      ordersConnection.off("OrderCreated");
-      ordersConnection.off("OrderStatusUpdated");
-    };
+    const ch = supabase
+      .channel("my-orders")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [auth, queryClient]);
+
+  // Notificação + auto-review derivados de transições de status (substitui o lado SignalR)
+  const prevStatuses = useRef<Record<string, number>>({});
+  useEffect(() => {
+    for (const o of orders) {
+      const prev = prevStatuses.current[o.id];
+      if (prev !== undefined && prev !== o.status) {
+        showOrderNotification(o);
+        if (o.status === 4 && o.items.length > 0 && !localStorage.getItem(`brasux-rating-${o.id}`)) {
+          setTimeout(() => setAutoReviewOrder(o), 1500);
+        }
+      }
+      prevStatuses.current[o.id] = o.status;
+    }
+  }, [orders]);
 
   if (!auth) {
     return (
@@ -444,21 +428,11 @@ function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void
 /* ── ORDER CARD ── */
 
 function OrderCard({ order }: { order: Order }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [courierPosition, setCourierPosition] = useState<CourierPosition | null>(null);
   const isCancelled = order.status === 5;
   const isDelivered = order.status === 4;
   const isInTransit = order.status === 3;
-
-  // Listen for courier location updates for this specific order
-  useEffect(() => {
-    if (!isInTransit) return;
-    const handler = (data: { orderId: string; lat: number; lng: number }) => {
-      if (data.orderId === order.id) setCourierPosition({ lat: data.lat, lng: data.lng });
-    };
-    ordersConnection.on("CourierLocationUpdated", handler);
-    return () => { ordersConnection.off("CourierLocationUpdated", handler); };
-  }, [order.id, isInTransit]);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
@@ -534,16 +508,8 @@ function OrderCard({ order }: { order: Order }) {
               ))}
             </div>
 
-            {/* MAPA (status >= Saindo) */}
-            {(isInTransit || isDelivered) && (
-              <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-[#f1f5f9]" />}>
-                <MapTrack
-                  deliveryAddress={order.deliveryAddress}
-                  deliveryNumber={order.deliveryNumber}
-                  deliveryNeighborhood={order.deliveryNeighborhood}
-                  courierPosition={courierPosition}
-                />
-              </Suspense>
+            {(order.status === 3 || order.status === 4) && (
+              <DeliveryTracking order={order} onChat={() => navigate(`/lojas/${order.storeId}/chat`)} />
             )}
 
             {/* ENDEREÇO */}
