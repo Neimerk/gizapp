@@ -1784,6 +1784,12 @@ export async function updateCourierLocation(lat: number, lng: number, heading?: 
     .upsert({ courier_id: user.id, lat, lng, heading: heading ?? null, updated_at: new Date().toISOString() });
 }
 
+export async function updateCourierAvatar(url: string): Promise<void> {
+  const user = useAuthStore.getState().user;
+  if (!user) return;
+  await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+}
+
 export type CourierInfo = {
   id: string;
   name: string;

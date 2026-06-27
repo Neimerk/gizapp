@@ -9,10 +9,11 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   getAvailableDeliveries, acceptDelivery, getMyDeliveries, updateDeliveryStatus,
   getCourierEarningsSummary, getMyWithdrawals, requestCourierWithdrawal,
-  updateCourierLocation, queryKeys,
+  updateCourierLocation, uploadProductImage, updateCourierAvatar, queryKeys,
   type AvailableDelivery, type Delivery,
 } from "../services/gizApi";
 import { supabase } from "../lib/supabase";
+import { haversineKm } from "../utils/geo";
 import { useAuthStore } from "../stores/authStore";
 import { useToastStore } from "../stores/toastStore";
 import { usePageMeta } from "../hooks/usePageMeta";
@@ -331,10 +332,21 @@ export default function CourierPage() {
   useEffect(() => {
     if (!activeDelivery || !user) return;
     if (!navigator.geolocation) return;
+    let lastSent = 0;
+    let lastLat = 0, lastLng = 0;
+    const MIN_INTERVAL = 4_000;   // ms
+    const MIN_MOVE_KM = 0.015;    // ~15 m
     const id = navigator.geolocation.watchPosition(
-      (pos) => updateCourierLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.heading ?? undefined).catch(() => null),
+      (pos) => {
+        const now = Date.now();
+        const { latitude, longitude, heading } = pos.coords;
+        const moved = lastSent === 0 ? Infinity : haversineKm(lastLat, lastLng, latitude, longitude);
+        if (now - lastSent < MIN_INTERVAL && moved < MIN_MOVE_KM) return;
+        lastSent = now; lastLat = latitude; lastLng = longitude;
+        updateCourierLocation(latitude, longitude, heading ?? undefined).catch(() => null);
+      },
       null,
-      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 8_000 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 8_000 },
     );
     return () => navigator.geolocation.clearWatch(id);
   }, [activeDelivery?.id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -540,6 +552,25 @@ export default function CourierPage() {
       {/* ── Tab: Ganhos ──────────────────────────────────────── */}
       {activeTab === "earnings" && (
         <div className="space-y-5">
+          {/* Avatar do entregador */}
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="file" accept="image/*" className="hidden"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f || !user) return;
+                try {
+                  const url = await uploadProductImage(f, user.id);
+                  await updateCourierAvatar(url);
+                  showToast("Foto atualizada!", "success");
+                } catch {
+                  showToast("Falha no upload da foto.", "error");
+                }
+              }}
+            />
+            <span className="rounded-xl bg-[#0f172a] px-4 py-2 text-sm font-black text-white">Trocar foto</span>
+          </label>
+
           {/* Cards de resumo */}
           <div className="grid grid-cols-3 gap-3">
             {[
