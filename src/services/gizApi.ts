@@ -1784,6 +1784,41 @@ export async function updateCourierLocation(lat: number, lng: number, heading?: 
     .upsert({ courier_id: user.id, lat, lng, heading: heading ?? null, updated_at: new Date().toISOString() });
 }
 
+export type CourierInfo = {
+  id: string;
+  name: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  avgStars: number | null;
+  ratingsCount: number;
+};
+
+export async function getOrderCourier(orderId: string): Promise<CourierInfo | null> {
+  const { data: del } = await supabase
+    .from("deliveries")
+    .select("courier_id")
+    .eq("order_id", orderId).neq("status", "CANCELLED")
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const courierId = del?.courier_id as string | undefined;
+  if (!courierId) return null;
+
+  const { data: prof } = await supabase
+    .from("profiles").select("id, name, phone, avatar_url").eq("id", courierId).maybeSingle();
+  if (!prof) return null;
+
+  const { data: stats } = await supabase
+    .from("courier_rating_stats").select("avg_stars, ratings_count").eq("courier_id", courierId).maybeSingle();
+
+  return {
+    id: prof.id as string,
+    name: (prof.name as string) || "Entregador",
+    phone: (prof.phone as string | null) ?? null,
+    avatarUrl: (prof.avatar_url as string | null) ?? null,
+    avgStars: stats ? Number(stats.avg_stars) : null,
+    ratingsCount: stats ? Number(stats.ratings_count) : 0,
+  };
+}
+
 export async function getCourierEarningsSummary(): Promise<CourierEarningSummary> {
   const user = useAuthStore.getState().user;
   if (!user) return { todayTotal: 0, weekTotal: 0, allTimeTotal: 0, deliveriesCount: 0 };
