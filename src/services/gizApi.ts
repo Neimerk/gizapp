@@ -1800,29 +1800,10 @@ export type CourierInfo = {
 };
 
 export async function getOrderCourier(orderId: string): Promise<CourierInfo | null> {
-  const { data: del } = await supabase
-    .from("deliveries")
-    .select("courier_id")
-    .eq("order_id", orderId).neq("status", "CANCELLED")
-    .order("created_at", { ascending: false }).limit(1).maybeSingle();
-  const courierId = del?.courier_id as string | undefined;
-  if (!courierId) return null;
-
-  const { data: prof } = await supabase
-    .from("profiles").select("id, name, phone, avatar_url").eq("id", courierId).maybeSingle();
-  if (!prof) return null;
-
-  const { data: stats } = await supabase
-    .from("courier_rating_stats").select("avg_stars, ratings_count").eq("courier_id", courierId).maybeSingle();
-
-  return {
-    id: prof.id as string,
-    name: (prof.name as string) || "Entregador",
-    phone: (prof.phone as string | null) ?? null,
-    avatarUrl: (prof.avatar_url as string | null) ?? null,
-    avgStars: stats ? Number(stats.avg_stars) : null,
-    ratingsCount: stats ? Number(stats.ratings_count) : 0,
-  };
+  const { data, error } = await supabase.functions.invoke("order-courier", { body: { orderId } });
+  if (error || !data || (data as { error?: string }).error) return null;
+  const c = (data as { courier: CourierInfo | null }).courier;
+  return c ?? null;
 }
 
 export async function submitCourierRating(orderId: string, stars: number, comment: string): Promise<void> {

@@ -8,9 +8,11 @@ Aplicar na ordem:
    tabela `courier_ratings`, view `courier_rating_stats`, função `rate_courier`,
    e `orders` na publicação `supabase_realtime`.
 
-2. **Edge Function:** deploy de `delivery-eta`
-   (`supabase functions deploy delivery-eta`). Definir o segredo:
+2. **Edge Functions:** deploy de `delivery-eta` e `order-courier`
+   (`supabase functions deploy delivery-eta && supabase functions deploy order-courier`).
+   Definir o segredo para `delivery-eta`:
    `supabase secrets set MAPBOX_TOKEN=<seu_token>`.
+   `order-courier` não requer segredos extras além dos padrões.
    `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` já existem no ambiente.
 
 3. **Avatar do entregador:** reutiliza o upload existente (`uploadProductImage` → ImageAPI .NET via `VITE_API_URL`). Nenhum bucket novo é necessário.
