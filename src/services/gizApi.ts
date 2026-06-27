@@ -1819,6 +1819,19 @@ export async function getOrderCourier(orderId: string): Promise<CourierInfo | nu
   };
 }
 
+export async function submitCourierRating(orderId: string, stars: number, comment: string): Promise<void> {
+  const { error } = await supabase.rpc("rate_courier", {
+    p_order_id: orderId, p_stars: stars, p_comment: comment,
+  });
+  if (error) throw new Error("Não foi possível enviar a avaliação.");
+}
+
+export async function getMyRatingForOrder(orderId: string): Promise<number | null> {
+  const { data } = await supabase
+    .from("courier_ratings").select("stars").eq("order_id", orderId).maybeSingle();
+  return data ? Number(data.stars) : null;
+}
+
 export async function getCourierEarningsSummary(): Promise<CourierEarningSummary> {
   const user = useAuthStore.getState().user;
   if (!user) return { todayTotal: 0, weekTotal: 0, allTimeTotal: 0, deliveriesCount: 0 };
