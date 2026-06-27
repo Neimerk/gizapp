@@ -1,8 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import * as signalR from "@microsoft/signalr";
 import { getAuth } from "../services/auth";
+import { supabase } from "../lib/supabase";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5003";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_IMAGE_API_URL ||
+  "http://localhost:5003";
 
 export type ChatMessage = {
   id: string;
@@ -36,9 +40,9 @@ function getChatConnection() {
   if (!chatConnection) {
     chatConnection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_URL}/hubs/chat`, {
-        accessTokenFactory: () => {
-          try { return JSON.parse(localStorage.getItem("brasux-auth") ?? "{}")?.token ?? ""; }
-          catch { return ""; }
+        accessTokenFactory: async () => {
+          const { data } = await supabase.auth.getSession();
+          return data.session?.access_token ?? "";
         },
       })
       .withAutomaticReconnect()

@@ -40,20 +40,27 @@ export async function getFeaturedByStore(): Promise<
 
   if (!stores?.length) return [];
 
-  const results = await Promise.all(
-    stores.map(async (store) => {
-      const { data: products } = await shoppingDb
-        .from("store_products")
-        .select("id, store_id, name, slug, category, brand, image_url, image_alt, price, promotional_price, available, featured")
-        .eq("store_id", store.id)
-        .eq("featured", true)
-        .eq("available", true)
-        .order("name")
-        .limit(3);
+  // UMA query para todos os produtos em destaque (antes era N+1: uma por loja).
+  const storeIds = stores.map((s) => s.id);
+  const { data: allProducts } = await shoppingDb
+    .from("store_products")
+    .select("id, store_id, name, slug, category, brand, image_url, image_alt, price, promotional_price, available, featured")
+    .in("store_id", storeIds)
+    .eq("featured", true)
+    .eq("available", true)
+    .order("name");
 
-      return { store, products: products ?? [] };
-    })
-  );
+  // Agrupa no cliente, no máximo 3 produtos por loja.
+  const byStore = new Map<string, FeaturedProduct[]>();
+  for (const p of (allProducts ?? []) as FeaturedProduct[]) {
+    const list = byStore.get(p.store_id) ?? [];
+    if (list.length < 3) {
+      list.push(p);
+      byStore.set(p.store_id, list);
+    }
+  }
 
-  return results.filter((r) => r.products.length > 0);
+  return stores
+    .map((store) => ({ store, products: byStore.get(store.id) ?? [] }))
+    .filter((r) => r.products.length > 0);
 }

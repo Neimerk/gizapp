@@ -34,8 +34,10 @@ function parseCategorySlugs(raw: string): string[] {
 }
 
 function matchesSlug(productCategory: string, slug: string): boolean {
+  // Match EXATO (regra do CLAUDE.md): substring fuzzy trazia produtos de
+  // categorias erradas (ex.: "bebidas" casava com "bebidas-alcoolicas").
   const norm = productCategory.toLowerCase().replace(/\s+/g, "-");
-  return norm === slug || norm.includes(slug) || slug.includes(norm);
+  return norm === slug;
 }
 
 export default function StorePage() {

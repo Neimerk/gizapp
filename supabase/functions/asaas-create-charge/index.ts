@@ -185,6 +185,26 @@ serve(async (req) => {
       ...(charge.status === "CONFIRMED" && { status: 1 }),
     }).eq("id", orderId);
 
+    // ── 6b. Registra a cobrança em `payments` ─────────────────
+    // CRÍTICO: o asaas-webhook só dispara o split se existir uma linha em
+    // `payments` para o pedido. Sem este upsert, o repasse nunca acontece.
+    const methodMap: Record<string, string> = { PIX: "pix", CREDIT_CARD: "card", BOLETO: "boleto" };
+    const paymentStatus = isDeclined
+      ? "declined"
+      : charge.status === "CONFIRMED" ? "approved" : "pending";
+
+    const { error: payErr } = await admin.from("payments").upsert({
+      order_id:         orderId,
+      gateway:          "asaas",
+      external_id:      charge.id as string,
+      method:           methodMap[paymentMethod] ?? "other",
+      amount:           Number(order.total),
+      status:           paymentStatus,
+      idempotency_key:  orderId,
+      gateway_response: charge,
+    }, { onConflict: "order_id" });
+    if (payErr) console.error("[asaas-create-charge] payments upsert error:", payErr.message);
+
     // ── 7. Monta a resposta por método de pagamento ───────────
     if (paymentMethod === "PIX") {
       const pix = await asaas(`/payments/${charge.id}/pixQrCode`);

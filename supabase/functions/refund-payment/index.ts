@@ -154,7 +154,10 @@ serve(async (req) => {
         absorbed_by:     absorbedBy,
         gateway_refund:  gatewayRefundId,
       },
-    }).then(() => null);
+    }).then(({ error }) => {
+      // Movimentação de dinheiro: não engolir falha de auditoria silenciosamente.
+      if (error) console.error("[refund-payment] audit_logs insert failed:", error.message);
+    });
 
     console.log(`[refund-payment] order=${orderId} refund=${refund.id} amount=${refundAmount}`);
 

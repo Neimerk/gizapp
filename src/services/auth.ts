@@ -7,11 +7,11 @@ export function getAuth(): AuthUser | null {
   return useAuthStore.getState().user;
 }
 
-export function getAuthToken(): string {
-  return "";
+/** Token JWT real da sessão Supabase (para chamadas a serviços externos). */
+export async function getAuthToken(): Promise<string> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? "";
 }
-
-export function saveAuth(_user: AuthUser) {}
 
 export async function logout(): Promise<void> {
   await supabase.auth.signOut();

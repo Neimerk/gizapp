@@ -5,15 +5,29 @@ const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY")  ?? "";
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT")     ?? "mailto:contato@brasux.com.br";
 
-const CORS = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  "https://shopping.brasux.com.br",
+  "https://brasux.com.br",
+  "https://brasux.store",
+  "https://brasux.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
 
-function json(data: unknown, status = 200) {
+function cors(req?: Request): Record<string, string> {
+  const origin = req?.headers.get("Origin") ?? "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin":  allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
+function json(data: unknown, status = 200, req?: Request) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json" },
+    headers: { ...cors(req), "Content-Type": "application/json" },
   });
 }
 
@@ -92,7 +106,7 @@ async function sendPush(
 // ── Serve ─────────────────────────────────────────────────────
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors(req) });
 
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return json({ ok: false, error: "VAPID não configurado." });

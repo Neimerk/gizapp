@@ -113,6 +113,12 @@ serve(async (req) => {
         .maybeSingle();
 
       if (paymentRow?.id) {
+        // Marca o pagamento como aprovado (necessário p/ estorno e auditoria)
+        await admin.from("payments")
+          .update({ status: "approved" })
+          .eq("id", paymentRow.id)
+          .then(() => null);
+
         await admin.from("payment_transactions").insert({
           payment_id:       paymentRow.id,
           event_type:       event,

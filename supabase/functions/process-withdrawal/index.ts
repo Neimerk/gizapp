@@ -84,13 +84,24 @@ serve(async (req) => {
 
         // Verifica se Asaas está configurado
         if (!ASAAS_KEY) {
-          // Simulação para ambiente de dev: marca como paid
-          await admin.from("withdrawals").update({
-            status: "paid",
-            processed_at: new Date().toISOString(),
-            gateway_reference: `SIM_${Date.now()}`,
-          }).eq("id", wdId);
-          results.push({ id: wdId, status: "ok" });
+          // FALHA FECHADA: sem chave do gateway NÃO marcamos como "paid"
+          // (isso quitaria o saque sem transferir dinheiro de verdade).
+          // Simulação só é permitida com flag explícita de ambiente de dev.
+          const allowSim = (Deno.env.get("ALLOW_SIMULATED_WITHDRAWALS") ?? "") === "true";
+          if (allowSim) {
+            await admin.from("withdrawals").update({
+              status: "paid",
+              processed_at: new Date().toISOString(),
+              gateway_reference: `SIM_${Date.now()}`,
+            }).eq("id", wdId);
+            results.push({ id: wdId, status: "ok" });
+          } else {
+            await admin.from("withdrawals").update({
+              status: "failed",
+              notes:  "Gateway de pagamento não configurado (ASAAS_API_KEY ausente).",
+            }).eq("id", wdId);
+            results.push({ id: wdId, status: "failed", error: "Gateway não configurado" });
+          }
           continue;
         }
 
