@@ -40,3 +40,6 @@ supabase/functions/.env
 # Vercel secrets
 .vercel/
 *.oidc-token
+
+# Superpowers SDD scratch (workspace local, não versionar)
+.superpowers/

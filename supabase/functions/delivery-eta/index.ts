@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       source: "haversine",
       courierSeen: loc.updated_at,
     }, 200, req);
-  } catch (_e) {
+  } catch {
     return json({ error: "internal" }, 500, req);
   }
 });
