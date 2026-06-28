@@ -1,15 +1,8 @@
 import { useState } from "react";
 import { CheckCircle, ChevronRight, Loader2, MapPin, Navigation, X } from "lucide-react";
-import { useCepLookup } from "../../hooks/useCepLookup";
+import { useCepLookup, type CepResult } from "../../hooks/useCepLookup";
 import { geocodeAddress, getBrowserPosition } from "../../utils/geo";
 import { useDeliveryAddressStore } from "../../stores/deliveryAddressStore";
-
-type CepData = {
-  logradouro: string;
-  bairro: string;
-  localidade: string;
-  uf: string;
-};
 
 type Props = {
   onClose: () => void;
@@ -26,7 +19,7 @@ export default function AddressPickerModal({ onClose }: Props) {
 
   const [cep, setCep] = useState("");
   const [numero, setNumero] = useState("");
-  const [cepData, setCepData] = useState<CepData | null>(null);
+  const [cepData, setCepData] = useState<CepResult | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -49,11 +42,28 @@ export default function AddressPickerModal({ onClose }: Props) {
     setConfirming(true);
     setGeoError(null);
 
+    const label =
+      [
+        cepData.logradouro &&
+          `${cepData.logradouro}${numero ? `, ${numero}` : ""}`,
+        cepData.bairro,
+      ]
+        .filter(Boolean)
+        .join(" - ") || `${cepData.localidade}/${cepData.uf}`;
+
+    // 1ª opção: coordenadas direto do BrasilAPI (sem Nominatim)
+    if (cepData.lat !== null && cepData.lng !== null) {
+      setAddress({ label, lat: cepData.lat, lng: cepData.lng });
+      setConfirming(false);
+      onClose();
+      return;
+    }
+
+    // 2ª opção: geocoding por endereço completo via Nominatim
     const addressStr = cepData.logradouro
       ? `${cepData.logradouro}${numero ? `, ${numero}` : ""}`
       : "";
 
-    // 1ª tentativa: endereço completo
     let coords = await geocodeAddress({
       address: addressStr || undefined,
       neighborhood: cepData.bairro || undefined,
@@ -61,7 +71,7 @@ export default function AddressPickerModal({ onClose }: Props) {
       state: cepData.uf,
     });
 
-    // 2ª tentativa (fallback): só cidade + estado — quase sempre funciona
+    // 3ª opção: só cidade + estado
     if (!coords) {
       coords = await geocodeAddress({
         city: cepData.localidade,
@@ -72,15 +82,6 @@ export default function AddressPickerModal({ onClose }: Props) {
     setConfirming(false);
 
     if (coords) {
-      const label =
-        [
-          cepData.logradouro &&
-            `${cepData.logradouro}${numero ? `, ${numero}` : ""}`,
-          cepData.bairro,
-        ]
-          .filter(Boolean)
-          .join(" - ") || `${cepData.localidade}/${cepData.uf}`;
-
       setAddress({ label, lat: coords.lat, lng: coords.lng });
       onClose();
     } else {
