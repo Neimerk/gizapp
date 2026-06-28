@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Locate, Search } from "lucide-react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Locate, Search } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
@@ -83,6 +83,27 @@ export default function StoresPage() {
     ? "Todas"
     : (categories.find((c) => c.slug === activeSlug)?.name ?? activeSlug);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft,  setCanScrollLeft]  = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const syncScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    syncScroll();
+    window.addEventListener("resize", syncScroll);
+    return () => window.removeEventListener("resize", syncScroll);
+  }, [syncScroll]);
+
+  function scrollCats(dir: "left" | "right") {
+    scrollRef.current?.scrollBy({ left: dir === "left" ? -320 : 320, behavior: "smooth" });
+  }
+
   const SORT_OPTIONS: { key: SortKey; label: string }[] = [
     { key: "rating",   label: "Nota" },
     { key: "time",     label: "Mais rápida" },
@@ -163,33 +184,60 @@ export default function StoresPage() {
         </div>
       )}
 
-      {/* Category scroll */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden">
+      {/* Category scroll with arrows (desktop) */}
+      <div className="relative">
+        {/* Left arrow — desktop only, shown when scrolled */}
         <button
-          onClick={() => setActiveSlug("todas")}
-          className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition-colors ${
-            activeSlug === "todas"
-              ? "bg-[#16a34a] text-white"
-              : "border border-[#e2e8f0] bg-white text-[#0f172a]"
+          onClick={() => scrollCats("left")}
+          aria-label="Categorias anteriores"
+          className={`absolute left-0 top-1/2 z-10 -translate-y-1/2 hidden md:flex h-8 w-8 items-center justify-center rounded-full border border-line bg-surface shadow-md text-content transition-all hover:border-[#16a34a]/40 hover:text-[#16a34a] ${
+            canScrollLeft ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         >
-          Todas
+          <ChevronLeft size={16} />
         </button>
-        {categories.map((cat) => (
+
+        <div
+          ref={scrollRef}
+          onScroll={syncScroll}
+          className="flex gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden md:px-10"
+        >
           <button
-            key={cat.slug}
-            onClick={() => setActiveSlug(cat.slug)}
-            className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition-colors ${
-              activeSlug === cat.slug
+            onClick={() => setActiveSlug("todas")}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition-colors ${
+              activeSlug === "todas"
                 ? "bg-[#16a34a] text-white"
                 : "border border-[#e2e8f0] bg-white text-[#0f172a]"
             }`}
           >
-            <span>{categoryIcons[cat.slug] ?? "✨"}</span>
-            {cat.name}
-            
+            Todas
           </button>
-        ))}
+          {categories.map((cat) => (
+            <button
+              key={cat.slug}
+              onClick={() => setActiveSlug(cat.slug)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition-colors ${
+                activeSlug === cat.slug
+                  ? "bg-[#16a34a] text-white"
+                  : "border border-[#e2e8f0] bg-white text-[#0f172a]"
+              }`}
+            >
+              <span>{categoryIcons[cat.slug] ?? "✨"}</span>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Right arrow — desktop only, shown when more content ahead */}
+        <button
+          onClick={() => scrollCats("right")}
+          aria-label="Próximas categorias"
+          className={`absolute right-0 top-1/2 z-10 -translate-y-1/2 hidden md:flex h-8 w-8 items-center justify-center rounded-full border border-line bg-surface shadow-md text-content transition-all hover:border-[#16a34a]/40 hover:text-[#16a34a] ${
+            canScrollRight ? "opacity-100" : "pointer-events-none opacity-0"
+          }`}
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
 
       {/* Resultados */}

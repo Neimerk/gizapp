@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { useJsonLd } from "../hooks/useJsonLd";
 import { buildOrganizationSchema, buildWebSiteSchema, buildFaqSchema, HOME_FAQS, canonicalUrl } from "../lib/seo";
@@ -7,6 +7,9 @@ import { useGeolocation } from "../hooks/useGeolocation";
 import { haversineKm } from "../utils/geo";
 import BannerCarousel from "../components/ui/BannerCarousel";
 import { Link } from "react-router-dom";
+import { ChevronDown, MapPin } from "lucide-react";
+import AddressPickerModal from "../components/home/AddressPickerModal";
+import { useDeliveryAddressStore } from "../stores/deliveryAddressStore";
 
 import {
   getStores,
@@ -29,6 +32,10 @@ import JoinCtaSection from "../components/home/JoinCtaSection";
 import StoreCard from "../components/store/StoreCard";
 
 export default function HomePage() {
+  const [addressPickerOpen, setAddressPickerOpen] = useState(false);
+  const deliveryAddress = useDeliveryAddressStore((s) => s.address);
+  const clearDeliveryAddress = useDeliveryAddressStore((s) => s.clearAddress);
+
   usePageMeta({
     title: "Shopping Brasileiro de Soluções Tecnológicas",
     description:
@@ -75,18 +82,21 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Delivery address takes priority over raw GPS
+  const effectivePosition = deliveryAddress ?? position;
+
   const storesSorted = useMemo(() => {
     const withDist = stores.map((s) => ({
       ...s,
       distanceKm:
-        position && s.lat != null && s.lng != null
-          ? haversineKm(position.lat, position.lng, s.lat, s.lng)
+        effectivePosition && s.lat != null && s.lng != null
+          ? haversineKm(effectivePosition.lat, effectivePosition.lng, s.lat, s.lng)
           : undefined as number | undefined,
     }));
-    return position
+    return effectivePosition
       ? [...withDist].sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999))
       : withDist;
-  }, [stores, position]);
+  }, [stores, effectivePosition]);
 
   const authUser = useAuthStore((s) => s.user);
 
@@ -134,7 +144,43 @@ export default function HomePage() {
   return (
     <div className="space-y-10">
 
-      <h1 className="text-3xl text-content">Shopping <strong className="text-blue-950">Bras</strong><strong className="text-green-500">UX</strong></h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-3xl text-content">
+          Shopping <strong className="text-blue-950">Bras</strong>
+          <strong className="text-green-500">UX</strong>
+        </h1>
+
+        {/* Address activator */}
+        <button
+          onClick={() => setAddressPickerOpen(true)}
+          className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-2.5 text-left transition-all hover:border-[#16a34a]/40 sm:max-w-xs"
+        >
+          <MapPin size={15} className="shrink-0 text-[#16a34a]" />
+          <span className="flex-1 truncate text-sm font-bold text-content">
+            {deliveryAddress?.label ?? "Onde você quer receber?"}
+          </span>
+          <ChevronDown size={13} className="shrink-0 text-faint" />
+        </button>
+      </div>
+
+      {deliveryAddress && (
+        <p className="mt-1 text-xs text-muted">
+          Lojas ordenadas por proximidade a{" "}
+          <button
+            onClick={() => setAddressPickerOpen(true)}
+            className="font-bold text-[#16a34a] underline-offset-2 hover:underline"
+          >
+            {deliveryAddress.label}
+          </button>
+          {" ·"}{" "}
+          <button
+            onClick={clearDeliveryAddress}
+            className="text-muted hover:text-content"
+          >
+            Remover
+          </button>
+        </p>
+      )}
 
       {/* ── BANNER CAROUSEL ── */}
       {banners.length > 0 && <BannerCarousel banners={banners} />}
@@ -292,8 +338,8 @@ export default function HomePage() {
       {/* ── LOJAS ── */}
       <section>
         <SectionHeader
-          label={position ? "perto de você" : "lojas"}
-          title={position ? "Lojas próximas" : "Lojas abertas agora"}
+          label={effectivePosition ? "perto de você" : "lojas"}
+          title={effectivePosition ? "Lojas próximas" : "Lojas abertas agora"}
           linkTo="/lojas"
           linkLabel="Ver todas"
           color="#0f766e"
@@ -353,6 +399,11 @@ export default function HomePage() {
       )}
 
       <JoinCtaSection />
+
+      {/* Address picker modal */}
+      {addressPickerOpen && (
+        <AddressPickerModal onClose={() => setAddressPickerOpen(false)} />
+      )}
 
     </div>
   );
