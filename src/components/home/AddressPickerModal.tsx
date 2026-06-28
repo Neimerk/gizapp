@@ -28,6 +28,7 @@ export default function AddressPickerModal({ onClose }: Props) {
   const [numero, setNumero] = useState("");
   const [cepData, setCepData] = useState<CepData | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
 
@@ -35,6 +36,7 @@ export default function AddressPickerModal({ onClose }: Props) {
     const formatted = formatCep(raw);
     setCep(formatted);
     setCepData(null);
+    setGeoError(null);
     const digits = formatted.replace(/\D/g, "");
     if (digits.length === 8) {
       const data = await lookup(digits);
@@ -45,17 +47,27 @@ export default function AddressPickerModal({ onClose }: Props) {
   async function handleConfirm() {
     if (!cepData || confirming) return;
     setConfirming(true);
+    setGeoError(null);
 
     const addressStr = cepData.logradouro
       ? `${cepData.logradouro}${numero ? `, ${numero}` : ""}`
       : "";
 
-    const coords = await geocodeAddress({
+    // 1ª tentativa: endereço completo
+    let coords = await geocodeAddress({
       address: addressStr || undefined,
       neighborhood: cepData.bairro || undefined,
       city: cepData.localidade,
       state: cepData.uf,
     });
+
+    // 2ª tentativa (fallback): só cidade + estado — quase sempre funciona
+    if (!coords) {
+      coords = await geocodeAddress({
+        city: cepData.localidade,
+        state: cepData.uf,
+      });
+    }
 
     setConfirming(false);
 
@@ -71,6 +83,10 @@ export default function AddressPickerModal({ onClose }: Props) {
 
       setAddress({ label, lat: coords.lat, lng: coords.lng });
       onClose();
+    } else {
+      setGeoError(
+        "Não conseguimos localizar esse endereço. Use o GPS ou tente um CEP diferente.",
+      );
     }
   }
 
@@ -242,6 +258,10 @@ export default function AddressPickerModal({ onClose }: Props) {
                   </>
                 )}
               </button>
+
+              {geoError && (
+                <p className="text-center text-xs text-red-500">{geoError}</p>
+              )}
             </>
           )}
         </div>
