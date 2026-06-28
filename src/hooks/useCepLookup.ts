@@ -22,29 +22,31 @@ export function useCepLookup() {
 
     setLoading(true);
     try {
-      // BrasilAPI v2 — retorna coordenadas diretamente
-      const brasilRes = await fetch(
-        `https://brasilapi.com.br/api/cep/v2/${digits}`,
-      );
-      if (brasilRes.ok) {
-        const d = await brasilRes.json();
-        if (!d.errors && d.city) {
-          const coords = d.location?.coordinates;
-          return {
-            logradouro: d.street ?? "",
-            bairro: d.neighborhood ?? "",
-            localidade: d.city ?? "",
-            uf: d.state ?? "",
-            lat: coords?.latitude ? parseFloat(coords.latitude) : null,
-            lng: coords?.longitude ? parseFloat(coords.longitude) : null,
-          };
+      // 1ª tentativa: BrasilAPI v2 (retorna coordenadas)
+      try {
+        const res = await fetch(`https://brasilapi.com.br/api/cep/v2/${digits}`);
+        if (res.ok) {
+          const d = await res.json();
+          if (!d.errors && d.city) {
+            const coords = d.location?.coordinates;
+            return {
+              logradouro: d.street ?? "",
+              bairro: d.neighborhood ?? "",
+              localidade: d.city ?? "",
+              uf: d.state ?? "",
+              lat: coords?.latitude ? parseFloat(coords.latitude) : null,
+              lng: coords?.longitude ? parseFloat(coords.longitude) : null,
+            };
+          }
         }
+      } catch {
+        // BrasilAPI indisponível — segue para ViaCEP
       }
 
-      // Fallback: ViaCEP (sem coordenadas)
-      const viaRes = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
-      if (!viaRes.ok) throw new Error("Erro ao consultar CEP");
-      const d = await viaRes.json();
+      // 2ª tentativa: ViaCEP (sem coordenadas)
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      if (!res.ok) throw new Error("Erro ao consultar CEP");
+      const d = await res.json();
       if (d.erro) throw new Error("CEP não encontrado");
       return {
         logradouro: d.logradouro ?? "",
