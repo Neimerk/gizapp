@@ -146,7 +146,7 @@ export default function HomePage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl text-content">
-          Shopping <strong className="text-blue-950">Bras</strong>
+          Shopping <strong className="text-blue-950 dark:text-white">Bras</strong>
           <strong className="text-green-500">UX</strong>
         </h1>
 
