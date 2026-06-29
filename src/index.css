@@ -248,11 +248,8 @@ button {
    ser removidas uma a uma. NÃO adicione hex novo aqui — use os tokens.
    ════════════════════════════════════════════════════════════════════════════ */
 
-/* Backgrounds */
+/* Backgrounds — cores semânticas brand/status (não são tokens de superfície) */
 html.dark .bg-white               { background-color: #1e293b !important; }
-html.dark .bg-\[\#f8fafc\]        { background-color: #162032 !important; }
-html.dark .bg-\[\#f7f9fc\]        { background-color: #0f172a !important; }
-html.dark .bg-\[\#f1f5f9\]        { background-color: #1a2744 !important; }
 html.dark .bg-\[\#f0fdf4\]        { background-color: #0a2218 !important; }
 html.dark .bg-\[\#fff1f2\]        { background-color: #2d1217 !important; }
 html.dark .bg-\[\#fef2f2\]        { background-color: #2d1217 !important; }
@@ -260,23 +257,12 @@ html.dark .bg-\[\#fffbeb\]        { background-color: #2d1f0a !important; }
 html.dark .bg-\[\#eff6ff\]        { background-color: #0c1829 !important; }
 html.dark .bg-red-50              { background-color: #2d1217 !important; }
 
-/* Text */
-html.dark .text-\[\#0f172a\]      { color: #f1f5f9 !important; }
-html.dark .text-\[\#1e293b\]      { color: #e2e8f0 !important; }
-html.dark .text-\[\#475569\]      { color: #94a3b8 !important; }
-html.dark .text-\[\#64748b\]      { color: #94a3b8 !important; }
-
 /* Borders */
-html.dark .border-\[\#e2e8f0\]    { border-color: #334155 !important; }
-html.dark .border-\[\#e8eaf0\]    { border-color: #2d3f5c !important; }
-html.dark .border-\[\#f1f5f9\]    { border-color: #1e293b !important; }
-html.dark .border-\[\#e8edf2\]    { border-color: #334155 !important; }
 html.dark .border-red-200         { border-color: #991b1b !important; }
 html.dark .border-\[\#fecdd3\]    { border-color: #7f1d1d !important; }
 
 /* Hover states */
 html.dark .hover\:bg-\[\#e2e8f0\]:hover { background-color: #2d3f5c !important; }
-html.dark .focus-within\:bg-white:focus-within { background-color: #162032 !important; }
 
 /* Input fields */
 html.dark input:not([class*="bg-\[#0"]):not([class*="bg-white"]) {
