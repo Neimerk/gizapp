@@ -110,7 +110,7 @@ export default function AddressPickerModal({ onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
