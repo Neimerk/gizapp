@@ -87,7 +87,7 @@ export default function ComparePage() {
                     </Link>
                     <button
                       onClick={() => remove(p.id)}
-                      className="shrink-0 text-[#cbd5e1] hover:text-red-500 text-lg leading-none"
+                      className="shrink-0 text-faint hover:text-red-500 text-lg leading-none"
                     >
                       ×
                     </button>
@@ -98,7 +98,7 @@ export default function ComparePage() {
           </thead>
           <tbody>
             {ROWS.map((row) => (
-              <tr key={row.key} className="border-b border-[#f8fafc] last:border-0">
+              <tr key={row.key} className="border-b border-subtle last:border-0">
                 {row.key !== "actions" && row.key !== "imageUrl" && (
                   <td className="py-3 pl-4 pr-2 text-[10px] font-black uppercase tracking-wide text-faint">
                     {row.label}
@@ -187,7 +187,7 @@ export default function ComparePage() {
                   return (
                     <td key={p.id} className="px-4 py-3 text-sm text-muted">
                       {value != null && value !== "" ? String(value) : (
-                        <span className="text-[#cbd5e1]">—</span>
+                        <span className="text-faint">—</span>
                       )}
                     </td>
                   );

@@ -272,9 +272,6 @@ html.dark .bg-red-50              { background-color: #2d1217 !important; }
 html.dark .border-red-200         { border-color: #991b1b !important; }
 html.dark .border-\[\#fecdd3\]    { border-color: #7f1d1d !important; }
 
-/* Hover states */
-html.dark .hover\:bg-\[\#e2e8f0\]:hover { background-color: var(--subtle) !important; }
-
 /* Input fields — exclui qualquer input que já tenha uma classe bg-* (tokens migrados) */
 html.dark input:not([class*="bg-"]) {
   background-color: var(--surface);

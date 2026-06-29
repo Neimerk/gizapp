@@ -98,7 +98,7 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
         {/* Header */}
         <div className="flex items-center justify-between border-b border-subtle-2 p-5">
           <h2 className="text-lg font-black text-content">Escolher imagem</h2>
-          <button onClick={onClose} className="rounded-xl bg-subtle-2 p-2 text-muted hover:bg-[#e2e8f0]">
+          <button onClick={onClose} className="rounded-xl bg-subtle-2 p-2 text-muted hover:bg-line">
             <X size={18} />
           </button>
         </div>
@@ -152,8 +152,7 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
                         }`}
                       >
                         <div
-                          className="flex aspect-square items-center justify-center p-2"
-                          style={{ background: "#f8fafc" }}
+                          className="flex aspect-square items-center justify-center p-2 bg-subtle"
                         >
                           <img
                             src={img.imageUrl}

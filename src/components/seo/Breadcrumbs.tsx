@@ -25,7 +25,7 @@ export default function Breadcrumbs({ items, className = "" }: BreadcrumbsProps)
         const isLast = i === all.length - 1;
         return (
           <span key={crumb.path} className="flex items-center gap-1">
-            {i > 0 && <ChevronRight size={12} className="shrink-0 text-[#cbd5e1]" />}
+            {i > 0 && <ChevronRight size={12} className="shrink-0 text-faint" />}
             {isLast ? (
               <span className="font-bold text-muted line-clamp-1">{crumb.name}</span>
             ) : i === 0 ? (

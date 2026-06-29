@@ -64,7 +64,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-[#f0f5ff]">
+    <div className="min-h-screen overflow-x-clip bg-canvas">
       {/* TOP BANNER */}
       <div
         className="relative overflow-hidden px-6 pb-10 pt-14"

@@ -64,6 +64,10 @@ Substituir hex literais pelos utilitários de token, surface por surface:
 | `border-[#e2e8f0]` | `border-line` |
 | `border-[#e8eaf0]` | `border-line-subtle` |
 | `border-[#f1f5f9]` | `border-subtle-2` |
+| `border-[#f8fafc]` | `border-subtle` |
+| `bg-[#f0f5ff]` | `bg-canvas` |
+| `hover:bg-[#e2e8f0]` | `hover:bg-line` |
+| `text-[#cbd5e1]` | `text-faint` |
 
 **Regras invioláveis da migração:**
 - **NÃO migrar `bg-white/N` translúcido** (`bg-white/8`, `/10`, `/20`…): são
