@@ -159,13 +159,13 @@ function ProductModal({
       <div className="fixed inset-0 z-[150] flex items-end justify-center sm:items-center" onClick={onClose}>
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
         <div
-          className="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
+          className="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
           style={{ maxHeight: "92vh" }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between border-b border-[#f1f5f9] p-5">
-            <h2 className="text-lg font-black text-[#0f172a]">{product ? "Editar produto" : "Novo produto"}</h2>
-            <button onClick={onClose} className="rounded-xl bg-[#f1f5f9] p-2 text-[#64748b]">✕</button>
+          <div className="flex items-center justify-between border-b border-subtle-2 p-5">
+            <h2 className="text-lg font-black text-content">{product ? "Editar produto" : "Novo produto"}</h2>
+            <button onClick={onClose} className="rounded-xl bg-subtle-2 p-2 text-muted">✕</button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -173,15 +173,15 @@ function ProductModal({
               <label className={lbl}>Imagem do produto</label>
               <button
                 type="button" onClick={() => setShowPicker(true)}
-                className="flex w-full items-center gap-4 rounded-2xl border-2 border-dashed border-[#e2e8f0] bg-[#f8fafc] p-4 hover:border-[#16a34a]/50"
+                className="flex w-full items-center gap-4 rounded-2xl border-2 border-dashed border-line bg-subtle p-4 hover:border-[#16a34a]/50"
               >
                 {form.imageUrl
-                  ? <img src={form.imageUrl} alt={form.imageAlt} className="h-16 w-16 rounded-xl object-contain bg-white" />
-                  : <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#e2e8f0]"><ImageIcon size={24} className="text-[#94a3b8]" /></div>
+                  ? <img src={form.imageUrl} alt={form.imageAlt} className="h-16 w-16 rounded-xl object-contain bg-surface" />
+                  : <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#e2e8f0]"><ImageIcon size={24} className="text-faint" /></div>
                 }
                 <div className="text-left">
-                  <p className="font-black text-[#0f172a] text-sm">{form.imageUrl ? "Trocar imagem" : "Escolher imagem"}</p>
-                  <p className="text-xs text-[#94a3b8]">Banco BrasUX · Upload · URL</p>
+                  <p className="font-black text-content text-sm">{form.imageUrl ? "Trocar imagem" : "Escolher imagem"}</p>
+                  <p className="text-xs text-faint">Banco BrasUX · Upload · URL</p>
                 </div>
               </button>
             </div>
@@ -240,13 +240,13 @@ function ProductModal({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
-              <button type="button" onClick={() => set("available", !form.available)} className={form.available ? "text-[#16a34a]" : "text-[#94a3b8]"}>
+            <div className="flex items-center gap-3 rounded-2xl border border-line bg-subtle px-4 py-3">
+              <button type="button" onClick={() => set("available", !form.available)} className={form.available ? "text-[#16a34a]" : "text-faint"}>
                 {form.available ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
               </button>
               <div>
-                <p className="text-sm font-black text-[#0f172a]">{form.available ? "Disponível para venda" : "Indisponível"}</p>
-                <p className="text-xs text-[#94a3b8]">Controla se aparece na loja</p>
+                <p className="text-sm font-black text-content">{form.available ? "Disponível para venda" : "Indisponível"}</p>
+                <p className="text-xs text-faint">Controla se aparece na loja</p>
               </div>
             </div>
 
@@ -258,25 +258,25 @@ function ProductModal({
                   form.featured
                     ? "border-[#f59e0b]/40 bg-[#fffbeb]"
                     : atLimit
-                    ? "border-[#e2e8f0] bg-[#f8fafc] opacity-60"
-                    : "border-[#e2e8f0] bg-[#f8fafc]"
+                    ? "border-line bg-subtle opacity-60"
+                    : "border-line bg-subtle"
                 }`}>
                   <button
                     type="button"
                     disabled={atLimit}
                     onClick={() => !atLimit && set("featured", !form.featured)}
-                    className={form.featured ? "text-[#f59e0b]" : "text-[#94a3b8]"}
+                    className={form.featured ? "text-[#f59e0b]" : "text-faint"}
                   >
                     {form.featured ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                   </button>
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5">
-                      <Star size={13} className={form.featured ? "text-[#f59e0b]" : "text-[#94a3b8]"} fill={form.featured ? "currentColor" : "none"} />
-                      <p className="text-sm font-black text-[#0f172a]">
+                      <Star size={13} className={form.featured ? "text-[#f59e0b]" : "text-faint"} fill={form.featured ? "currentColor" : "none"} />
+                      <p className="text-sm font-black text-content">
                         {form.featured ? "Produto em destaque ⭐" : "Marcar como destaque"}
                       </p>
                     </div>
-                    <p className="text-xs text-[#94a3b8]">
+                    <p className="text-xs text-faint">
                       {atLimit
                         ? `Limite de 3 destaques atingido — remova um antes de adicionar.`
                         : `Aparece no carrossel da Home BrasUX (máx. 3 por loja)`}
@@ -289,7 +289,7 @@ function ProductModal({
             {error && <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</p>}
           </div>
 
-          <div className="border-t border-[#f1f5f9] p-4">
+          <div className="border-t border-subtle-2 p-4">
             <button
               onClick={handleSave} disabled={saving}
               className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-black text-white disabled:opacity-60"
@@ -435,10 +435,10 @@ function StoreForm({ store, onSave }: { store?: Store | null; onSave: (s: Store)
   }
 
   return (
-    <div className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm space-y-4">
+    <div className="rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm space-y-4">
       <div className="flex items-center gap-2">
         <StoreIcon size={16} className="text-[#16a34a]" />
-        <h2 className="font-black text-[#0f172a]">{store ? "Dados da loja" : "Criar minha loja"}</h2>
+        <h2 className="font-black text-content">{store ? "Dados da loja" : "Criar minha loja"}</h2>
       </div>
 
       <div>
@@ -484,10 +484,10 @@ function StoreForm({ store, onSave }: { store?: Store | null; onSave: (s: Store)
       </div>
 
       {/* ── Endereço e Localização ─── */}
-      <div className="rounded-2xl border border-[#e8eaf0] bg-[#f8fafc] p-4 space-y-3">
+      <div className="rounded-2xl border border-line-subtle bg-subtle p-4 space-y-3">
         <div className="flex items-center gap-2 mb-1">
           <MapPin size={14} className="text-[#16a34a]" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint">
             Endereço e Localização
           </p>
         </div>
@@ -503,7 +503,7 @@ function StoreForm({ store, onSave }: { store?: Store | null; onSave: (s: Store)
                 inputMode="numeric"
                 className={`${inp} ${cepLoading ? "pr-9" : ""}`}
               />
-              {cepLoading && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#94a3b8]" />}
+              {cepLoading && <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-faint" />}
             </div>
           </div>
           <div>
@@ -551,13 +551,13 @@ function StoreForm({ store, onSave }: { store?: Store | null; onSave: (s: Store)
         )}
       </div>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
-        <button type="button" onClick={() => set("isOpen", !form.isOpen)} className={form.isOpen ? "text-[#16a34a]" : "text-[#94a3b8]"}>
+      <div className="flex items-center gap-3 rounded-2xl border border-line bg-subtle px-4 py-3">
+        <button type="button" onClick={() => set("isOpen", !form.isOpen)} className={form.isOpen ? "text-[#16a34a]" : "text-faint"}>
           {form.isOpen ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
         </button>
         <div>
-          <p className="text-sm font-black text-[#0f172a]">{form.isOpen ? "Loja aberta" : "Loja fechada"}</p>
-          <p className="text-xs text-[#94a3b8]">Clientes podem fazer pedidos agora?</p>
+          <p className="text-sm font-black text-content">{form.isOpen ? "Loja aberta" : "Loja fechada"}</p>
+          <p className="text-xs text-faint">Clientes podem fazer pedidos agora?</p>
         </div>
       </div>
 
@@ -681,12 +681,12 @@ function StoreHoursPanel({
   }
 
   return (
-    <div className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm space-y-4">
+    <div className="rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm space-y-4">
       <div className="flex items-center gap-2">
         <Clock3 size={16} className="text-[#2563eb]" />
-        <h2 className="font-black text-[#0f172a]">Horários de funcionamento</h2>
+        <h2 className="font-black text-content">Horários de funcionamento</h2>
       </div>
-      <p className="text-xs text-[#64748b]">
+      <p className="text-xs text-muted">
         Configure os horários de abertura e fechamento por dia da semana.
       </p>
 
@@ -697,35 +697,35 @@ function StoreHoursPanel({
             <div
               key={day}
               className={`flex items-center gap-3 rounded-2xl border px-4 py-3 transition-colors ${
-                d.enabled ? "border-[#e2e8f0] bg-white" : "border-[#e2e8f0] bg-[#f8fafc] opacity-60"
+                d.enabled ? "border-line bg-surface" : "border-line bg-subtle opacity-60"
               }`}
             >
               <button
                 type="button"
                 onClick={() => updateDay(day, { enabled: !d.enabled })}
-                className={d.enabled ? "text-[#16a34a]" : "text-[#94a3b8]"}
+                className={d.enabled ? "text-[#16a34a]" : "text-faint"}
               >
                 {d.enabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
               </button>
-              <p className="w-20 shrink-0 text-sm font-black text-[#0f172a]">{DAY_LABELS[day]}</p>
+              <p className="w-20 shrink-0 text-sm font-black text-content">{DAY_LABELS[day]}</p>
               {d.enabled ? (
                 <div className="flex flex-1 items-center gap-2">
                   <input
                     type="time"
                     value={d.open}
                     onChange={(e) => updateDay(day, { open: e.target.value })}
-                    className="flex-1 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                    className="flex-1 rounded-xl border border-line bg-subtle px-3 py-2 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30"
                   />
-                  <span className="text-xs text-[#94a3b8]">até</span>
+                  <span className="text-xs text-faint">até</span>
                   <input
                     type="time"
                     value={d.close}
                     onChange={(e) => updateDay(day, { close: e.target.value })}
-                    className="flex-1 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                    className="flex-1 rounded-xl border border-line bg-subtle px-3 py-2 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30"
                   />
                 </div>
               ) : (
-                <span className="flex-1 text-xs font-bold text-[#94a3b8]">Fechado</span>
+                <span className="flex-1 text-xs font-bold text-faint">Fechado</span>
               )}
             </div>
           );
@@ -885,33 +885,33 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
 
       {/* ── Saldo da carteira ─────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
           <div className="flex items-center gap-1.5 mb-1">
             <CircleDollarSign size={14} className="text-green-600" />
-            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Disponível para saque</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-faint">Disponível para saque</p>
           </div>
           <p className="text-2xl font-black text-green-600">{formatBRL(availableBRL)}</p>
         </div>
-        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
           <div className="flex items-center gap-1.5 mb-1">
             <Clock3 size={14} className="text-yellow-500" />
-            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Aguardando entrega</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-faint">Aguardando entrega</p>
           </div>
           <p className="text-2xl font-black text-yellow-600">{formatBRL(heldBRL)}</p>
         </div>
-        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={14} className="text-blue-500" />
-            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Pedidos pagos</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-faint">Pedidos pagos</p>
           </div>
-          <p className="text-2xl font-black text-[#0f172a]">{totalOrders}</p>
+          <p className="text-2xl font-black text-content">{totalOrders}</p>
         </div>
-        <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
           <div className="flex items-center gap-1.5 mb-1">
-            <TrendingDown size={14} className="text-[#64748b]" />
-            <p className="text-[10px] font-black uppercase tracking-wider text-[#94a3b8]">Total sacado</p>
+            <TrendingDown size={14} className="text-muted" />
+            <p className="text-[10px] font-black uppercase tracking-wider text-faint">Total sacado</p>
           </div>
-          <p className="text-2xl font-black text-[#0f172a]">{formatBRL(paidTotal)}</p>
+          <p className="text-2xl font-black text-content">{formatBRL(paidTotal)}</p>
         </div>
       </div>
 
@@ -924,7 +924,7 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
             className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${
               activeSection === s
                 ? "bg-[#0f172a] text-white shadow-sm"
-                : "bg-[#f1f5f9] text-[#64748b]"
+                : "bg-subtle-2 text-muted"
             }`}
           >
             {s === "overview" ? "Resumo" : s === "statement" ? "Extrato" : "Saque"}
@@ -935,23 +935,23 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
       {/* ── SEÇÃO: Extrato ─────────────────────────────────────── */}
       {activeSection === "statement" && (
         <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint">
             Extrato — últimas {statement.length} movimentações
           </p>
           {statement.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-10 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-line bg-surface p-10 text-center">
               <CircleDollarSign size={28} className="text-[#cbd5e1]" />
-              <p className="font-black text-[#0f172a]">Sem movimentações ainda</p>
-              <p className="text-sm text-[#64748b]">O extrato aparece após o primeiro pedido pago.</p>
+              <p className="font-black text-content">Sem movimentações ainda</p>
+              <p className="text-sm text-muted">O extrato aparece após o primeiro pedido pago.</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#f1f5f9] rounded-2xl border border-[#e8eaf0] bg-white overflow-hidden">
+            <div className="divide-y divide-subtle-2 rounded-2xl border border-line-subtle bg-surface overflow-hidden">
               {statement.map((tx) => (
                 <div key={tx.id} className="flex items-center gap-3 p-3.5">
                   <div className="flex-shrink-0">{txIcon(tx)}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-semibold text-[#0f172a]">{tx.description}</p>
-                    <p className="text-[10px] text-[#94a3b8]">
+                    <p className="truncate text-sm font-semibold text-content">{tx.description}</p>
+                    <p className="text-[10px] text-faint">
                       {new Date(tx.createdAt).toLocaleDateString("pt-BR", {
                         day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
                       })}
@@ -971,10 +971,10 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
       {/* ── SEÇÃO: Saque ──────────────────────────────────────── */}
       {activeSection === "withdraw" && (
         <div className="space-y-4">
-          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm space-y-4">
+          <div className="rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm space-y-4">
             <div className="flex items-center gap-2">
               <Wallet size={16} className="text-[#16a34a]" />
-              <h2 className="font-black text-[#0f172a]">Solicitar saque via Pix</h2>
+              <h2 className="font-black text-content">Solicitar saque via Pix</h2>
             </div>
             <div className="flex items-start gap-2 rounded-xl bg-blue-50 p-3">
               <BadgePercent size={14} className="mt-0.5 flex-shrink-0 text-blue-600" />
@@ -1055,16 +1055,16 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
           {/* Histórico de saques */}
           {withdrawals.length > 0 && (
             <div>
-              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-faint">
                 Histórico de saques
               </p>
               <div className="space-y-2">
                 {withdrawals.map((w) => (
-                  <div key={w.id} className="flex items-center justify-between rounded-2xl border border-[#e8eaf0] bg-white p-3">
+                  <div key={w.id} className="flex items-center justify-between rounded-2xl border border-line-subtle bg-surface p-3">
                     <div>
-                      <p className="text-sm font-black text-[#0f172a]">{formatBRL(w.amountGross)}</p>
-                      <p className="text-[10px] text-[#94a3b8]">{w.pixKey} ({w.pixKeyType.toUpperCase()})</p>
-                      <p className="text-[10px] text-[#94a3b8]">
+                      <p className="text-sm font-black text-content">{formatBRL(w.amountGross)}</p>
+                      <p className="text-[10px] text-faint">{w.pixKey} ({w.pixKeyType.toUpperCase()})</p>
+                      <p className="text-[10px] text-faint">
                         {new Date(w.createdAt).toLocaleDateString("pt-BR")}
                         {w.processedAt && ` · Pago ${new Date(w.processedAt).toLocaleDateString("pt-BR")}`}
                       </p>
@@ -1091,8 +1091,8 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
       {/* ── SEÇÃO: Resumo ─────────────────────────────────────── */}
       {activeSection === "overview" && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Como funciona o split</p>
+          <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-faint">Como funciona o split</p>
             {[
               { icon: <CircleDollarSign size={14} className="text-green-600" />, label: "Você recebe", desc: `Valor dos produtos menos ${commPct}% de comissão BrasUX` },
               { icon: <Wallet size={14} className="text-purple-600" />,          label: "Entregador recebe", desc: "100% da taxa de entrega — BrasUX não retém nada" },
@@ -1102,8 +1102,8 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
               <div key={item.label} className="flex items-start gap-2.5">
                 <div className="mt-0.5 flex-shrink-0">{item.icon}</div>
                 <div>
-                  <p className="text-sm font-black text-[#0f172a]">{item.label}</p>
-                  <p className="text-xs text-[#64748b]">{item.desc}</p>
+                  <p className="text-sm font-black text-content">{item.label}</p>
+                  <p className="text-xs text-muted">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -1143,14 +1143,14 @@ function MiniBarChart({ orders }: { orders: Order[] }) {
   const max = Math.max(...data.map((d) => d.count), 1);
 
   return (
-    <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
-      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+    <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-faint">
         Pedidos — últimos 7 dias
       </p>
       <div className="flex h-20 items-end gap-2">
         {data.map((d, i) => (
           <div key={i} className="flex flex-1 flex-col items-center gap-1">
-            <span className="text-[9px] font-bold text-[#64748b]">{d.count > 0 ? d.count : ""}</span>
+            <span className="text-[9px] font-bold text-muted">{d.count > 0 ? d.count : ""}</span>
             <div
               className="w-full rounded-t-lg transition-all duration-500"
               style={{
@@ -1158,7 +1158,7 @@ function MiniBarChart({ orders }: { orders: Order[] }) {
                 background: d.count === 0 ? "#f1f5f9" : "linear-gradient(180deg, #16a34a, #15803d)",
               }}
             />
-            <span className="text-[8px] font-bold text-[#94a3b8]">{d.label}</span>
+            <span className="text-[8px] font-bold text-faint">{d.label}</span>
           </div>
         ))}
       </div>
@@ -1210,13 +1210,13 @@ function PainelTab({ orders, products, store }: { orders: Order[]; products: Sto
         {metrics.map((m) => (
           <div
             key={m.label}
-            className={`rounded-2xl border p-4 ${m.accent ? "border-orange-200 bg-orange-50" : "border-[#e8eaf0] bg-white"} shadow-sm`}
+            className={`rounded-2xl border p-4 ${m.accent ? "border-orange-200 bg-orange-50" : "border-line-subtle bg-surface"} shadow-sm`}
           >
             <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-xl ${m.accent ? "bg-orange-100 text-orange-600" : "bg-[#16a34a]/10 text-[#16a34a]"}`}>
               {m.icon}
             </div>
-            <p className={`text-2xl font-black ${m.accent ? "text-orange-600" : "text-[#0f172a]"}`}>{m.value}</p>
-            <p className="text-[11px] font-medium text-[#64748b] mt-0.5">{m.label}</p>
+            <p className={`text-2xl font-black ${m.accent ? "text-orange-600" : "text-content"}`}>{m.value}</p>
+            <p className="text-[11px] font-medium text-muted mt-0.5">{m.label}</p>
           </div>
         ))}
       </div>
@@ -1225,14 +1225,14 @@ function PainelTab({ orders, products, store }: { orders: Order[]; products: Sto
       <MiniBarChart orders={orders} />
 
       {/* Status da loja */}
-      <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm flex items-center justify-between">
+      <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Status da loja</p>
-          <p className="mt-0.5 font-black text-[#0f172a]">{store.name}</p>
-          <p className="text-xs text-[#64748b]">{products.length} produto{products.length !== 1 ? "s" : ""} · {store.category}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint">Status da loja</p>
+          <p className="mt-0.5 font-black text-content">{store.name}</p>
+          <p className="text-xs text-muted">{products.length} produto{products.length !== 1 ? "s" : ""} · {store.category}</p>
         </div>
-        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black ${store.isOpen ? "bg-green-50 text-green-700" : "bg-[#f1f5f9] text-[#64748b]"}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-500" : "bg-[#94a3b8]"}`} />
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-black ${store.isOpen ? "bg-green-50 text-green-700" : "bg-subtle-2 text-muted"}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-500" : "bg-faint"}`} />
           {store.isOpen ? "Aberta" : "Fechada"}
         </span>
       </div>
@@ -1262,19 +1262,19 @@ function PainelTab({ orders, products, store }: { orders: Order[]; products: Sto
       {/* Últimos pedidos */}
       {orders.length > 0 && (
         <div>
-          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Últimos pedidos</p>
+          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-faint">Últimos pedidos</p>
           <div className="space-y-2">
             {orders.slice(0, 5).map((o) => {
               const cfg    = STATUS_CFG[o.status as keyof typeof STATUS_CFG] ?? STATUS_CFG[0];
               const urgent = isUrgentOrder(o);
               return (
-                <div key={o.id} className={`flex items-center justify-between rounded-xl border p-3 ${urgent ? "border-orange-200 bg-orange-50" : "border-[#e8eaf0] bg-white"}`}>
+                <div key={o.id} className={`flex items-center justify-between rounded-xl border p-3 ${urgent ? "border-orange-200 bg-orange-50" : "border-line-subtle bg-surface"}`}>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-black text-[#0f172a]">#{o.id.slice(0, 8).toUpperCase()}</p>
+                      <p className="text-xs font-black text-content">#{o.id.slice(0, 8).toUpperCase()}</p>
                       {urgent && <span className="text-[9px] font-black text-orange-600 bg-orange-100 rounded-full px-1.5 py-0.5">URGENTE</span>}
                     </div>
-                    <p className="text-[11px] text-[#64748b]">{o.customerName} · {formatBRL(o.total)} · {timeAgo(o.createdAt)}</p>
+                    <p className="text-[11px] text-muted">{o.customerName} · {formatBRL(o.total)} · {timeAgo(o.createdAt)}</p>
                   </div>
                   <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
@@ -1288,10 +1288,10 @@ function PainelTab({ orders, products, store }: { orders: Order[]; products: Sto
       )}
 
       {orders.length === 0 && (
-        <div className="rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-10 text-center">
+        <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-10 text-center">
           <ClipboardList size={32} className="mx-auto text-[#cbd5e1]" />
-          <p className="mt-3 font-black text-[#0f172a]">Nenhum pedido ainda</p>
-          <p className="mt-1 text-sm text-[#64748b]">Quando os clientes fizerem pedidos, eles aparecerão aqui.</p>
+          <p className="mt-3 font-black text-content">Nenhum pedido ainda</p>
+          <p className="mt-1 text-sm text-muted">Quando os clientes fizerem pedidos, eles aparecerão aqui.</p>
         </div>
       )}
     </div>
@@ -1401,7 +1401,7 @@ function PedidosTab({
             className={`relative shrink-0 rounded-xl px-4 py-2 text-xs font-black transition-colors ${
               filter === f.key
                 ? "bg-[#0f172a] text-white"
-                : "border border-[#e2e8f0] bg-white text-[#64748b]"
+                : "border border-line bg-surface text-muted"
             }`}
           >
             {f.label}
@@ -1414,7 +1414,7 @@ function PedidosTab({
         ))}
         <button
           onClick={onRefetch}
-          className="shrink-0 flex items-center gap-1 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-[#64748b] hover:text-[#16a34a]"
+          className="shrink-0 flex items-center gap-1 rounded-xl border border-line bg-surface px-3 py-2 text-muted hover:text-[#16a34a]"
         >
           <RefreshCw size={13} />
         </button>
@@ -1422,9 +1422,9 @@ function PedidosTab({
 
       {/* Lista */}
       {filtered.length === 0 ? (
-        <div className="rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-12 text-center">
+        <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-12 text-center">
           <ClipboardList size={32} className="mx-auto text-[#cbd5e1]" />
-          <p className="mt-3 font-black text-[#0f172a]">
+          <p className="mt-3 font-black text-content">
             {filter === "all" ? "Nenhum pedido ainda" : "Nenhum pedido nesta categoria"}
           </p>
         </div>
@@ -1439,7 +1439,7 @@ function PedidosTab({
 
             const urgent = isUrgentOrder(order);
             return (
-              <div key={order.id} className={`overflow-hidden rounded-3xl border bg-white shadow-sm transition-all ${urgent ? "border-orange-300 shadow-orange-100" : "border-[#e8eaf0]"}`}>
+              <div key={order.id} className={`overflow-hidden rounded-3xl border bg-surface shadow-sm transition-all ${urgent ? "border-orange-300 shadow-orange-100" : "border-line-subtle"}`}>
                 {/* Linha compacta (sempre visível) */}
                 <div
                   className="flex cursor-pointer items-center gap-3 p-4"
@@ -1451,7 +1451,7 @@ function PedidosTab({
                   {/* Info principal */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-black text-[#0f172a]">
+                      <p className="text-sm font-black text-content">
                         #{order.id.slice(0, 8).toUpperCase()}
                       </p>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${cfg.bg} ${cfg.text}`}>
@@ -1463,50 +1463,50 @@ function PedidosTab({
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-xs text-[#64748b] truncate">
+                    <p className="mt-0.5 text-xs text-muted truncate">
                       {order.customerName} · {order.items.length} {order.items.length === 1 ? "item" : "itens"} · {timeAgo(order.createdAt)}
                     </p>
                   </div>
 
                   {/* Total + chevron */}
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-sm font-black text-[#0f172a]">{formatBRL(order.total)}</span>
-                    {isExpanded ? <ChevronUp size={15} className="text-[#94a3b8]" /> : <ChevronDown size={15} className="text-[#94a3b8]" />}
+                    <span className="text-sm font-black text-content">{formatBRL(order.total)}</span>
+                    {isExpanded ? <ChevronUp size={15} className="text-faint" /> : <ChevronDown size={15} className="text-faint" />}
                   </div>
                 </div>
 
                 {/* Detalhes expandidos */}
                 {isExpanded && (
-                  <div className="border-t border-[#f1f5f9] bg-[#f8fafc] p-4 space-y-4">
+                  <div className="border-t border-subtle-2 bg-subtle p-4 space-y-4">
                     {/* Itens do pedido */}
                     <div>
-                      <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Itens</p>
+                      <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-faint">Itens</p>
                       <div className="space-y-1.5">
                         {order.items.map((item) => (
                           <div key={item.id} className="flex justify-between">
-                            <span className="text-xs text-[#0f172a]">{item.quantity}× {item.productName}</span>
-                            <span className="text-xs font-bold text-[#0f172a]">{formatBRL(item.totalPrice)}</span>
+                            <span className="text-xs text-content">{item.quantity}× {item.productName}</span>
+                            <span className="text-xs font-bold text-content">{formatBRL(item.totalPrice)}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
                     {/* Valores */}
-                    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-3 space-y-1">
-                      <div className="flex justify-between text-xs text-[#64748b]">
+                    <div className="rounded-2xl border border-line bg-surface p-3 space-y-1">
+                      <div className="flex justify-between text-xs text-muted">
                         <span>Subtotal</span><span>{formatBRL(order.subtotal)}</span>
                       </div>
-                      <div className="flex justify-between text-xs text-[#64748b]">
+                      <div className="flex justify-between text-xs text-muted">
                         <span>Entrega</span><span>{order.deliveryFee === 0 ? "Grátis" : formatBRL(order.deliveryFee)}</span>
                       </div>
-                      <div className="flex justify-between text-sm font-black text-[#0f172a] border-t border-[#f1f5f9] pt-1">
+                      <div className="flex justify-between text-sm font-black text-content border-t border-subtle-2 pt-1">
                         <span>Total</span><span>{formatBRL(order.total)}</span>
                       </div>
                     </div>
 
                     {/* Cliente + endereço */}
                     <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs text-[#64748b]">
+                      <div className="flex items-center gap-2 text-xs text-muted">
                         <Phone size={12} />
                         <span>{order.customerName} — {order.customerPhone}</span>
                         {whatsappUrl(order.customerPhone, order.id) && (
@@ -1521,14 +1521,14 @@ function PedidosTab({
                           </a>
                         )}
                       </div>
-                      <div className="flex items-start gap-2 text-xs text-[#64748b]">
+                      <div className="flex items-start gap-2 text-xs text-muted">
                         <MapPin size={12} className="mt-0.5 shrink-0" />
                         <span>
                           {order.deliveryAddress}, {order.deliveryNumber}
                           {order.deliveryComplement ? ` — ${order.deliveryComplement}` : ""} · {order.deliveryNeighborhood}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-[#64748b]">
+                      <div className="flex items-center gap-2 text-xs text-muted">
                         <CreditCard size={12} />
                         <span className="capitalize">{order.paymentMethod}</span>
                         <span className={`font-bold ${paymentCfg.color}`}>{paymentCfg.label}</span>
@@ -1536,7 +1536,7 @@ function PedidosTab({
                     </div>
 
                     {/* Data */}
-                    <p className="text-[10px] text-[#94a3b8]">
+                    <p className="text-[10px] text-faint">
                       Pedido em {new Date(order.createdAt).toLocaleString("pt-BR")}
                     </p>
 
@@ -1689,14 +1689,14 @@ export default function SellerPage() {
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-xl font-black text-[#0f172a] truncate">
+          <h1 className="text-xl font-black text-content truncate">
             {store ? store.name : "Minha loja"}
           </h1>
         </div>
         {store && activeTab === "loja" && (
           <button
             onClick={() => setShowStoreForm((v) => !v)}
-            className="flex items-center gap-2 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-sm font-black text-[#0f172a]"
+            className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm font-black text-content"
           >
             <Pencil size={14} />
             {showStoreForm ? "Fechar" : "Editar"}
@@ -1713,15 +1713,15 @@ export default function SellerPage() {
       {store && (
         <>
           {/* Tab navigation */}
-          <div className="flex gap-1 rounded-2xl border border-[#e8eaf0] bg-[#f8fafc] p-1">
+          <div className="flex gap-1 rounded-2xl border border-line-subtle bg-subtle p-1">
             {tabs.map((t) => (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
                 className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-black transition-all ${
                   activeTab === t.key
-                    ? "bg-white text-[#0f172a] shadow-sm"
-                    : "text-[#64748b] hover:text-[#0f172a]"
+                    ? "bg-surface text-content shadow-sm"
+                    : "text-muted hover:text-content"
                 }`}
               >
                 {t.icon}
@@ -1753,7 +1753,7 @@ export default function SellerPage() {
           {activeTab === "produtos" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-black text-[#0f172a]">
+                <p className="text-sm font-black text-content">
                   {products.length} produto{products.length !== 1 ? "s" : ""}
                 </p>
                 <button
@@ -1770,10 +1770,10 @@ export default function SellerPage() {
                   <Loader2 size={24} className="animate-spin text-[#16a34a]" />
                 </div>
               ) : products.length === 0 ? (
-                <div className="rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-16 text-center">
+                <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-16 text-center">
                   <Package size={40} className="mx-auto text-[#cbd5e1]" />
-                  <p className="mt-4 font-black text-[#0f172a]">Nenhum produto ainda</p>
-                  <p className="mt-1 text-sm text-[#64748b]">Adicione seu primeiro produto para começar a vender.</p>
+                  <p className="mt-4 font-black text-content">Nenhum produto ainda</p>
+                  <p className="mt-1 text-sm text-muted">Adicione seu primeiro produto para começar a vender.</p>
                   <button
                     onClick={() => setProductModal({ open: true, product: null })}
                     className="mt-5 inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white"
@@ -1785,9 +1785,9 @@ export default function SellerPage() {
               ) : (
                 <div className="space-y-3">
                   {products.map((p) => (
-                    <div key={p.id} className="overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
+                    <div key={p.id} className="overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm">
                       <div className="flex items-center gap-4 p-4">
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[#f8fafc]">
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-subtle">
                           {p.imageUrl
                             ? <img src={p.imageUrl} alt={p.name} className="h-full w-full object-contain p-1" />
                             : <div className="flex h-full w-full items-center justify-center"><ImageIcon size={20} className="text-[#cbd5e1]" /></div>
@@ -1795,25 +1795,25 @@ export default function SellerPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="truncate font-black text-[#0f172a] text-sm">{p.name}</h3>
+                            <h3 className="truncate font-black text-content text-sm">{p.name}</h3>
                             {p.featured && (
                               <span className="shrink-0 rounded-full bg-[#fffbeb] border border-[#f59e0b]/30 px-2 py-0.5 text-[9px] font-bold text-[#b45309]">⭐ Destaque</span>
                             )}
                             {!p.available && (
-                              <span className="shrink-0 rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[9px] font-bold uppercase text-[#94a3b8]">Inativo</span>
+                              <span className="shrink-0 rounded-full bg-subtle-2 px-2 py-0.5 text-[9px] font-bold uppercase text-faint">Inativo</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[#94a3b8]">{p.category}{p.brand ? ` · ${p.brand}` : ""}</p>
+                          <p className="text-[10px] text-faint">{p.category}{p.brand ? ` · ${p.brand}` : ""}</p>
                           <div className="mt-1 flex items-center gap-2">
                             {p.promotionalPrice ? (
                               <>
-                                <span className="text-[10px] text-[#94a3b8] line-through">{formatBRL(p.price)}</span>
+                                <span className="text-[10px] text-faint line-through">{formatBRL(p.price)}</span>
                                 <span className="text-sm font-black text-[#16a34a]">{formatBRL(p.promotionalPrice)}</span>
                               </>
                             ) : (
                               <span className="text-sm font-black text-[#16a34a]">{formatBRL(p.price)}</span>
                             )}
-                            <span className="text-[10px] text-[#94a3b8]">· estoque: {p.stock}</span>
+                            <span className="text-[10px] text-faint">· estoque: {p.stock}</span>
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
@@ -1824,17 +1824,17 @@ export default function SellerPage() {
                           >
                             {p.available ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
                           </button>
-                          <button onClick={() => setProductModal({ open: true, product: p })} className="rounded-xl p-2 text-[#64748b] hover:bg-[#f1f5f9]">
+                          <button onClick={() => setProductModal({ open: true, product: p })} className="rounded-xl p-2 text-muted hover:bg-subtle-2">
                             <Pencil size={15} />
                           </button>
-                          <button onClick={() => setExpandedProduct(expandedProduct === p.id ? null : p.id)} className="rounded-xl p-2 text-[#64748b] hover:bg-[#f1f5f9]">
+                          <button onClick={() => setExpandedProduct(expandedProduct === p.id ? null : p.id)} className="rounded-xl p-2 text-muted hover:bg-subtle-2">
                             {expandedProduct === p.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                           </button>
                         </div>
                       </div>
                       {expandedProduct === p.id && (
-                        <div className="border-t border-[#f1f5f9] bg-[#f8fafc] px-4 pb-4 pt-3">
-                          {p.description && <p className="mb-3 text-sm text-[#64748b]">{p.description}</p>}
+                        <div className="border-t border-subtle-2 bg-subtle px-4 pb-4 pt-3">
+                          {p.description && <p className="mb-3 text-sm text-muted">{p.description}</p>}
                           <button
                             onClick={() => handleDeleteProduct(p.id)}
                             disabled={deletingId === p.id}
@@ -1870,16 +1870,16 @@ export default function SellerPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h2 className="truncate text-lg font-black text-white">{store.name}</h2>
-                      <p className="text-sm text-[#94a3b8]">{store.category}</p>
+                      <p className="text-sm text-faint">{store.category}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${store.isOpen ? "bg-green-900/40 text-green-400" : "bg-white/10 text-[#94a3b8]"}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${store.isOpen ? "bg-green-900/40 text-green-400" : "bg-white/10 text-faint"}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-faint"}`} />
                           {store.isOpen ? "Aberta" : "Fechada"}
                         </span>
-                        <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#94a3b8]">
+                        <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-faint">
                           {products.length} produto{products.length !== 1 ? "s" : ""}
                         </span>
-                        <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-[#94a3b8]">
+                        <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-bold text-faint">
                           {store.deliveryFee === 0 ? "Entrega grátis" : `Entrega ${formatBRL(store.deliveryFee)}`}
                         </span>
                       </div>
@@ -1922,5 +1922,5 @@ export default function SellerPage() {
 }
 
 // ── CSS ────────────────────────────────────────────────────────
-const inp = "w-full rounded-xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
-const lbl = "mb-1.5 block text-[10px] font-black uppercase tracking-wide text-[#94a3b8]";
+const inp = "w-full rounded-xl bg-subtle border border-line px-4 py-3 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
+const lbl = "mb-1.5 block text-[10px] font-black uppercase tracking-wide text-faint";

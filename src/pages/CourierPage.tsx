@@ -43,20 +43,20 @@ function AvailableCard({
   delivery, onAccept, loading,
 }: { delivery: AvailableDelivery; onAccept: () => void; loading: boolean }) {
   return (
-    <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+    <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
       {/* Cabeçalho da loja */}
-      <div className="flex items-center gap-3 border-b border-[#f1f5f9] p-4">
+      <div className="flex items-center gap-3 border-b border-subtle-2 p-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#16a34a]/10">
           <Package size={18} className="text-[#16a34a]" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Retirar em</p>
-          <p className="truncate font-black text-[#0f172a]">{delivery.storeName}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint">Retirar em</p>
+          <p className="truncate font-black text-content">{delivery.storeName}</p>
           {delivery.storeAddress && (
-            <p className="truncate text-xs text-[#64748b]">{delivery.storeAddress}</p>
+            <p className="truncate text-xs text-muted">{delivery.storeAddress}</p>
           )}
         </div>
-        <span className="shrink-0 text-[10px] font-bold text-[#94a3b8]">{timeAgo(delivery.createdAt)}</span>
+        <span className="shrink-0 text-[10px] font-bold text-faint">{timeAgo(delivery.createdAt)}</span>
       </div>
 
       {/* Endereço de entrega */}
@@ -65,28 +65,28 @@ function AvailableCard({
           <MapPin size={18} className="text-[#2563eb]" />
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Entregar em</p>
-          <p className="font-black text-[#0f172a]">
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint">Entregar em</p>
+          <p className="font-black text-content">
             {delivery.deliveryAddress}, {delivery.deliveryNumber}
           </p>
-          <p className="text-xs text-[#64748b]">{delivery.deliveryNeighborhood}</p>
+          <p className="text-xs text-muted">{delivery.deliveryNeighborhood}</p>
         </div>
       </div>
 
       {/* Resumo financeiro */}
-      <div className="flex items-center justify-between border-t border-[#f1f5f9] bg-[#f8fafc] px-4 py-3">
+      <div className="flex items-center justify-between border-t border-subtle-2 bg-subtle px-4 py-3">
         <div>
-          <p className="text-xs text-[#64748b]">Pedido</p>
-          <p className="text-sm font-black text-[#0f172a]">{formatBRL(delivery.total)}</p>
+          <p className="text-xs text-muted">Pedido</p>
+          <p className="text-sm font-black text-content">{formatBRL(delivery.total)}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-[#64748b]">Taxa entrega</p>
-          <p className="text-sm font-black text-[#0f172a]">
+          <p className="text-xs text-muted">Taxa entrega</p>
+          <p className="text-sm font-black text-content">
             {delivery.deliveryFee === 0 ? "—" : formatBRL(delivery.deliveryFee)}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-[#64748b]">Seus ganhos (90%)</p>
+          <p className="text-xs text-muted">Seus ganhos (90%)</p>
           <p className="text-base font-black text-[#16a34a]">{formatBRL(delivery.courierEarnings)}</p>
         </div>
       </div>
@@ -128,19 +128,19 @@ function ActiveDeliveryPanel({
   return (
     <div className="space-y-4">
       {/* Progress stepper */}
-      <div className="flex items-center justify-between rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
         {statusSteps.map((step, i) => (
           <div key={step.key} className="flex flex-1 items-center">
             <div className="flex flex-col items-center gap-1">
               <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors ${
-                step.done ? "border-[#16a34a] bg-[#16a34a]" : "border-[#e2e8f0] bg-white"
+                step.done ? "border-[#16a34a] bg-[#16a34a]" : "border-line bg-surface"
               }`}>
                 {step.done
                   ? <CheckCircle2 size={16} className="text-white" />
-                  : <span className="text-[10px] font-black text-[#94a3b8]">{i + 1}</span>
+                  : <span className="text-[10px] font-black text-faint">{i + 1}</span>
                 }
               </div>
-              <p className={`text-[10px] font-black ${step.done ? "text-[#16a34a]" : "text-[#94a3b8]"}`}>
+              <p className={`text-[10px] font-black ${step.done ? "text-[#16a34a]" : "text-faint"}`}>
                 {step.label}
               </p>
             </div>
@@ -154,26 +154,26 @@ function ActiveDeliveryPanel({
       {order && (
         <>
           {/* Retirada (loja) */}
-          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm space-y-3">
+          <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2">
               <Package size={15} className="text-[#16a34a]" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Retirar na loja</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-faint">Retirar na loja</p>
             </div>
             <div>
-              <p className="font-black text-[#0f172a]">{order.storeName ?? "Loja"}</p>
-              {order.storeAddress && <p className="text-xs text-[#64748b]">{order.storeAddress}</p>}
+              <p className="font-black text-content">{order.storeName ?? "Loja"}</p>
+              {order.storeAddress && <p className="text-xs text-muted">{order.storeAddress}</p>}
             </div>
 
             {/* Itens do pedido */}
-            <div className="rounded-2xl bg-[#f8fafc] p-3 space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8] mb-2">Itens do pedido</p>
+            <div className="rounded-2xl bg-subtle p-3 space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-faint mb-2">Itens do pedido</p>
               {order.items.map((item) => (
                 <div key={item.id} className="flex justify-between text-xs">
-                  <span className="text-[#0f172a]">{item.quantity}× {item.productName}</span>
-                  <span className="font-bold text-[#0f172a]">{formatBRL(item.totalPrice)}</span>
+                  <span className="text-content">{item.quantity}× {item.productName}</span>
+                  <span className="font-bold text-content">{formatBRL(item.totalPrice)}</span>
                 </div>
               ))}
-              <div className="mt-2 flex justify-between border-t border-[#e2e8f0] pt-2 text-xs font-black text-[#0f172a]">
+              <div className="mt-2 flex justify-between border-t border-line pt-2 text-xs font-black text-content">
                 <span>Total</span>
                 <span>{formatBRL(order.total)}</span>
               </div>
@@ -191,26 +191,26 @@ function ActiveDeliveryPanel({
           </div>
 
           {/* Entrega (cliente) */}
-          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm space-y-3">
+          <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm space-y-3">
             <div className="flex items-center gap-2">
               <MapPin size={15} className="text-[#2563eb]" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Entregar ao cliente</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-faint">Entregar ao cliente</p>
             </div>
             <div>
-              <p className="font-black text-[#0f172a]">
+              <p className="font-black text-content">
                 {order.deliveryAddress}, {order.deliveryNumber}
                 {order.deliveryComplement ? ` — ${order.deliveryComplement}` : ""}
               </p>
-              <p className="text-sm text-[#64748b]">{order.deliveryNeighborhood}</p>
+              <p className="text-sm text-muted">{order.deliveryNeighborhood}</p>
             </div>
 
-            <div className="flex items-center gap-2 rounded-2xl bg-[#f8fafc] px-3 py-2.5">
+            <div className="flex items-center gap-2 rounded-2xl bg-subtle px-3 py-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#16a34a]/10">
                 <span className="text-sm">👤</span>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-black text-[#0f172a]">{order.customerName}</p>
-                <p className="text-xs text-[#64748b]">{order.customerPhone}</p>
+                <p className="text-sm font-black text-content">{order.customerName}</p>
+                <p className="text-xs text-muted">{order.customerPhone}</p>
               </div>
               <a
                 href={`tel:${order.customerPhone.replace(/\D/g, "")}`}
@@ -228,9 +228,9 @@ function ActiveDeliveryPanel({
               >
                 <Navigation size={15} /> Navegar
               </a>
-              <div className="flex items-center justify-center gap-2 rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-3 py-2.5">
+              <div className="flex items-center justify-center gap-2 rounded-2xl bg-subtle border border-line px-3 py-2.5">
                 <p className="text-xs font-black text-[#16a34a]">+{formatBRL(delivery.earnings)}</p>
-                <p className="text-[10px] text-[#94a3b8]">seus ganhos</p>
+                <p className="text-[10px] text-faint">seus ganhos</p>
               </div>
             </div>
           </div>
@@ -407,7 +407,7 @@ export default function CourierPage() {
         </button>
         <div className="flex-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-xl font-black text-[#0f172a]">Painel do Entregador</h1>
+          <h1 className="text-xl font-black text-content">Painel do Entregador</h1>
         </div>
         {/* Online/Offline toggle */}
         <button
@@ -415,22 +415,22 @@ export default function CourierPage() {
           className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black transition-all ${
             isOnline
               ? "bg-[#16a34a] text-white shadow-lg shadow-[#16a34a]/30"
-              : "border border-[#e2e8f0] bg-white text-[#64748b]"
+              : "border border-line bg-surface text-muted"
           }`}
         >
-          <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-white animate-pulse" : "bg-[#94a3b8]"}`} />
+          <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-surface animate-pulse" : "bg-faint"}`} />
           {isOnline ? "Online" : "Offline"}
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-2xl border border-[#e8eaf0] bg-[#f8fafc] p-1">
+      <div className="flex gap-1 rounded-2xl border border-line-subtle bg-subtle p-1">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setActiveTab(t.key)}
             className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-black transition-all ${
-              activeTab === t.key ? "bg-white text-[#0f172a] shadow-sm" : "text-[#64748b]"
+              activeTab === t.key ? "bg-surface text-content shadow-sm" : "text-muted"
             }`}
           >
             {t.icon}
@@ -448,13 +448,13 @@ export default function CourierPage() {
       {activeTab === "available" && (
         <div className="space-y-4">
           {!isOnline ? (
-            <div className="flex flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#f1f5f9]">
-                <Bike size={28} className="text-[#94a3b8]" />
+            <div className="flex flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-line bg-surface p-12 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-subtle-2">
+                <Bike size={28} className="text-faint" />
               </div>
               <div>
-                <p className="font-black text-[#0f172a]">Você está offline</p>
-                <p className="mt-1 text-sm text-[#64748b]">Ative o modo online para receber entregas.</p>
+                <p className="font-black text-content">Você está offline</p>
+                <p className="mt-1 text-sm text-muted">Ative o modo online para receber entregas.</p>
               </div>
               <button
                 onClick={() => setIsOnline(true)}
@@ -468,17 +468,17 @@ export default function CourierPage() {
               <Loader2 size={28} className="animate-spin text-[#16a34a]" />
             </div>
           ) : available.length === 0 ? (
-            <div className="flex flex-col items-center gap-4 rounded-3xl border border-[#e8eaf0] bg-white p-12 text-center shadow-sm">
+            <div className="flex flex-col items-center gap-4 rounded-3xl border border-line-subtle bg-surface p-12 text-center shadow-sm">
               <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#f0fdf4]">
                 <Clock3 size={28} className="text-[#16a34a]" />
               </div>
               <div>
-                <p className="font-black text-[#0f172a]">Nenhuma entrega disponível</p>
-                <p className="mt-1 text-sm text-[#64748b]">Aguarde — novos pedidos aparecem aqui automaticamente.</p>
+                <p className="font-black text-content">Nenhuma entrega disponível</p>
+                <p className="mt-1 text-sm text-muted">Aguarde — novos pedidos aparecem aqui automaticamente.</p>
               </div>
               <button
                 onClick={() => refetchAvailable()}
-                className="flex items-center gap-2 rounded-xl border border-[#e2e8f0] bg-white px-4 py-2 text-sm font-bold text-[#64748b]"
+                className="flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-bold text-muted"
               >
                 <RefreshCw size={14} /> Atualizar
               </button>
@@ -486,7 +486,7 @@ export default function CourierPage() {
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-[#64748b]">
+                <p className="text-sm font-bold text-muted">
                   {available.length} entrega{available.length !== 1 ? "s" : ""} disponível
                   {available.length !== 1 ? "ais" : ""}
                 </p>
@@ -511,13 +511,13 @@ export default function CourierPage() {
       {activeTab === "active" && (
         <div className="space-y-4">
           {!activeDelivery ? (
-            <div className="flex flex-col items-center gap-4 rounded-3xl border border-[#e8eaf0] bg-white p-12 text-center shadow-sm">
+            <div className="flex flex-col items-center gap-4 rounded-3xl border border-line-subtle bg-surface p-12 text-center shadow-sm">
               <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#f0fdf4]">
                 <Navigation size={28} className="text-[#16a34a]" />
               </div>
               <div>
-                <p className="font-black text-[#0f172a]">Nenhuma entrega ativa</p>
-                <p className="mt-1 text-sm text-[#64748b]">Aceite uma entrega na aba "Disponíveis".</p>
+                <p className="font-black text-content">Nenhuma entrega ativa</p>
+                <p className="mt-1 text-sm text-muted">Aceite uma entrega na aba "Disponíveis".</p>
               </div>
               <button
                 onClick={() => setActiveTab("available")}
@@ -547,10 +547,10 @@ export default function CourierPage() {
               { label: "7 dias",      value: formatBRL(earnings?.weekTotal    ?? 0), icon: "📅" },
               { label: "Total geral", value: formatBRL(earnings?.allTimeTotal ?? 0), icon: "💰" },
             ].map((m) => (
-              <div key={m.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-3 text-center shadow-sm">
+              <div key={m.label} className="rounded-2xl border border-line-subtle bg-surface p-3 text-center shadow-sm">
                 <p className="text-lg">{m.icon}</p>
-                <p className="mt-1 text-base font-black text-[#0f172a]">{m.value}</p>
-                <p className="text-[10px] text-[#94a3b8]">{m.label}</p>
+                <p className="mt-1 text-base font-black text-content">{m.value}</p>
+                <p className="text-[10px] text-faint">{m.label}</p>
               </div>
             ))}
           </div>
@@ -558,21 +558,21 @@ export default function CourierPage() {
           {/* Histórico de entregas */}
           {historyDeliveries.length > 0 && (
             <div>
-              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-faint">
                 Histórico de entregas
               </p>
               <div className="space-y-2">
                 {historyDeliveries.slice(0, 10).map((d) => (
-                  <div key={d.id} className="flex items-center justify-between rounded-2xl border border-[#e8eaf0] bg-white p-3">
+                  <div key={d.id} className="flex items-center justify-between rounded-2xl border border-line-subtle bg-surface p-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-green-50">
                         <CheckCircle2 size={16} className="text-green-600" />
                       </div>
                       <div>
-                        <p className="text-xs font-black text-[#0f172a]">
+                        <p className="text-xs font-black text-content">
                           #{d.orderId.slice(0, 8).toUpperCase()}
                         </p>
-                        <p className="text-[10px] text-[#94a3b8]">{timeAgo(d.deliveredAt ?? d.createdAt)}</p>
+                        <p className="text-[10px] text-faint">{timeAgo(d.deliveredAt ?? d.createdAt)}</p>
                       </div>
                     </div>
                     <p className="text-sm font-black text-[#16a34a]">+{formatBRL(d.earnings)}</p>
@@ -583,10 +583,10 @@ export default function CourierPage() {
           )}
 
           {/* Solicitar saque */}
-          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm space-y-4">
+          <div className="rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm space-y-4">
             <div className="flex items-center gap-2">
               <TrendingUp size={16} className="text-[#16a34a]" />
-              <h2 className="font-black text-[#0f172a]">Solicitar saque Pix</h2>
+              <h2 className="font-black text-content">Solicitar saque Pix</h2>
             </div>
 
             <div>
@@ -628,15 +628,15 @@ export default function CourierPage() {
           {/* Histórico de saques */}
           {withdrawals.length > 0 && (
             <div>
-              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-faint">
                 Saques solicitados
               </p>
               <div className="space-y-2">
                 {withdrawals.map((w) => (
-                  <div key={w.id} className="flex items-center justify-between rounded-2xl border border-[#e8eaf0] bg-white p-3">
+                  <div key={w.id} className="flex items-center justify-between rounded-2xl border border-line-subtle bg-surface p-3">
                     <div>
-                      <p className="text-xs font-black text-[#0f172a]">{formatBRL(w.amount)}</p>
-                      <p className="text-[10px] text-[#94a3b8]">{w.pixKey} · {timeAgo(w.createdAt)}</p>
+                      <p className="text-xs font-black text-content">{formatBRL(w.amount)}</p>
+                      <p className="text-[10px] text-faint">{w.pixKey} · {timeAgo(w.createdAt)}</p>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
                       w.status === "PAID"     ? "bg-green-50 text-green-700" :
@@ -652,10 +652,10 @@ export default function CourierPage() {
           )}
 
           {earnings?.deliveriesCount === 0 && (
-            <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-10 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-line bg-surface p-10 text-center">
               <AlertCircle size={28} className="text-[#cbd5e1]" />
-              <p className="font-black text-[#0f172a]">Nenhuma entrega concluída ainda</p>
-              <p className="text-sm text-[#64748b]">Complete entregas para ver seus ganhos aqui.</p>
+              <p className="font-black text-content">Nenhuma entrega concluída ainda</p>
+              <p className="text-sm text-muted">Complete entregas para ver seus ganhos aqui.</p>
             </div>
           )}
         </div>
@@ -664,5 +664,5 @@ export default function CourierPage() {
   );
 }
 
-const inp = "w-full rounded-xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
-const lbl = "mb-1.5 block text-[10px] font-black uppercase tracking-wide text-[#94a3b8]";
+const inp = "w-full rounded-xl bg-subtle border border-line px-4 py-3 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
+const lbl = "mb-1.5 block text-[10px] font-black uppercase tracking-wide text-faint";

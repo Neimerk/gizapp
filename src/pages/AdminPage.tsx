@@ -70,7 +70,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
   }
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-[#f7f9fc]">
+    <div className="min-h-screen overflow-x-clip bg-canvas">
       {/* Header */}
       <header
         className="sticky top-0 z-50"
@@ -85,7 +85,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/")}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] hover:text-[#0f172a]"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface text-muted hover:text-content"
             >
               <ArrowLeft size={17} />
             </button>
@@ -97,18 +97,18 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-[#002776]">BrasUX</p>
-              <h1 className="text-base font-black leading-tight text-[#0f172a]">Painel Admin</h1>
+              <h1 className="text-base font-black leading-tight text-content">Painel Admin</h1>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-black text-[#0f172a]">{auth.name}</p>
-              <p className="text-[10px] text-[#64748b]">{auth.email}</p>
+              <p className="text-sm font-black text-content">{auth.name}</p>
+              <p className="text-[10px] text-muted">{auth.email}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-bold text-[#64748b] hover:text-red-500"
+              className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-xs font-bold text-muted hover:text-red-500"
             >
               <LogOut size={14} /> Sair
             </button>
@@ -134,7 +134,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
               className={`shrink-0 border-b-2 px-4 py-2.5 text-xs font-black uppercase tracking-wide transition-colors ${
                 tab === t.key
                   ? "border-[#002776] text-[#002776]"
-                  : "border-transparent text-[#64748b] hover:text-[#0f172a]"
+                  : "border-transparent text-muted hover:text-content"
               }`}
             >
               {t.label}
@@ -198,20 +198,20 @@ function OverviewTab() {
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-3xl border border-[#e8eaf0] bg-white p-6 shadow-sm">
+          <div key={s.label} className="rounded-3xl border border-line-subtle bg-surface p-6 shadow-sm">
             <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl ${s.color}`}>
               {s.icon}
             </div>
-            <p className="text-3xl font-black text-[#0f172a]">{s.value}</p>
-            <p className="mt-0.5 text-sm font-bold text-[#0f172a]">{s.label}</p>
-            <p className="text-xs text-[#94a3b8]">{s.sub}</p>
+            <p className="text-3xl font-black text-content">{s.value}</p>
+            <p className="mt-0.5 text-sm font-bold text-content">{s.label}</p>
+            <p className="text-xs text-faint">{s.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Role breakdown */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-black uppercase tracking-wide text-[#64748b]">Distribuição por perfil</h2>
+      <div className="rounded-3xl border border-line-subtle bg-surface p-6 shadow-sm">
+        <h2 className="mb-4 text-sm font-black uppercase tracking-wide text-muted">Distribuição por perfil</h2>
         <div className="space-y-3">
           {(["Admin", "Seller", "Customer", "Courier"] as const).map((role) => {
             const count = users.filter((u) => u.role === role).length;
@@ -221,7 +221,7 @@ function OverviewTab() {
                 <span className={`w-20 shrink-0 rounded-full border px-2 py-0.5 text-center text-[10px] font-black ${ROLE_COLOR[role]}`}>
                   {ROLE_LABEL[role]}
                 </span>
-                <div className="flex-1 overflow-hidden rounded-full bg-[#f1f5f9]">
+                <div className="flex-1 overflow-hidden rounded-full bg-subtle-2">
                   <div
                     className="h-2 rounded-full transition-all"
                     style={{
@@ -230,7 +230,7 @@ function OverviewTab() {
                     }}
                   />
                 </div>
-                <span className="w-8 text-right text-xs font-black text-[#0f172a]">{count}</span>
+                <span className="w-8 text-right text-xs font-black text-content">{count}</span>
               </div>
             );
           })}
@@ -238,9 +238,9 @@ function OverviewTab() {
       </div>
 
       {/* Last registered users */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-black uppercase tracking-wide text-[#64748b]">Últimos cadastros</h2>
-        <div className="divide-y divide-[#f1f5f9]">
+      <div className="rounded-3xl border border-line-subtle bg-surface p-6 shadow-sm">
+        <h2 className="mb-4 text-sm font-black uppercase tracking-wide text-muted">Últimos cadastros</h2>
+        <div className="divide-y divide-subtle-2">
           {[...users].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8).map((u) => (
             <div key={u.id} className="flex items-center gap-3 py-3">
               <div
@@ -250,8 +250,8 @@ function OverviewTab() {
                 {u.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-[#0f172a]">{u.name}</p>
-                <p className="truncate text-xs text-[#64748b]">{u.email}</p>
+                <p className="truncate text-sm font-black text-content">{u.name}</p>
+                <p className="truncate text-xs text-muted">{u.email}</p>
               </div>
               <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${ROLE_COLOR[u.role]}`}>
                 {ROLE_LABEL[u.role]}
@@ -322,83 +322,83 @@ function OrdersTab() {
           { label: "Entregues", value: orders.filter((o) => o.status === 4).length, color: "#16a34a" },
           { label: "GMV", value: formatBRL(gmv), color: "#7c3aed" },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div key={s.label} className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
             <p className="text-xl font-black" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-xs text-[#64748b]">{s.label}</p>
+            <p className="text-xs text-muted">{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 shadow-sm min-w-48 focus-within:border-[#002776]/30">
-          <Search size={15} className="shrink-0 text-[#94a3b8]" />
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-2.5 shadow-sm min-w-48 focus-within:border-[#002776]/30">
+          <Search size={15} className="shrink-0 text-faint" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por ID, loja, endereço…"
-            className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            className="flex-1 bg-transparent text-sm font-medium text-content outline-none placeholder:text-faint"
           />
         </div>
         <div className="relative">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 pr-8 text-sm font-bold text-[#0f172a] shadow-sm outline-none"
+            className="appearance-none rounded-2xl border border-line bg-surface px-4 py-2.5 pr-8 text-sm font-bold text-content shadow-sm outline-none"
           >
             <option value="all">Todos os status</option>
             {Object.entries(ORDER_STATUS_LABEL).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
-          <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+          <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-faint" />
         </div>
         <button
           onClick={() => refetch()}
           disabled={isFetching}
-          className="flex items-center gap-1.5 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 text-sm font-bold text-[#64748b] shadow-sm hover:bg-[#f8fafc] disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-2xl border border-line bg-surface px-4 py-2.5 text-sm font-bold text-muted shadow-sm hover:bg-subtle disabled:opacity-50"
         >
           <RefreshCw size={14} className={isFetching ? "animate-spin" : ""} /> Atualizar
         </button>
-        <span className="flex items-center rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 text-sm font-bold text-[#64748b] shadow-sm">
+        <span className="flex items-center rounded-2xl border border-line bg-surface px-4 py-2.5 text-sm font-bold text-muted shadow-sm">
           {filtered.length} pedido{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Table */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando pedidos…</div>
+          <div className="p-12 text-center text-sm text-faint">Carregando pedidos…</div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-sm text-[#94a3b8]">
+          <div className="p-12 text-center text-sm text-faint">
             {orders.length === 0 ? "Nenhum pedido ainda." : "Nenhum pedido encontrado."}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#f1f5f9]">
+                <tr className="border-b border-subtle-2">
                   {["Pedido", "Loja", "Valor", "Pagamento", "Endereço", "Data", "Status", "Ação"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f8fafc]">
                 {filtered.map((o) => (
-                  <tr key={o.id} className="hover:bg-[#f8fafc] transition-colors">
+                  <tr key={o.id} className="hover:bg-subtle transition-colors">
                     <td className="px-4 py-3">
-                      <p className="font-mono text-xs font-black text-[#0f172a]">#{o.id.slice(0, 8)}</p>
-                      <p className="text-[10px] text-[#94a3b8]">{o.items.length} item{o.items.length !== 1 ? "s" : ""}</p>
+                      <p className="font-mono text-xs font-black text-content">#{o.id.slice(0, 8)}</p>
+                      <p className="text-[10px] text-faint">{o.items.length} item{o.items.length !== 1 ? "s" : ""}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs font-bold text-[#0f172a]">{o.storeName ?? "—"}</td>
+                    <td className="px-4 py-3 text-xs font-bold text-content">{o.storeName ?? "—"}</td>
                     <td className="px-4 py-3 text-sm font-black text-[#16a34a]">{formatBRL(Number(o.total))}</td>
-                    <td className="px-4 py-3 text-xs text-[#64748b] uppercase">{o.paymentMethod}</td>
+                    <td className="px-4 py-3 text-xs text-muted uppercase">{o.paymentMethod}</td>
                     <td className="px-4 py-3">
-                      <p className="text-xs text-[#0f172a]">{o.deliveryAddress}, {o.deliveryNumber}</p>
-                      <p className="text-[10px] text-[#94a3b8]">{o.deliveryNeighborhood}</p>
+                      <p className="text-xs text-content">{o.deliveryAddress}, {o.deliveryNumber}</p>
+                      <p className="text-[10px] text-faint">{o.deliveryNeighborhood}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 text-[10px] text-[#94a3b8]">
+                      <div className="flex items-center gap-1 text-[10px] text-faint">
                         <Clock3 size={10} />
                         {new Date(o.createdAt).toLocaleDateString("pt-BR")}
                       </div>
@@ -464,20 +464,20 @@ function UsersTab() {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 shadow-sm min-w-48 focus-within:border-[#002776]/30">
-          <Search size={15} className="shrink-0 text-[#94a3b8]" />
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-2.5 shadow-sm min-w-48 focus-within:border-[#002776]/30">
+          <Search size={15} className="shrink-0 text-faint" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar nome ou email…"
-            className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            className="flex-1 bg-transparent text-sm font-medium text-content outline-none placeholder:text-faint"
           />
         </div>
         <div className="relative">
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="appearance-none rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 pr-8 text-sm font-bold text-[#0f172a] shadow-sm outline-none"
+            className="appearance-none rounded-2xl border border-line bg-surface px-4 py-2.5 pr-8 text-sm font-bold text-content shadow-sm outline-none"
           >
             <option value="all">Todos os perfis</option>
             <option value="Admin">Admin</option>
@@ -485,26 +485,26 @@ function UsersTab() {
             <option value="Seller">Vendedor</option>
             <option value="Courier">Entregador</option>
           </select>
-          <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]" />
+          <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-faint" />
         </div>
-        <span className="flex items-center rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 text-sm font-bold text-[#64748b] shadow-sm">
+        <span className="flex items-center rounded-2xl border border-line bg-surface px-4 py-2.5 text-sm font-bold text-muted shadow-sm">
           {filtered.length} usuário{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Table */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando…</div>
+          <div className="p-12 text-center text-sm text-faint">Carregando…</div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-sm text-[#94a3b8]">Nenhum usuário encontrado.</div>
+          <div className="p-12 text-center text-sm text-faint">Nenhum usuário encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#f1f5f9]">
+                <tr className="border-b border-subtle-2">
                   {["Usuário", "Perfil", "Loja", "Status", "Ação"].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">
+                    <th key={h} className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">
                       {h}
                     </th>
                   ))}
@@ -512,7 +512,7 @@ function UsersTab() {
               </thead>
               <tbody className="divide-y divide-[#f8fafc]">
                 {filtered.map((u) => (
-                  <tr key={u.id} className="hover:bg-[#f8fafc] transition-colors">
+                  <tr key={u.id} className="hover:bg-subtle transition-colors">
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-3">
                         <div
@@ -522,8 +522,8 @@ function UsersTab() {
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-black text-[#0f172a]">{u.name}</p>
-                          <p className="text-[11px] text-[#94a3b8]">{u.email}</p>
+                          <p className="font-black text-content">{u.name}</p>
+                          <p className="text-[11px] text-faint">{u.email}</p>
                         </div>
                       </div>
                     </td>
@@ -533,7 +533,7 @@ function UsersTab() {
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="text-xs text-[#64748b]">{u.store?.name ?? "—"}</span>
+                      <span className="text-xs text-muted">{u.store?.name ?? "—"}</span>
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-black ${u.active ? "bg-[#f0fdf4] text-[#16a34a]" : "bg-[#fef2f2] text-red-500"}`}>
@@ -545,7 +545,7 @@ function UsersTab() {
                         <button
                           onClick={() => toggleMutation.mutate({ id: u.id, active: !u.active })}
                           disabled={toggleMutation.isPending}
-                          className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] px-3 py-1.5 text-[11px] font-black text-[#64748b] hover:bg-[#f8fafc] disabled:opacity-50"
+                          className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-[11px] font-black text-muted hover:bg-subtle disabled:opacity-50"
                         >
                           {u.active
                             ? <><ToggleRight size={14} className="text-[#16a34a]" /> Desativar</>
@@ -649,13 +649,13 @@ function BannerModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
+        className="relative z-10 flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
         style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4">
-          <h2 className="font-black text-[#0f172a]">{banner ? "Editar banner" : "Novo banner"}</h2>
-          <button onClick={onClose} className="rounded-xl bg-[#f1f5f9] p-2 text-[#64748b]">✕</button>
+        <div className="flex items-center justify-between border-b border-subtle-2 px-5 py-4">
+          <h2 className="font-black text-content">{banner ? "Editar banner" : "Novo banner"}</h2>
+          <button onClick={onClose} className="rounded-xl bg-subtle-2 p-2 text-muted">✕</button>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-4 p-5">
@@ -687,7 +687,7 @@ function BannerModal({
           <div>
             <label className={lbl}>URL da imagem *</label>
             <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} placeholder="https://..." className={inp} />
-            <p className="mt-1 text-[10px] text-[#94a3b8]">Recomendado: 1200×514px (proporção 21:9)</p>
+            <p className="mt-1 text-[10px] text-faint">Recomendado: 1200×514px (proporção 21:9)</p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -723,7 +723,7 @@ function BannerModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-line bg-subtle px-4 py-3">
             <input
               type="checkbox"
               id="banner-active"
@@ -731,7 +731,7 @@ function BannerModal({
               onChange={(e) => set("active", e.target.checked)}
               className="h-4 w-4 accent-[#16a34a]"
             />
-            <label htmlFor="banner-active" className="cursor-pointer text-sm font-black text-[#0f172a]">
+            <label htmlFor="banner-active" className="cursor-pointer text-sm font-black text-content">
               Banner ativo (aparece na home)
             </label>
           </div>
@@ -739,7 +739,7 @@ function BannerModal({
           {error && <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</p>}
         </div>
 
-        <div className="border-t border-[#f1f5f9] p-4">
+        <div className="border-t border-subtle-2 p-4">
           <button
             onClick={handleSave}
             disabled={saving}
@@ -793,8 +793,8 @@ function BannersTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-black text-[#0f172a]">{banners.length} banner{banners.length !== 1 ? "s" : ""}</p>
-          <p className="text-xs text-[#94a3b8]">Banners aparecem no topo da Home para todos os usuários.</p>
+          <p className="text-sm font-black text-content">{banners.length} banner{banners.length !== 1 ? "s" : ""}</p>
+          <p className="text-xs text-faint">Banners aparecem no topo da Home para todos os usuários.</p>
         </div>
         <button
           onClick={() => setModal({ open: true, banner: null })}
@@ -810,11 +810,11 @@ function BannersTab() {
           <Loader2 size={24} className="animate-spin text-[#002776]" />
         </div>
       ) : banners.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-white p-16 text-center">
+        <div className="flex flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-line bg-surface p-16 text-center">
           <ImageIcon size={36} className="text-[#cbd5e1]" />
           <div>
-            <p className="font-black text-[#0f172a]">Nenhum banner configurado</p>
-            <p className="mt-1 text-sm text-[#64748b]">Crie o primeiro banner para exibir na Home.</p>
+            <p className="font-black text-content">Nenhum banner configurado</p>
+            <p className="mt-1 text-sm text-muted">Crie o primeiro banner para exibir na Home.</p>
           </div>
           <button
             onClick={() => setModal({ open: true, banner: null })}
@@ -827,9 +827,9 @@ function BannersTab() {
       ) : (
         <div className="space-y-3">
           {banners.map((b) => (
-            <div key={b.id} className="flex items-center gap-4 rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+            <div key={b.id} className="flex items-center gap-4 rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
               {/* Thumbnail */}
-              <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-2xl bg-[#f1f5f9]">
+              <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-2xl bg-subtle-2">
                 <img src={b.imageUrl} alt={b.title} className="h-full w-full object-cover"
                   onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 {!b.active && (
@@ -842,15 +842,15 @@ function BannersTab() {
               {/* Info */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate font-black text-[#0f172a]">{b.title}</p>
+                  <p className="truncate font-black text-content">{b.title}</p>
                   {b.badge && (
                     <span className="shrink-0 rounded-full bg-[#f0f9ff] px-2 py-0.5 text-[10px] font-black text-[#0369a1]">
                       {b.badge}
                     </span>
                   )}
                 </div>
-                {b.description && <p className="mt-0.5 truncate text-xs text-[#64748b]">{b.description}</p>}
-                <div className="mt-1 flex items-center gap-3 text-[10px] text-[#94a3b8]">
+                {b.description && <p className="mt-0.5 truncate text-xs text-muted">{b.description}</p>}
+                <div className="mt-1 flex items-center gap-3 text-[10px] text-faint">
                   <span>Ordem: {b.sortOrder}</span>
                   {b.link && (
                     <span className="flex items-center gap-1 truncate">
@@ -870,7 +870,7 @@ function BannersTab() {
                   className={`flex items-center gap-1 rounded-xl border px-3 py-1.5 text-[11px] font-black transition-colors ${
                     b.active
                       ? "border-[#16a34a]/30 bg-[#f0fdf4] text-[#16a34a]"
-                      : "border-[#e2e8f0] bg-[#f8fafc] text-[#94a3b8]"
+                      : "border-line bg-subtle text-faint"
                   }`}
                 >
                   {b.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
@@ -878,7 +878,7 @@ function BannersTab() {
                 </button>
                 <button
                   onClick={() => setModal({ open: true, banner: b })}
-                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] hover:bg-[#f8fafc]"
+                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-surface text-muted hover:bg-subtle"
                 >
                   <Pencil size={14} />
                 </button>
@@ -906,8 +906,8 @@ function BannersTab() {
   );
 }
 
-const inp = "w-full rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#002776]/20 placeholder:text-[#cbd5e1]";
-const lbl = "mb-1.5 block text-[10px] font-black uppercase tracking-wide text-[#94a3b8]";
+const inp = "w-full rounded-xl border border-line bg-subtle px-4 py-3 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#002776]/20 placeholder:text-[#cbd5e1]";
+const lbl = "mb-1.5 block text-[10px] font-black uppercase tracking-wide text-faint";
 
 /* ── COUPONS ── */
 
@@ -964,13 +964,13 @@ function CouponModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
+        className="relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
         style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#f1f5f9] px-5 py-4">
-          <h2 className="font-black text-[#0f172a]">{coupon ? "Editar cupom" : "Novo cupom"}</h2>
-          <button onClick={onClose} className="rounded-xl bg-[#f1f5f9] p-2 text-[#64748b]">✕</button>
+        <div className="flex items-center justify-between border-b border-subtle-2 px-5 py-4">
+          <h2 className="font-black text-content">{coupon ? "Editar cupom" : "Novo cupom"}</h2>
+          <button onClick={onClose} className="rounded-xl bg-subtle-2 p-2 text-muted">✕</button>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-4 p-5">
@@ -1041,14 +1041,14 @@ function CouponModal({
             />
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-2xl border border-line bg-subtle px-4 py-3">
             <input
               type="checkbox" id="coupon-active"
               checked={form.active ?? true}
               onChange={(e) => set("active", e.target.checked)}
               className="h-4 w-4 accent-[#16a34a]"
             />
-            <label htmlFor="coupon-active" className="cursor-pointer text-sm font-black text-[#0f172a]">
+            <label htmlFor="coupon-active" className="cursor-pointer text-sm font-black text-content">
               Cupom ativo (aceito no checkout)
             </label>
           </div>
@@ -1058,7 +1058,7 @@ function CouponModal({
           )}
         </div>
 
-        <div className="border-t border-[#f1f5f9] p-4">
+        <div className="border-t border-subtle-2 p-4">
           <button
             onClick={handleSave}
             disabled={saving}
@@ -1115,15 +1115,15 @@ function CouponsTab() {
           { label: "Cupons ativos",   value: coupons.filter((c) => c.active).length, color: "#16a34a" },
           { label: "Total de usos",   value: totalUses, color: "#7c3aed" },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div key={s.label} className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
             <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-xs text-[#64748b]">{s.label}</p>
+            <p className="text-xs text-muted">{s.label}</p>
           </div>
         ))}
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-[#64748b]">{coupons.length} cupom{coupons.length !== 1 ? "s" : ""}</p>
+        <p className="text-sm font-bold text-muted">{coupons.length} cupom{coupons.length !== 1 ? "s" : ""}</p>
         <button
           onClick={() => setModal({ open: true, coupon: null })}
           className="flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black text-white"
@@ -1133,13 +1133,13 @@ function CouponsTab() {
         </button>
       </div>
 
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando…</div>
+          <div className="p-12 text-center text-sm text-faint">Carregando…</div>
         ) : coupons.length === 0 ? (
           <div className="flex flex-col items-center gap-4 p-16 text-center">
             <Tag size={36} className="text-[#cbd5e1]" />
-            <p className="font-black text-[#0f172a]">Nenhum cupom cadastrado</p>
+            <p className="font-black text-content">Nenhum cupom cadastrado</p>
             <button
               onClick={() => setModal({ open: true, coupon: null })}
               className="rounded-2xl px-6 py-3 text-sm font-black text-white"
@@ -1152,9 +1152,9 @@ function CouponsTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#f1f5f9]">
+                <tr className="border-b border-subtle-2">
                   {["Código", "Tipo", "Valor", "Mín. Pedido", "Usos", "Validade", "Status", "Ações"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1163,36 +1163,36 @@ function CouponsTab() {
                   const expired = c.expiresAt ? new Date(c.expiresAt) < new Date() : false;
                   const exhausted = c.maxUses != null && c.usesCount >= c.maxUses;
                   return (
-                    <tr key={c.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <tr key={c.id} className="hover:bg-subtle transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-sm font-black text-[#0f172a]">{c.code}</span>
-                        <p className="text-[10px] text-[#94a3b8]">{c.label}</p>
+                        <span className="font-mono text-sm font-black text-content">{c.code}</span>
+                        <p className="text-[10px] text-faint">{c.label}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span className="rounded-full bg-[#f0f9ff] px-2.5 py-1 text-[10px] font-black text-[#0369a1]">
                           {COUPON_TYPE_LABEL[c.type]}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm font-black text-[#0f172a]">
+                      <td className="px-4 py-3 text-sm font-black text-content">
                         {c.type === "percent" ? `${c.value}%` : c.type === "fixed" ? formatBRL(c.value) : "100%"}
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#64748b]">
+                      <td className="px-4 py-3 text-xs text-muted">
                         {c.minOrder > 0 ? formatBRL(c.minOrder) : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-black ${exhausted ? "text-red-500" : "text-[#0f172a]"}`}>
+                        <span className={`text-xs font-black ${exhausted ? "text-red-500" : "text-content"}`}>
                           {c.usesCount}
-                          {c.maxUses != null && <span className="text-[#94a3b8]">/{c.maxUses}</span>}
+                          {c.maxUses != null && <span className="text-faint">/{c.maxUses}</span>}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         {c.expiresAt ? (
-                          <span className={`text-xs font-bold ${expired ? "text-red-500" : "text-[#64748b]"}`}>
+                          <span className={`text-xs font-bold ${expired ? "text-red-500" : "text-muted"}`}>
                             {new Date(c.expiresAt).toLocaleDateString("pt-BR")}
                             {expired && " ⚠️"}
                           </span>
                         ) : (
-                          <span className="text-xs text-[#94a3b8]">Sem prazo</span>
+                          <span className="text-xs text-faint">Sem prazo</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -1202,7 +1202,7 @@ function CouponsTab() {
                           className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-[10px] font-black ${
                             c.active && !expired && !exhausted
                               ? "border-[#16a34a]/30 bg-[#f0fdf4] text-[#16a34a]"
-                              : "border-[#e2e8f0] bg-[#f8fafc] text-[#94a3b8]"
+                              : "border-line bg-subtle text-faint"
                           }`}
                         >
                           {c.active ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
@@ -1213,7 +1213,7 @@ function CouponsTab() {
                         <div className="flex gap-1">
                           <button
                             onClick={() => setModal({ open: true, coupon: c })}
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] hover:bg-[#f8fafc]"
+                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-surface text-muted hover:bg-subtle"
                           >
                             <Pencil size={13} />
                           </button>
@@ -1284,9 +1284,9 @@ function WithdrawalsTab() {
           { label: "Valor pendente", value: formatBRL(pendingTotal), color: "#002776" },
           { label: "Total pago",  value: formatBRL(withdrawals.filter((w) => w.status === "PAID").reduce((s, w) => s + w.amount, 0)), color: "#16a34a" },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div key={s.label} className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
             <p className="text-xl font-black" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-xs text-[#64748b]">{s.label}</p>
+            <p className="text-xs text-muted">{s.label}</p>
           </div>
         ))}
       </div>
@@ -1298,25 +1298,25 @@ function WithdrawalsTab() {
             key={f}
             onClick={() => setFilter(f)}
             className={`rounded-xl px-4 py-2 text-xs font-black transition-colors ${
-              filter === f ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+              filter === f ? "bg-[#0f172a] text-white" : "border border-line bg-surface text-muted"
             }`}
           >
             {f === "PENDING" ? `Pendentes (${withdrawals.filter((w) => w.status === "PENDING").length})` : "Todos"}
           </button>
         ))}
-        <button onClick={() => refetch()} className="ml-auto text-[#64748b] hover:text-[#0f172a]">
+        <button onClick={() => refetch()} className="ml-auto text-muted hover:text-content">
           <RefreshCw size={15} />
         </button>
       </div>
 
       {/* Tabela */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando…</div>
+          <div className="p-12 text-center text-sm text-faint">Carregando…</div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 p-16 text-center">
             <Wallet size={36} className="text-[#cbd5e1]" />
-            <p className="font-black text-[#0f172a]">
+            <p className="font-black text-content">
               {filter === "PENDING" ? "Nenhum saque pendente 🎉" : "Nenhum saque registrado"}
             </p>
           </div>
@@ -1324,29 +1324,29 @@ function WithdrawalsTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#f1f5f9]">
+                <tr className="border-b border-subtle-2">
                   {["Entregador", "Valor", "Chave Pix", "Status", "Data", "Ações"].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">{h}</th>
+                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f8fafc]">
                 {filtered.map((w) => (
                   <>
-                    <tr key={w.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <tr key={w.id} className="hover:bg-subtle transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f0f9ff] text-xs font-black text-[#0369a1]">
                             {w.courierName.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-black text-[#0f172a]">{w.courierName}</span>
+                          <span className="font-black text-content">{w.courierName}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-base font-black text-[#16a34a]">
                         {formatBRL(w.amount)}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs text-[#64748b]">{w.pixKey}</span>
+                        <span className="font-mono text-xs text-muted">{w.pixKey}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
@@ -1356,9 +1356,9 @@ function WithdrawalsTab() {
                         }`}>
                           {w.status === "PAID" ? "✓ Pago" : w.status === "REJECTED" ? "Rejeitado" : "Pendente"}
                         </span>
-                        {w.note && <p className="mt-0.5 text-[10px] text-[#94a3b8] italic">{w.note}</p>}
+                        {w.note && <p className="mt-0.5 text-[10px] text-faint italic">{w.note}</p>}
                       </td>
-                      <td className="px-4 py-3 text-xs text-[#64748b]">
+                      <td className="px-4 py-3 text-xs text-muted">
                         {new Date(w.createdAt).toLocaleDateString("pt-BR")}
                       </td>
                       <td className="px-4 py-3">
@@ -1391,7 +1391,7 @@ function WithdrawalsTab() {
                               value={rejectNote}
                               onChange={(e) => setRejectNote(e.target.value)}
                               placeholder="Motivo da rejeição (obrigatório)…"
-                              className="flex-1 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm text-[#0f172a] outline-none"
+                              className="flex-1 rounded-xl border border-red-200 bg-surface px-3 py-2 text-sm text-content outline-none"
                             />
                             <button
                               onClick={() => {
@@ -1405,7 +1405,7 @@ function WithdrawalsTab() {
                             </button>
                             <button
                               onClick={() => { setRejectId(null); setRejectNote(""); }}
-                              className="rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-bold text-[#64748b]"
+                              className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-bold text-muted"
                             >
                               Cancelar
                             </button>
@@ -1442,53 +1442,53 @@ function StoresTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 shadow-sm focus-within:border-[#002776]/30">
-          <Search size={15} className="shrink-0 text-[#94a3b8]" />
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-2.5 shadow-sm focus-within:border-[#002776]/30">
+          <Search size={15} className="shrink-0 text-faint" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar loja ou categoria…"
-            className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            className="flex-1 bg-transparent text-sm font-medium text-content outline-none placeholder:text-faint"
           />
         </div>
-        <span className="flex items-center rounded-2xl border border-[#e2e8f0] bg-white px-4 py-2.5 text-sm font-bold text-[#64748b] shadow-sm">
+        <span className="flex items-center rounded-2xl border border-line bg-surface px-4 py-2.5 text-sm font-bold text-muted shadow-sm">
           {filtered.length} loja{filtered.length !== 1 ? "s" : ""}
         </span>
       </div>
 
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-[#94a3b8]">Carregando…</div>
+          <div className="p-12 text-center text-sm text-faint">Carregando…</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#f1f5f9]">
+                <tr className="border-b border-subtle-2">
                   {["Loja", "Categoria", "Entrega", "Taxa", "Avaliação", "Status"].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">{h}</th>
+                    <th key={h} className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f8fafc]">
                 {filtered.map((s) => (
-                  <tr key={s.id} className="hover:bg-[#f8fafc] transition-colors">
+                  <tr key={s.id} className="hover:bg-subtle transition-colors">
                     <td className="px-5 py-3.5">
                       <div>
-                        <p className="font-black text-[#0f172a]">{s.name}</p>
+                        <p className="font-black text-content">{s.name}</p>
                         {s.description && (
-                          <p className="max-w-xs truncate text-[11px] text-[#94a3b8]">{s.description}</p>
+                          <p className="max-w-xs truncate text-[11px] text-faint">{s.description}</p>
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-[#64748b]">{s.category.split(",")[0]}</td>
-                    <td className="px-5 py-3.5 text-xs font-bold text-[#0f172a]">{s.deliveryTimeMin}–{s.deliveryTimeMax}min</td>
-                    <td className="px-5 py-3.5 text-xs font-bold text-[#0f172a]">
+                    <td className="px-5 py-3.5 text-xs text-muted">{s.category.split(",")[0]}</td>
+                    <td className="px-5 py-3.5 text-xs font-bold text-content">{s.deliveryTimeMin}–{s.deliveryTimeMax}min</td>
+                    <td className="px-5 py-3.5 text-xs font-bold text-content">
                       {Number(s.deliveryFee) === 0 ? "Grátis" : `R$ ${Number(s.deliveryFee).toFixed(2).replace(".", ",")}`}
                     </td>
-                    <td className="px-5 py-3.5 text-xs font-bold text-[#0f172a]">⭐ {Number(s.rating).toFixed(1)}</td>
+                    <td className="px-5 py-3.5 text-xs font-bold text-content">⭐ {Number(s.rating).toFixed(1)}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex flex-col gap-1">
-                        <span className={`w-fit rounded-full px-2.5 py-0.5 text-[10px] font-black ${s.isOpen ? "bg-[#f0fdf4] text-[#16a34a]" : "bg-[#f1f5f9] text-[#94a3b8]"}`}>
+                        <span className={`w-fit rounded-full px-2.5 py-0.5 text-[10px] font-black ${s.isOpen ? "bg-[#f0fdf4] text-[#16a34a]" : "bg-subtle-2 text-faint"}`}>
                           {s.isOpen ? "Aberto" : "Fechado"}
                         </span>
                         <span className={`w-fit rounded-full px-2.5 py-0.5 text-[10px] font-black ${s.active ? "bg-[#f0fdf4] text-[#16a34a]" : "bg-[#fef2f2] text-red-400"}`}>
@@ -1564,9 +1564,9 @@ function ErrorsTab() {
           { label: "Promises rejeitadas",  value: counts.unhandledrejection,  color: "#ea580c" },
           { label: "React (boundaries)",   value: counts.react,              color: "#9333ea" },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div key={s.label} className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
             <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-xs text-[#64748b]">{s.label}</p>
+            <p className="text-xs text-muted">{s.label}</p>
           </div>
         ))}
       </div>
@@ -1582,18 +1582,18 @@ function ErrorsTab() {
             key={f.key}
             onClick={() => setTypeFilter(f.key)}
             className={`rounded-xl px-3 py-1.5 text-xs font-black transition-colors ${
-              typeFilter === f.key ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+              typeFilter === f.key ? "bg-[#0f172a] text-white" : "border border-line bg-surface text-muted"
             }`}
           >
             {f.label}
           </button>
         ))}
-        <button onClick={load} className="ml-auto rounded-xl border border-[#e2e8f0] bg-white p-2 text-[#64748b] hover:text-[#0f172a]">
+        <button onClick={load} className="ml-auto rounded-xl border border-line bg-surface p-2 text-muted hover:text-content">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center p-12">
             <Loader2 size={24} className="animate-spin text-[#002776]" />
@@ -1603,11 +1603,11 @@ function ErrorsTab() {
             <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#f0fdf4]">
               <AlertTriangle size={28} className="text-[#16a34a]" />
             </div>
-            <p className="font-black text-[#0f172a]">Nenhum erro registrado</p>
-            <p className="text-sm text-[#64748b]">Erros de JavaScript e React aparecem aqui em tempo real.</p>
+            <p className="font-black text-content">Nenhum erro registrado</p>
+            <p className="text-sm text-muted">Erros de JavaScript e React aparecem aqui em tempo real.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#f1f5f9]">
+          <div className="divide-y divide-subtle-2">
             {filtered.map((e) => (
               <div key={e.id} className="p-4">
                 <div
@@ -1618,8 +1618,8 @@ function ErrorsTab() {
                     {e.error_type}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-[#0f172a]">{e.message}</p>
-                    <div className="mt-0.5 flex items-center gap-3 text-[10px] text-[#94a3b8]">
+                    <p className="truncate text-sm font-black text-content">{e.message}</p>
+                    <div className="mt-0.5 flex items-center gap-3 text-[10px] text-faint">
                       <span className="flex items-center gap-1">
                         <Clock3 size={10} />
                         {new Date(e.created_at).toLocaleString("pt-BR")}
@@ -1633,33 +1633,33 @@ function ErrorsTab() {
                   </div>
                   <ChevronDown
                     size={14}
-                    className={`mt-1 shrink-0 text-[#94a3b8] transition-transform ${expanded === e.id ? "rotate-180" : ""}`}
+                    className={`mt-1 shrink-0 text-faint transition-transform ${expanded === e.id ? "rotate-180" : ""}`}
                   />
                 </div>
 
                 {expanded === e.id && (
                   <div className="mt-3 space-y-2 pl-20">
                     {e.stack && (
-                      <pre className="overflow-x-auto rounded-xl bg-[#0f172a] p-3 text-[10px] leading-relaxed text-[#94a3b8] whitespace-pre-wrap">
+                      <pre className="overflow-x-auto rounded-xl bg-[#0f172a] p-3 text-[10px] leading-relaxed text-faint whitespace-pre-wrap">
                         {e.stack}
                       </pre>
                     )}
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
                       {e.user_id && (
-                        <div className="rounded-xl bg-[#f8fafc] p-2">
-                          <p className="font-black text-[#64748b]">Usuário</p>
-                          <p className="font-mono text-[#0f172a]">{e.user_id.slice(0, 16)}…</p>
+                        <div className="rounded-xl bg-subtle p-2">
+                          <p className="font-black text-muted">Usuário</p>
+                          <p className="font-mono text-content">{e.user_id.slice(0, 16)}…</p>
                         </div>
                       )}
                       {e.user_agent && (
-                        <div className="rounded-xl bg-[#f8fafc] p-2">
-                          <p className="font-black text-[#64748b]">Browser</p>
-                          <p className="truncate text-[#0f172a]">{e.user_agent.split(" ").slice(-1)[0]}</p>
+                        <div className="rounded-xl bg-subtle p-2">
+                          <p className="font-black text-muted">Browser</p>
+                          <p className="truncate text-content">{e.user_agent.split(" ").slice(-1)[0]}</p>
                         </div>
                       )}
                     </div>
                     {e.extra && (
-                      <pre className="overflow-x-auto rounded-xl bg-[#f8fafc] p-3 text-[10px] text-[#64748b]">
+                      <pre className="overflow-x-auto rounded-xl bg-subtle p-3 text-[10px] text-muted">
                         {JSON.stringify(e.extra, null, 2)}
                       </pre>
                     )}
@@ -1727,9 +1727,9 @@ function AuditTab() {
           { label: "Deleções",         value: logs.filter((l) => l.action === "DELETE").length,         color: "#dc2626" },
           { label: "Atualizações",     value: logs.filter((l) => l.action === "UPDATE").length,         color: "#d97706" },
         ].map((s) => (
-          <div key={s.label} className="rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div key={s.label} className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
             <p className="text-2xl font-black" style={{ color: s.color }}>{s.value}</p>
-            <p className="text-xs text-[#64748b]">{s.label}</p>
+            <p className="text-xs text-muted">{s.label}</p>
           </div>
         ))}
       </div>
@@ -1739,7 +1739,7 @@ function AuditTab() {
         <button
           onClick={() => setActionFilter("all")}
           className={`rounded-xl px-3 py-1.5 text-xs font-black transition-colors ${
-            actionFilter === "all" ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+            actionFilter === "all" ? "bg-[#0f172a] text-white" : "border border-line bg-surface text-muted"
           }`}
         >
           Todos
@@ -1749,48 +1749,48 @@ function AuditTab() {
             key={a}
             onClick={() => setActionFilter(a)}
             className={`rounded-xl px-3 py-1.5 text-xs font-black transition-colors ${
-              actionFilter === a ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+              actionFilter === a ? "bg-[#0f172a] text-white" : "border border-line bg-surface text-muted"
             }`}
           >
             {a}
           </button>
         ))}
-        <button onClick={load} className="ml-auto rounded-xl border border-[#e2e8f0] bg-white p-2 text-[#64748b] hover:text-[#0f172a]">
+        <button onClick={load} className="ml-auto rounded-xl border border-line bg-surface p-2 text-muted hover:text-content">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
       {/* Lista */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center p-12">
             <Loader2 size={24} className="animate-spin text-[#002776]" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-16 text-center text-sm text-[#94a3b8]">Nenhum evento de auditoria registrado.</div>
+          <div className="p-16 text-center text-sm text-faint">Nenhum evento de auditoria registrado.</div>
         ) : (
-          <div className="divide-y divide-[#f1f5f9]">
+          <div className="divide-y divide-subtle-2">
             {filtered.map((l) => (
               <div key={l.id} className="p-4">
                 <div
                   className="flex cursor-pointer items-center gap-3"
                   onClick={() => setExpanded(expanded === l.id ? null : l.id)}
                 >
-                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${AUDIT_ACTION_COLOR[l.action] ?? "bg-[#f8fafc] text-[#64748b] border-[#e2e8f0]"}`}>
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-black ${AUDIT_ACTION_COLOR[l.action] ?? "bg-subtle text-muted border-line"}`}>
                     {l.action}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-black text-[#0f172a]">
+                    <p className="text-sm font-black text-content">
                       {l.table_name ?? "—"}
-                      {l.record_id && <span className="ml-2 font-mono text-xs text-[#94a3b8]">#{l.record_id.slice(0, 8)}</span>}
+                      {l.record_id && <span className="ml-2 font-mono text-xs text-faint">#{l.record_id.slice(0, 8)}</span>}
                     </p>
-                    <p className="text-[10px] text-[#94a3b8] flex items-center gap-2">
+                    <p className="text-[10px] text-faint flex items-center gap-2">
                       <Clock3 size={10} />
                       {new Date(l.created_at).toLocaleString("pt-BR")}
                       {l.user_id && <span className="font-mono">· {l.user_id.slice(0, 8)}…</span>}
                     </p>
                   </div>
-                  <ChevronDown size={14} className={`shrink-0 text-[#94a3b8] transition-transform ${expanded === l.id ? "rotate-180" : ""}`} />
+                  <ChevronDown size={14} className={`shrink-0 text-faint transition-transform ${expanded === l.id ? "rotate-180" : ""}`} />
                 </div>
 
                 {expanded === l.id && (l.old_data || l.new_data) && (
@@ -1798,7 +1798,7 @@ function AuditTab() {
                     {l.old_data && (
                       <div>
                         <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-red-500">Antes</p>
-                        <pre className="overflow-x-auto rounded-xl bg-[#fef2f2] p-3 text-[10px] text-[#64748b]">
+                        <pre className="overflow-x-auto rounded-xl bg-[#fef2f2] p-3 text-[10px] text-muted">
                           {JSON.stringify(l.old_data, null, 2)}
                         </pre>
                       </div>
@@ -1806,7 +1806,7 @@ function AuditTab() {
                     {l.new_data && (
                       <div>
                         <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-green-600">Depois</p>
-                        <pre className="overflow-x-auto rounded-xl bg-[#f0fdf4] p-3 text-[10px] text-[#64748b]">
+                        <pre className="overflow-x-auto rounded-xl bg-[#f0fdf4] p-3 text-[10px] text-muted">
                           {JSON.stringify(l.new_data, null, 2)}
                         </pre>
                       </div>
