@@ -36,7 +36,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
   {
     id: "fabrica-landing-pages",
     name: "Fábrica de Landing Pages BrasUX",
-    description: "Landing pages e páginas de produtos de alta conversão desenvolvidas pela BrasUX. Entrega rápida, design profissional.",
+    description: "Landing page profissional e de alta conversão por apenas R$ 499,00. Design responsivo, botão WhatsApp e entrega em até 5 dias úteis.",
     url: "https://produtos.brasux.com.br/",
     categorySlug: "servicos",
     icon: "🚀",
