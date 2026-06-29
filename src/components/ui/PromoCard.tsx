@@ -121,7 +121,7 @@ export default function PromoCard({
               {titleHighlight}
             </span>
           </h2>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-[#94a3b8]">
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-faint">
             {description}
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function PromoCard({
             {ctaLabel} <ArrowRight size={15} />
           </span>
           {domainLabel && (
-            <span className="text-xs text-[#64748b]">{domainLabel}</span>
+            <span className="text-xs text-muted">{domainLabel}</span>
           )}
         </div>
       </div>

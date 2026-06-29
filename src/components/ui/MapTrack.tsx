@@ -45,10 +45,10 @@ export default function MapTrack({ deliveryAddress, deliveryNumber, deliveryNeig
 
   if (!MAPBOX_TOKEN) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-dashed border-[#e2e8f0] bg-[#f8fafc] p-6 text-center">
+      <div className="flex items-center justify-center rounded-2xl border border-dashed border-line bg-subtle p-6 text-center">
         <div>
-          <MapPin size={24} className="mx-auto mb-2 text-[#94a3b8]" />
-          <p className="text-xs font-bold text-[#94a3b8]">Mapa indisponível</p>
+          <MapPin size={24} className="mx-auto mb-2 text-faint" />
+          <p className="text-xs font-bold text-faint">Mapa indisponível</p>
           <p className="mt-0.5 text-[10px] text-[#cbd5e1]">Configure VITE_MAPBOX_TOKEN no Vercel</p>
         </div>
       </div>
@@ -57,16 +57,16 @@ export default function MapTrack({ deliveryAddress, deliveryNumber, deliveryNeig
 
   if (loading) {
     return (
-      <div className="h-48 animate-pulse rounded-2xl bg-[#f1f5f9]" />
+      <div className="h-48 animate-pulse rounded-2xl bg-subtle-2" />
     );
   }
 
   if (!destination) {
     return (
-      <div className="flex items-center justify-center rounded-2xl border border-dashed border-[#e2e8f0] bg-[#f8fafc] p-6 text-center">
+      <div className="flex items-center justify-center rounded-2xl border border-dashed border-line bg-subtle p-6 text-center">
         <div>
-          <MapPin size={24} className="mx-auto mb-2 text-[#94a3b8]" />
-          <p className="text-xs font-bold text-[#94a3b8]">Não foi possível localizar o endereço</p>
+          <MapPin size={24} className="mx-auto mb-2 text-faint" />
+          <p className="text-xs font-bold text-faint">Não foi possível localizar o endereço</p>
           <p className="mt-0.5 text-[10px] text-[#cbd5e1]">
             {deliveryAddress}, {deliveryNumber} — {deliveryNeighborhood}
           </p>
@@ -80,7 +80,7 @@ export default function MapTrack({ deliveryAddress, deliveryNumber, deliveryNeig
     : { longitude: destination.lng, latitude: destination.lat };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#e2e8f0]">
+    <div className="overflow-hidden rounded-2xl border border-line">
       <Map
         mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{ ...center, zoom: 15 }}
@@ -113,13 +113,13 @@ export default function MapTrack({ deliveryAddress, deliveryNumber, deliveryNeig
       </Map>
 
       {/* Address label */}
-      <div className="border-t border-[#e2e8f0] bg-white px-4 py-2.5">
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Destino</p>
-        <p className="text-xs font-bold text-[#0f172a]">
+      <div className="border-t border-line bg-surface px-4 py-2.5">
+        <p className="text-[10px] font-black uppercase tracking-widest text-faint">Destino</p>
+        <p className="text-xs font-bold text-content">
           {deliveryAddress}, {deliveryNumber} — {deliveryNeighborhood}
         </p>
         {!courierPosition && (
-          <p className="mt-0.5 text-[10px] text-[#94a3b8]">Aguardando localização do entregador…</p>
+          <p className="mt-0.5 text-[10px] text-faint">Aguardando localização do entregador…</p>
         )}
       </div>
     </div>

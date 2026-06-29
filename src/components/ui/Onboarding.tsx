@@ -95,7 +95,7 @@ export default function Onboarding() {
                 key={i}
                 onClick={() => setStep(i)}
                 className={`h-1.5 rounded-full transition-all ${
-                  i === step ? "w-5 bg-white" : "w-1.5 bg-white/30"
+                  i === step ? "w-5 bg-surface" : "w-1.5 bg-white/30"
                 }`}
               />
             ))}
@@ -103,15 +103,15 @@ export default function Onboarding() {
         </div>
 
         {/* Content */}
-        <div className="-mt-8 rounded-t-3xl bg-white px-8 pb-8 pt-7">
-          <h2 className="text-xl font-black text-[#0f172a]">{current.title}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#64748b]">{current.description}</p>
+        <div className="-mt-8 rounded-t-3xl bg-surface px-8 pb-8 pt-7">
+          <h2 className="text-xl font-black text-content">{current.title}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted">{current.description}</p>
 
           <div className="mt-6 flex gap-3">
             {step > 0 && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="flex-1 rounded-2xl border border-[#e2e8f0] py-3 text-sm font-black text-[#64748b]"
+                className="flex-1 rounded-2xl border border-line py-3 text-sm font-black text-muted"
               >
                 Anterior
               </button>
@@ -130,7 +130,7 @@ export default function Onboarding() {
 
           <button
             onClick={finish}
-            className="mt-3 w-full text-center text-xs text-[#94a3b8]"
+            className="mt-3 w-full text-center text-xs text-faint"
           >
             Pular tutorial
           </button>

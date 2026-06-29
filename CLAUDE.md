@@ -85,10 +85,15 @@ Substituir hex literais pelos utilitários de token, surface por surface:
   `CategoriesPage`, `CategoryPage`, `home/SectionHeader`, `home/FlashSale`,
   `home/JoinCtaSection`, `Footer`, `ProductPage`, `StorePage`,
   `CartPage`, `CheckoutPage`, `AccountPage`, `ui/Pagination`,
-  `ui/FeaturedCarousel`, `ui/CategoryScroll`, `ui/FeaturedProductCarousel`.
-- **Faltam (mesma receita):** `CourierPage`, `AdminPage`, `SellerPage`,
-  `FavoritesPage`, `SearchPage`, `OrdersPage` e demais `components/ui/*`
-  não listados acima (Toast, Onboarding, CookieBanner, etc.).
+  `ui/FeaturedCarousel`, `ui/CategoryScroll`, `ui/FeaturedProductCarousel`,
+  `CourierPage`, `AdminPage`, `SellerPage`, `FavoritesPage`, `SearchPage`,
+  `OrdersPage`, `ui/Toast`, `ui/Onboarding`, `ui/CookieBanner`, `ui/MapTrack`,
+  `ui/PromoCard`.
+- **Faltam (mesma receita — descobertos posteriormente):**
+  `LoginPage`, `StoresPage`, `FeaturedStoresPage`, `ComparePage`, `ChatPage`,
+  `ServicesPage`, `AjudaPage`, `ContatoPage`, `SobrePage`, `PrivacyPage`,
+  `NotFoundPage`, `components/product/ProductCard`, `components/seller/ImagePicker`,
+  `components/layout/ErrorBoundary`, `components/seo/Breadcrumbs`.
 
 ## Regras de trabalho
 - Entregar **arquivos completos drop-in**, não fragmentos.

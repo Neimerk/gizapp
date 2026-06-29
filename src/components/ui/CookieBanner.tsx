@@ -24,12 +24,12 @@ export default function CookieBanner() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-[200] border-t border-[#e2e8f0] bg-white p-4 shadow-2xl md:bottom-6 md:left-6 md:right-auto md:max-w-sm md:rounded-2xl md:border"
+      className="fixed bottom-0 left-0 right-0 z-[200] border-t border-line bg-surface p-4 shadow-2xl md:bottom-6 md:left-6 md:right-auto md:max-w-sm md:rounded-2xl md:border"
       role="region"
       aria-label="Aviso de cookies"
     >
-      <p className="text-sm font-bold text-[#0f172a]">🍪 Usamos cookies</p>
-      <p className="mt-1 text-xs text-[#64748b]">
+      <p className="text-sm font-bold text-content">🍪 Usamos cookies</p>
+      <p className="mt-1 text-xs text-muted">
         Utilizamos cookies essenciais para autenticação e preferências.{" "}
         <Link to="/privacidade" className="text-[#16a34a] underline underline-offset-2">
           Política de Privacidade
@@ -44,7 +44,7 @@ export default function CookieBanner() {
         </button>
         <button
           onClick={decline}
-          className="flex-1 rounded-xl border border-[#e2e8f0] py-2 text-xs font-black text-[#64748b]"
+          className="flex-1 rounded-xl border border-line py-2 text-xs font-black text-muted"
         >
           Recusar
         </button>

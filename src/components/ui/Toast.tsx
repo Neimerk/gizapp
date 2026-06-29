@@ -32,17 +32,17 @@ export default function Toast() {
         return (
           <div
             key={toast.id}
-            className={`flex items-start gap-3 overflow-hidden rounded-2xl border ${s.border} bg-white shadow-xl shadow-black/10`}
+            className={`flex items-start gap-3 overflow-hidden rounded-2xl border ${s.border} bg-surface shadow-xl shadow-black/10`}
           >
             <div className={`w-1 shrink-0 self-stretch ${s.bar}`} />
             <div className="flex flex-1 items-start gap-2 py-3 pr-2">
               {s.icon}
-              <p className="flex-1 text-sm font-semibold leading-snug text-[#0f172a]">
+              <p className="flex-1 text-sm font-semibold leading-snug text-content">
                 {toast.message}
               </p>
               <button
                 onClick={() => dismiss(toast.id)}
-                className="mt-0.5 shrink-0 text-[#94a3b8] hover:text-[#0f172a]"
+                className="mt-0.5 shrink-0 text-faint hover:text-content"
               >
                 <X size={15} />
               </button>
