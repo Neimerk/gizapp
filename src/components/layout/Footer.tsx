@@ -109,7 +109,7 @@ export default function Footer() {
               Quero ser lojista <ArrowRight size={15} />
             </a>
             <a
-              href="https://entregas.brasux.com.br"
+              href="https://entregas.brasux.store"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-5 py-3 text-sm font-black text-white/80 transition-colors hover:border-white/30 hover:text-white"
