@@ -105,32 +105,63 @@ export default function HeroCarousel() {
           </a>
         </div>
 
-        {/* ── VISUAL FUTURISTA (órbitas + ícone) ── */}
+        {/* ── VISUAL DIREITO: imagem real ou órbitas futuristas ── */}
+        {active.cardImage ? (
+          /* placeholder para manter o grid — a imagem é posicionada em absolute */
+          <div className="hidden md:block" aria-hidden="true" />
+        ) : (
+          <a
+            href={active.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Acessar ${active.name}`}
+            className="relative mx-auto hidden aspect-square w-full max-w-[260px] items-center justify-center md:flex"
+          >
+            {/* moldura HUD (cantos) */}
+            {["left-0 top-0 border-l-2 border-t-2", "right-0 top-0 border-r-2 border-t-2", "left-0 bottom-0 border-l-2 border-b-2", "right-0 bottom-0 border-r-2 border-b-2"].map((c) => (
+              <span key={c} className={`absolute h-6 w-6 ${c}`} style={{ borderColor: `${accent}99` }} />
+            ))}
+            {/* órbitas */}
+            <span className="absolute inset-4 rounded-full border border-white/10" />
+            <span className="absolute inset-10 rounded-full border border-dashed" style={{ borderColor: `${accent}55` }} />
+            {/* esfera com gradiente da solução */}
+            <div
+              key={`orb-${i}`}
+              className={`hero-in relative flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br ${active.gradient}`}
+              style={{ boxShadow: `0 0 60px -8px ${accent}, inset 0 2px 12px rgba(255,255,255,0.25)` }}
+            >
+              <span className="absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-white/25 to-transparent" />
+              <span className="relative text-5xl drop-shadow">{active.icon}</span>
+            </div>
+          </a>
+        )}
+      </div>
+
+      {/* ── IMAGEM DO CARD (absoluta, lado direito, full-height) ── */}
+      {active.cardImage && (
         <a
+          key={`img-${i}`}
           href={active.url}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Acessar ${active.name}`}
-          className="relative mx-auto hidden aspect-square w-full max-w-[260px] items-center justify-center md:flex"
+          className="hero-in pointer-events-none absolute right-0 top-0 hidden h-full w-[55%] overflow-hidden rounded-r-3xl md:block"
+          style={{ pointerEvents: "auto" }}
         >
-          {/* moldura HUD (cantos) */}
-          {["left-0 top-0 border-l-2 border-t-2", "right-0 top-0 border-r-2 border-t-2", "left-0 bottom-0 border-l-2 border-b-2", "right-0 bottom-0 border-r-2 border-b-2"].map((c) => (
-            <span key={c} className={`absolute h-6 w-6 ${c}`} style={{ borderColor: `${accent}99` }} />
-          ))}
-          {/* órbitas */}
-          <span className="absolute inset-4 rounded-full border border-white/10" />
-          <span className="absolute inset-10 rounded-full border border-dashed" style={{ borderColor: `${accent}55` }} />
-          {/* esfera com gradiente da solução */}
-          <div
-            key={`orb-${i}`}
-            className={`hero-in relative flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br ${active.gradient}`}
-            style={{ boxShadow: `0 0 60px -8px ${accent}, inset 0 2px 12px rgba(255,255,255,0.25)` }}
-          >
-            <span className="absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-white/25 to-transparent" />
-            <span className="relative text-5xl drop-shadow">{active.icon}</span>
-          </div>
+          <img
+            src={active.cardImage}
+            alt=""
+            className="h-full w-full object-cover object-center"
+            loading="lazy"
+            decoding="async"
+          />
+          {/* fade esquerda para blend com o texto e os blobs */}
+          <div className="absolute inset-y-0 left-0 w-36 bg-gradient-to-r from-black/80 to-transparent" />
+          {/* vinheta sutil no topo e base */}
+          <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent" />
         </a>
-      </div>
+      )}
 
       {/* ── HUD INFERIOR: contador + indicadores + setas ── */}
       <div className="relative z-10 flex items-center gap-4 border-t border-white/10 px-7 py-4 sm:px-10 lg:px-12">
