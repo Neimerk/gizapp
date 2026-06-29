@@ -130,7 +130,7 @@ export default function ContatoPage() {
 
       {/* Canais de contato */}
       <section>
-        <h2 className="mb-4 text-xl font-black text-[#0f172a]">Nossos canais</h2>
+        <h2 className="mb-4 text-xl font-black text-content">Nossos canais</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {CONTACTS.map((c) => {
             const Icon = c.icon;
@@ -165,10 +165,10 @@ export default function ContatoPage() {
                     <p className="text-[11px] font-black uppercase tracking-widest" style={{ color: c.color }}>
                       {c.label}
                     </p>
-                    <p className="text-sm font-black text-[#0f172a]">{c.value}</p>
+                    <p className="text-sm font-black text-content">{c.value}</p>
                   </div>
                 </div>
-                <p className="text-xs text-[#64748b]">{c.desc}</p>
+                <p className="text-xs text-muted">{c.desc}</p>
                 {/* @ts-ignore — Tag alterna entre <a> e Link */}
                 <Tag
                   {...extraProps}
@@ -185,7 +185,7 @@ export default function ContatoPage() {
 
       {/* Acesso rápido */}
       <section>
-        <h2 className="mb-4 text-xl font-black text-[#0f172a]">Acesso rápido</h2>
+        <h2 className="mb-4 text-xl font-black text-content">Acesso rápido</h2>
         <div className="space-y-3">
           {FAQS_QUICK.map((item) => {
             const isExternal = item.link.startsWith("http");
@@ -196,9 +196,9 @@ export default function ContatoPage() {
                   href={item.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-2xl border border-[#e8eaf0] bg-white px-5 py-4 shadow-sm transition-all hover:border-[#16a34a]/30 hover:shadow-md"
+                  className="flex items-center justify-between rounded-2xl border border-line-subtle bg-surface px-5 py-4 shadow-sm transition-all hover:border-[#16a34a]/30 hover:shadow-md"
                 >
-                  <span className="text-sm font-black text-[#0f172a]">{item.q}</span>
+                  <span className="text-sm font-black text-content">{item.q}</span>
                   <span className="flex items-center gap-1 text-xs font-black text-[#16a34a]">
                     {item.label} <ArrowRight size={13} />
                   </span>
@@ -209,9 +209,9 @@ export default function ContatoPage() {
               <Link
                 key={item.q}
                 to={item.link}
-                className="flex items-center justify-between rounded-2xl border border-[#e8eaf0] bg-white px-5 py-4 shadow-sm transition-all hover:border-[#16a34a]/30 hover:shadow-md"
+                className="flex items-center justify-between rounded-2xl border border-line-subtle bg-surface px-5 py-4 shadow-sm transition-all hover:border-[#16a34a]/30 hover:shadow-md"
               >
-                <span className="text-sm font-black text-[#0f172a]">{item.q}</span>
+                <span className="text-sm font-black text-content">{item.q}</span>
                 <span className="flex items-center gap-1 text-xs font-black text-[#16a34a]">
                   {item.label} <ArrowRight size={13} />
                 </span>
@@ -233,8 +233,8 @@ export default function ContatoPage() {
           <MessageCircle size={26} className="text-white" />
         </div>
         <div>
-          <p className="text-lg font-black text-[#0f172a]">Prefere falar agora?</p>
-          <p className="mt-1 text-sm text-[#475569]">
+          <p className="text-lg font-black text-content">Prefere falar agora?</p>
+          <p className="mt-1 text-sm text-muted">
             Nosso WhatsApp é o jeito mais rápido de resolver qualquer situação.
           </p>
         </div>

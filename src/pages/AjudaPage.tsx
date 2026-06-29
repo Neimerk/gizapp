@@ -108,20 +108,20 @@ const TOPICS = [
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-[#f1f5f9] last:border-0">
+    <div className="border-b border-subtle-2 last:border-0">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-4 py-4 text-left"
       >
-        <span className="text-sm font-black text-[#0f172a]">{q}</span>
+        <span className="text-sm font-black text-content">{q}</span>
         <ChevronDown
           size={16}
-          className="shrink-0 text-[#94a3b8] transition-transform duration-200"
+          className="shrink-0 text-faint transition-transform duration-200"
           style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
         />
       </button>
       {open && (
-        <p className="pb-4 text-sm leading-relaxed text-[#475569]">{a}</p>
+        <p className="pb-4 text-sm leading-relaxed text-muted">{a}</p>
       )}
     </div>
   );
@@ -177,9 +177,9 @@ export default function AjudaPage() {
               >
                 <Icon size={16} style={{ color: topic.color }} />
               </div>
-              <h2 className="text-lg font-black text-[#0f172a]">{topic.title}</h2>
+              <h2 className="text-lg font-black text-content">{topic.title}</h2>
             </div>
-            <div className="rounded-3xl border border-[#e8eaf0] bg-white px-5 shadow-sm">
+            <div className="rounded-3xl border border-line-subtle bg-surface px-5 shadow-sm">
               {topic.faqs.map((faq) => (
                 <FaqItem key={faq.q} q={faq.q} a={faq.a} />
               ))}
@@ -190,8 +190,8 @@ export default function AjudaPage() {
 
       {/* CTA final */}
       <section className="rounded-3xl border border-[#dcfce7] bg-[#f0fdf4] p-6">
-        <p className="text-sm font-black text-[#0f172a]">Não encontrou o que precisava?</p>
-        <p className="mt-1 text-sm text-[#475569]">
+        <p className="text-sm font-black text-content">Não encontrou o que precisava?</p>
+        <p className="mt-1 text-sm text-muted">
           Nossa equipe responde em minutos pelo WhatsApp, de segunda a sábado das 8h às 20h.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">

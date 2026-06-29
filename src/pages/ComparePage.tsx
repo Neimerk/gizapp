@@ -26,11 +26,11 @@ export default function ComparePage() {
   if (products.length < 2) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#f1f5f9]">
-          <GitCompareArrows size={40} className="text-[#94a3b8]" />
+        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-subtle-2">
+          <GitCompareArrows size={40} className="text-faint" />
         </div>
-        <h2 className="mt-6 text-xl font-black text-[#0f172a]">Selecione produtos para comparar</h2>
-        <p className="mt-2 text-sm text-[#64748b]">
+        <h2 className="mt-6 text-xl font-black text-content">Selecione produtos para comparar</h2>
+        <p className="mt-2 text-sm text-muted">
           Toque em "Comparar" nos cards de produto para adicionar.
         </p>
         <Link
@@ -67,21 +67,21 @@ export default function ComparePage() {
         </button>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-xl font-black text-[#0f172a]">Comparar produtos</h1>
+          <h1 className="text-xl font-black text-content">Comparar produtos</h1>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-3xl border border-line-subtle bg-surface shadow-sm">
         <table className="w-full min-w-[480px]">
           <thead>
-            <tr className="border-b border-[#f1f5f9]">
-              <th className="w-28 py-4 pl-4 text-left text-[10px] font-black uppercase tracking-widest text-[#94a3b8]" />
+            <tr className="border-b border-subtle-2">
+              <th className="w-28 py-4 pl-4 text-left text-[10px] font-black uppercase tracking-widest text-faint" />
               {products.map((p) => (
                 <th key={p.id} className="px-4 py-4 text-left">
                   <div className="flex items-start justify-between gap-2">
                     <Link
                       to={`/lojas/${p.storeId}/produto/${p.id}`}
-                      className="text-sm font-black leading-tight text-[#0f172a] hover:text-[#16a34a] line-clamp-2"
+                      className="text-sm font-black leading-tight text-content hover:text-[#16a34a] line-clamp-2"
                     >
                       {p.name}
                     </Link>
@@ -100,7 +100,7 @@ export default function ComparePage() {
             {ROWS.map((row) => (
               <tr key={row.key} className="border-b border-[#f8fafc] last:border-0">
                 {row.key !== "actions" && row.key !== "imageUrl" && (
-                  <td className="py-3 pl-4 pr-2 text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">
+                  <td className="py-3 pl-4 pr-2 text-[10px] font-black uppercase tracking-wide text-faint">
                     {row.label}
                   </td>
                 )}
@@ -111,7 +111,7 @@ export default function ComparePage() {
                   if (row.key === "imageUrl") {
                     return (
                       <td key={p.id} className="px-4 py-3">
-                        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafc]">
+                        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-2xl bg-subtle">
                           {p.imageUrl ? (
                             <img
                               src={getProductImageUrl(p.imageUrl)}
@@ -133,13 +133,13 @@ export default function ComparePage() {
                     return (
                       <td key={p.id} className="px-4 py-3">
                         {p.promotionalPrice && (
-                          <p className="text-[10px] text-[#94a3b8] line-through">
+                          <p className="text-[10px] text-faint line-through">
                             {formatBRL(Number(p.price))}
                           </p>
                         )}
                         <p
                           className={`text-base font-black ${
-                            isCheapest ? "text-[#16a34a]" : "text-[#0f172a]"
+                            isCheapest ? "text-[#16a34a]" : "text-content"
                           }`}
                         >
                           {formatBRL(Number(final))}
@@ -185,7 +185,7 @@ export default function ComparePage() {
 
                   const value = p[row.key as keyof CompareProduct];
                   return (
-                    <td key={p.id} className="px-4 py-3 text-sm text-[#475569]">
+                    <td key={p.id} className="px-4 py-3 text-sm text-muted">
                       {value != null && value !== "" ? String(value) : (
                         <span className="text-[#cbd5e1]">—</span>
                       )}

@@ -117,7 +117,7 @@ export default function StoresPage() {
       <div className="flex items-end justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="mt-0.5 text-3xl font-black text-[#0f172a]">Lojas</h1>
+          <h1 className="mt-0.5 text-3xl font-black text-content">Lojas</h1>
         </div>
 
         {/* Botão de localização */}
@@ -140,24 +140,24 @@ export default function StoresPage() {
 
       {/* Busca + Ordenação */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-4 py-3 shadow-sm focus-within:border-[#16a34a]/40">
-          <Search size={16} className="shrink-0 text-[#94a3b8]" />
+        <div className="flex flex-1 items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-3 shadow-sm focus-within:border-[#16a34a]/40">
+          <Search size={16} className="shrink-0 text-faint" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar loja ou categoria…"
-            className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            className="flex-1 bg-transparent text-sm font-medium text-content outline-none placeholder:text-faint"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-[#94a3b8]">Ordenar:</span>
+          <span className="text-xs font-bold text-faint">Ordenar:</span>
           {SORT_OPTIONS.map((s) => (
             <button
               key={s.key}
               onClick={() => { setSort(s.key); if (s.key === "distance" && !position) requestGeo(); }}
               className={`rounded-xl px-3 py-2 text-xs font-black transition-colors ${
-                sort === s.key ? "bg-[#0f172a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+                sort === s.key ? "bg-[#0f172a] text-white" : "border border-line bg-surface text-muted"
               }`}
             >
               {s.label}
@@ -169,13 +169,13 @@ export default function StoresPage() {
       {/* Filtro por raio (só quando tem posição) */}
       {position && (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#94a3b8]">Raio:</span>
+          <span className="text-xs font-bold text-faint">Raio:</span>
           {([0, 2, 5, 10, 20, 30] as RadiusKm[]).map((r) => (
             <button
               key={r}
               onClick={() => setRadius(r)}
               className={`rounded-xl px-3 py-2 text-xs font-black transition-colors ${
-                radius === r ? "bg-[#16a34a] text-white" : "border border-[#e2e8f0] bg-white text-[#64748b]"
+                radius === r ? "bg-[#16a34a] text-white" : "border border-line bg-surface text-muted"
               }`}
             >
               {r === 0 ? "Todos" : `${r}km`}
@@ -207,7 +207,7 @@ export default function StoresPage() {
             className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition-colors ${
               activeSlug === "todas"
                 ? "bg-[#16a34a] text-white"
-                : "border border-[#e2e8f0] bg-white text-[#0f172a]"
+                : "border border-line bg-surface text-content"
             }`}
           >
             Todas
@@ -219,7 +219,7 @@ export default function StoresPage() {
               className={`flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-black transition-colors ${
                 activeSlug === cat.slug
                   ? "bg-[#16a34a] text-white"
-                  : "border border-[#e2e8f0] bg-white text-[#0f172a]"
+                  : "border border-line bg-surface text-content"
               }`}
             >
               <span>{categoryIcons[cat.slug] ?? "✨"}</span>
@@ -244,17 +244,17 @@ export default function StoresPage() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="animate-pulse rounded-3xl bg-white p-5 shadow-sm">
-              <div className="h-24 rounded-2xl bg-[#f1f5f9]" />
-              <div className="mt-4 h-4 w-1/2 rounded bg-[#f1f5f9]" />
-              <div className="mt-2 h-3 w-1/3 rounded bg-[#f1f5f9]" />
+            <div key={i} className="animate-pulse rounded-3xl bg-surface p-5 shadow-sm">
+              <div className="h-24 rounded-2xl bg-subtle-2" />
+              <div className="mt-4 h-4 w-1/2 rounded bg-subtle-2" />
+              <div className="mt-2 h-3 w-1/3 rounded bg-subtle-2" />
             </div>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-[#e2e8f0] bg-white p-16 text-center">
-          <p className="text-lg font-black text-[#0f172a]">Nenhuma loja encontrada</p>
-          <p className="mt-1 text-sm text-[#64748b]">
+        <div className="rounded-3xl border border-dashed border-line bg-surface p-16 text-center">
+          <p className="text-lg font-black text-content">Nenhuma loja encontrada</p>
+          <p className="mt-1 text-sm text-muted">
             {radius > 0
               ? `Nenhuma loja em ${radius}km. Tente aumentar o raio.`
               : "Tente outra categoria ou ajuste a busca."}
@@ -262,7 +262,7 @@ export default function StoresPage() {
         </div>
       ) : (
         <>
-          <p className="text-sm font-bold text-[#94a3b8]">
+          <p className="text-sm font-bold text-faint">
             {filtered.length} {filtered.length === 1 ? "loja" : "lojas"}
             {activeSlug !== "todas" ? ` · ${activeLabel}` : ""}
             {radius > 0 ? ` · até ${radius}km` : ""}

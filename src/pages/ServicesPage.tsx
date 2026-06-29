@@ -441,7 +441,7 @@ export default function ServicesPage() {
               </span>
             </h1>
 
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-[#94a3b8]">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-faint">
               Da ideia ao impacto — desenvolvimento, dados, IA, arquitetura e consultoria. Time especializado, entrega real, sem burocracia.
             </p>
 
@@ -477,7 +477,7 @@ export default function ServicesPage() {
                 }}
               >
                 <p className="text-3xl font-black text-white">{s.value}</p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-[#64748b]">{s.label}</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted">{s.label}</p>
               </div>
             ))}
           </div>
@@ -521,7 +521,7 @@ export default function ServicesPage() {
           <div className="relative z-10 mb-10 text-center">
             <p className="text-[11px] font-black uppercase tracking-widest text-[#a855f7]">Como trabalhamos</p>
             <h2 className="mt-2 text-3xl font-black text-white">Do problema à solução</h2>
-            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#64748b]">
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
               Cada projeto segue o mesmo processo — independente do tamanho ou da complexidade.
             </p>
           </div>
@@ -546,7 +546,7 @@ export default function ServicesPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-white">{p.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-[#64748b]">{p.desc}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted">{p.desc}</p>
                 </div>
               </div>
             ))}
@@ -578,7 +578,7 @@ export default function ServicesPage() {
                 }}
               >
                 <p className="text-sm font-black text-white">{item.q}</p>
-                <p className="mt-2 text-sm leading-relaxed text-[#64748b]">{item.a}</p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{item.a}</p>
               </div>
             ))}
           </div>
@@ -619,7 +619,7 @@ export default function ServicesPage() {
               <h2 className="mt-3 text-3xl font-black text-white md:text-4xl">
                 Tem um projeto em mente?
               </h2>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#64748b]">
+              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted">
                 Conta o que você precisa. Nossa equipe analisa, responde rápido e apresenta uma proposta personalizada — sem enrolação e sem compromisso inicial.
               </p>
             </div>
@@ -636,7 +636,7 @@ export default function ServicesPage() {
               </a>
               <Link
                 to="/"
-                className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-black text-[#94a3b8] backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-black text-faint backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white"
               >
                 Voltar ao início <ArrowRight size={14} />
               </Link>
@@ -687,10 +687,10 @@ function ServiceSection({ svc }: { svc: ServiceData }) {
 
           <h2 className="text-2xl font-black leading-snug text-white md:text-3xl">{svc.title}</h2>
 
-          <p className="max-w-2xl text-sm font-semibold leading-relaxed text-[#94a3b8]">
+          <p className="max-w-2xl text-sm font-semibold leading-relaxed text-faint">
             {svc.description}
           </p>
-          <p className="max-w-2xl text-sm leading-relaxed text-[#64748b]">
+          <p className="max-w-2xl text-sm leading-relaxed text-muted">
             {svc.expandedDescription}
           </p>
         </div>
@@ -705,7 +705,7 @@ function ServiceSection({ svc }: { svc: ServiceData }) {
             >
               <div className="mb-2 text-xl">{h.emoji}</div>
               <p className="text-sm font-black text-white">{h.label}</p>
-              <p className="mt-1 text-xs leading-relaxed text-[#64748b]">{h.desc}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">{h.desc}</p>
             </div>
           ))}
         </div>
@@ -720,7 +720,7 @@ function ServiceSection({ svc }: { svc: ServiceData }) {
         <div className="relative z-10 mb-10 grid gap-8 md:grid-cols-2">
           {/* Deliverables */}
           <div>
-            <p className="mb-5 text-[10px] font-black uppercase tracking-widest text-[#475569]">
+            <p className="mb-5 text-[10px] font-black uppercase tracking-widest text-muted">
               O que inclui
             </p>
             <div className="flex flex-col gap-5">
@@ -733,7 +733,7 @@ function ServiceSection({ svc }: { svc: ServiceData }) {
                   />
                   <div>
                     <p className="text-sm font-black text-white">{d.title}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-[#64748b]">{d.desc}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted">{d.desc}</p>
                   </div>
                 </div>
               ))}
@@ -742,7 +742,7 @@ function ServiceSection({ svc }: { svc: ServiceData }) {
 
           {/* Use cases */}
           <div>
-            <p className="mb-5 text-[10px] font-black uppercase tracking-widest text-[#475569]">
+            <p className="mb-5 text-[10px] font-black uppercase tracking-widest text-muted">
               Exemplos de aplicação
             </p>
             <div className="flex flex-col gap-4">
@@ -759,7 +759,7 @@ function ServiceSection({ svc }: { svc: ServiceData }) {
                     <span className="text-lg">{uc.emoji}</span>
                     <p className="text-sm font-black text-white">{uc.title}</p>
                   </div>
-                  <p className="text-xs leading-relaxed text-[#64748b]">{uc.desc}</p>
+                  <p className="text-xs leading-relaxed text-muted">{uc.desc}</p>
                 </div>
               ))}
             </div>
@@ -777,7 +777,7 @@ function ServiceSection({ svc }: { svc: ServiceData }) {
           >
             Ideal para
           </p>
-          <p className="text-sm leading-relaxed text-[#94a3b8]">{svc.idealFor}</p>
+          <p className="text-sm leading-relaxed text-faint">{svc.idealFor}</p>
         </div>
 
         {/* Tags + CTA */}

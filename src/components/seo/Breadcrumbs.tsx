@@ -20,14 +20,14 @@ export default function Breadcrumbs({ items, className = "" }: BreadcrumbsProps)
   useJsonLd(buildBreadcrumbSchema(all));
 
   return (
-    <nav aria-label="Navegação estrutural" className={`flex items-center gap-1 text-xs text-[#94a3b8] ${className}`}>
+    <nav aria-label="Navegação estrutural" className={`flex items-center gap-1 text-xs text-faint ${className}`}>
       {all.map((crumb, i) => {
         const isLast = i === all.length - 1;
         return (
           <span key={crumb.path} className="flex items-center gap-1">
             {i > 0 && <ChevronRight size={12} className="shrink-0 text-[#cbd5e1]" />}
             {isLast ? (
-              <span className="font-bold text-[#475569] line-clamp-1">{crumb.name}</span>
+              <span className="font-bold text-muted line-clamp-1">{crumb.name}</span>
             ) : i === 0 ? (
               <Link to="/" className="flex items-center gap-1 hover:text-[#16a34a]" aria-label="Início">
                 <Home size={12} />

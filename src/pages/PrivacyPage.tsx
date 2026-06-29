@@ -10,11 +10,11 @@ export default function PrivacyPage() {
         </Link>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-xl font-black text-[#0f172a]">Política de Privacidade</h1>
+          <h1 className="text-xl font-black text-content">Política de Privacidade</h1>
         </div>
       </div>
 
-      <p className="text-xs text-[#94a3b8]">Última atualização: junho de 2026</p>
+      <p className="text-xs text-faint">Última atualização: junho de 2026</p>
 
       {[
         {
@@ -50,13 +50,13 @@ export default function PrivacyPage() {
           body: "Para exercer seus direitos ou dúvidas sobre privacidade, entre em contato: privacidade@brasux.com.br",
         },
       ].map((s) => (
-        <div key={s.title} className="rounded-2xl border border-[#e8eaf0] bg-white p-5 shadow-sm">
-          <h2 className="mb-2 text-sm font-black text-[#0f172a]">{s.title}</h2>
-          <p className="text-sm leading-relaxed text-[#475569]">{s.body}</p>
+        <div key={s.title} className="rounded-2xl border border-line-subtle bg-surface p-5 shadow-sm">
+          <h2 className="mb-2 text-sm font-black text-content">{s.title}</h2>
+          <p className="text-sm leading-relaxed text-muted">{s.body}</p>
         </div>
       ))}
 
-      <p className="text-center text-xs text-[#94a3b8]">
+      <p className="text-center text-xs text-faint">
         BrasUX Shopping · CNPJ 00.000.000/0001-00 ·{" "}
         <a href="mailto:privacidade@brasux.com.br" className="text-[#16a34a]">
           privacidade@brasux.com.br

@@ -26,8 +26,8 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-red-50">
           <AlertTriangle size={36} className="text-red-400" />
         </div>
-        <h2 className="mt-6 text-xl font-black text-[#0f172a]">Algo deu errado</h2>
-        <p className="mt-2 max-w-xs text-sm text-[#64748b]">
+        <h2 className="mt-6 text-xl font-black text-content">Algo deu errado</h2>
+        <p className="mt-2 max-w-xs text-sm text-muted">
           Ocorreu um erro inesperado. Tente novamente ou volte ao início.
         </p>
         <div className="mt-6 flex gap-3">
@@ -39,7 +39,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           </button>
           <a
             href="/"
-            className="flex items-center gap-2 rounded-2xl border border-[#e2e8f0] bg-white px-5 py-3 text-sm font-black text-[#64748b]"
+            className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-5 py-3 text-sm font-black text-muted"
           >
             Ir ao início
           </a>

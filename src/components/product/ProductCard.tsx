@@ -12,7 +12,7 @@ export default function ProductCard({ product }: Props) {
   return (
     <Link
       to={`/lojas/${product.storeId}/produto/${product.id}`}
-      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-white"
+      className="card-hover group flex flex-col overflow-hidden rounded-3xl bg-surface"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)" }}
     >
       <div className="product-img-bg flex h-40 items-center justify-center overflow-hidden rounded-t-3xl p-3">
@@ -25,16 +25,16 @@ export default function ProductCard({ product }: Props) {
         />
       </div>
       <div className="flex flex-1 flex-col p-4">
-        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[#94a3b8]">
+        <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-faint">
           {product.category}
         </p>
-        <h3 className="mt-1 flex-1 text-sm font-black leading-tight text-[#0f172a] line-clamp-2">
+        <h3 className="mt-1 flex-1 text-sm font-black leading-tight text-content line-clamp-2">
           {product.name}
         </h3>
         <div className="mt-3">
           {product.promotionalPrice ? (
             <>
-              <p className="text-[10px] font-bold text-[#94a3b8] line-through">
+              <p className="text-[10px] font-bold text-faint line-through">
                 {formatBRL(Number(product.price))}
               </p>
               <p className="text-base font-black text-[#16a34a]">

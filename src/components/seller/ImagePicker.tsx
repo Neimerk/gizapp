@@ -84,27 +84,27 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
 
   const tabCls = (m: Mode) =>
     `flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition-colors ${
-      mode === m ? "bg-[#0f172a] text-white" : "text-[#64748b] hover:bg-[#f1f5f9]"
+      mode === m ? "bg-[#0f172a] text-white" : "text-muted hover:bg-subtle-2"
     }`;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl"
+        className="relative z-10 flex w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-surface sm:rounded-3xl"
         style={{ maxHeight: "90vh" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#f1f5f9] p-5">
-          <h2 className="text-lg font-black text-[#0f172a]">Escolher imagem</h2>
-          <button onClick={onClose} className="rounded-xl bg-[#f1f5f9] p-2 text-[#64748b] hover:bg-[#e2e8f0]">
+        <div className="flex items-center justify-between border-b border-subtle-2 p-5">
+          <h2 className="text-lg font-black text-content">Escolher imagem</h2>
+          <button onClick={onClose} className="rounded-xl bg-subtle-2 p-2 text-muted hover:bg-[#e2e8f0]">
             <X size={18} />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 border-b border-[#f1f5f9] px-5 pb-3 pt-3">
+        <div className="flex gap-2 border-b border-subtle-2 px-5 pb-3 pt-3">
           <button className={tabCls("catalog")} onClick={() => setMode("catalog")}>
             <Search size={14} /> Banco BrasUX
           </button>
@@ -126,7 +126,7 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar produto, marca, categoria…"
-                className="w-full rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                className="w-full rounded-2xl border border-line bg-subtle px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#16a34a]/30"
               />
               {catalogError ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
@@ -137,7 +137,7 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
                   <Loader2 size={28} className="animate-spin text-[#16a34a]" />
                 </div>
               ) : results.length === 0 ? (
-                <p className="py-8 text-center text-sm text-[#94a3b8]">Nenhuma imagem encontrada.</p>
+                <p className="py-8 text-center text-sm text-faint">Nenhuma imagem encontrada.</p>
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
@@ -148,7 +148,7 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
                         className={`group relative overflow-hidden rounded-2xl border-2 transition-all ${
                           selected === img.imageUrl
                             ? "border-[#16a34a] ring-2 ring-[#16a34a]/30"
-                            : "border-[#e2e8f0] hover:border-[#16a34a]/50"
+                            : "border-line hover:border-[#16a34a]/50"
                         }`}
                       >
                         <div
@@ -180,17 +180,17 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
                       <button
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page === 1}
-                        className="rounded-xl border border-[#e2e8f0] p-2 disabled:opacity-40"
+                        className="rounded-xl border border-line p-2 disabled:opacity-40"
                       >
                         <ChevronLeft size={16} />
                       </button>
-                      <span className="text-sm font-bold text-[#64748b]">
+                      <span className="text-sm font-bold text-muted">
                         {page} / {totalPages}
                       </span>
                       <button
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                         disabled={page === totalPages}
-                        className="rounded-xl border border-[#e2e8f0] p-2 disabled:opacity-40"
+                        className="rounded-xl border border-line p-2 disabled:opacity-40"
                       >
                         <ChevronRight size={16} />
                       </button>
@@ -205,17 +205,17 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
           {mode === "upload" && (
             <div className="space-y-4">
               <div
-                className="flex cursor-pointer flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-[#e2e8f0] bg-[#f8fafc] p-12 transition-colors hover:border-[#16a34a]/50 hover:bg-[#f0fdf4]"
+                className="flex cursor-pointer flex-col items-center gap-4 rounded-3xl border-2 border-dashed border-line bg-subtle p-12 transition-colors hover:border-[#16a34a]/50 hover:bg-[#f0fdf4]"
                 onClick={() => fileRef.current?.click()}
               >
                 {uploading ? (
                   <Loader2 size={40} className="animate-spin text-[#16a34a]" />
                 ) : (
-                  <Upload size={40} className="text-[#94a3b8]" />
+                  <Upload size={40} className="text-faint" />
                 )}
                 <div className="text-center">
-                  <p className="font-black text-[#0f172a]">{uploading ? "Enviando…" : "Clique para selecionar"}</p>
-                  <p className="mt-1 text-sm text-[#94a3b8]">JPG, PNG, WebP ou GIF • até 5 MB</p>
+                  <p className="font-black text-content">{uploading ? "Enviando…" : "Clique para selecionar"}</p>
+                  <p className="mt-1 text-sm text-faint">JPG, PNG, WebP ou GIF • até 5 MB</p>
                 </div>
               </div>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
@@ -229,7 +229,7 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
                   <img src={selected} alt="preview" className="h-14 w-14 rounded-xl object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold text-[#16a34a]">Upload concluído!</p>
-                    <p className="truncate text-[10px] text-[#64748b]">{selected}</p>
+                    <p className="truncate text-[10px] text-muted">{selected}</p>
                   </div>
                 </div>
               )}
@@ -240,25 +240,25 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
           {mode === "url" && (
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-[#64748b]">
+                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-muted">
                   URL da imagem
                 </label>
                 <input
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="https://exemplo.com/imagem.jpg"
-                  className="w-full rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#16a34a]/30"
+                  className="w-full rounded-2xl border border-line bg-subtle px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#16a34a]/30"
                 />
               </div>
               {urlInput && (
-                <div className="flex items-center gap-4 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                <div className="flex items-center gap-4 rounded-2xl border border-line bg-subtle p-3">
                   <img
                     src={urlInput}
                     alt="preview"
-                    className="h-20 w-20 rounded-xl object-contain bg-white"
+                    className="h-20 w-20 rounded-xl object-contain bg-surface"
                     onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
                   />
-                  <p className="truncate text-xs text-[#64748b]">{urlInput}</p>
+                  <p className="truncate text-xs text-muted">{urlInput}</p>
                 </div>
               )}
               <button
@@ -275,11 +275,11 @@ export default function ImagePicker({ storeId, value, onChange, onClose }: Props
 
         {/* Footer */}
         {selected && mode !== "url" && (
-          <div className="flex items-center gap-3 border-t border-[#f1f5f9] p-4">
-            <img src={selected} alt="selecionada" className="h-12 w-12 rounded-xl object-contain bg-[#f8fafc]" />
+          <div className="flex items-center gap-3 border-t border-subtle-2 p-4">
+            <img src={selected} alt="selecionada" className="h-12 w-12 rounded-xl object-contain bg-subtle" />
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-[#16a34a]">Imagem selecionada</p>
-              <p className="truncate text-[10px] text-[#94a3b8]">{selected}</p>
+              <p className="truncate text-[10px] text-faint">{selected}</p>
             </div>
             <button
               onClick={() => { onChange(selected); onClose(); }}

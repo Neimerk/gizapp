@@ -88,7 +88,7 @@ export default function LoginPage() {
         <h1 className="mt-5 text-3xl font-black text-white">
           {mode === "login" ? "Entrar" : mode === "register" ? "Criar conta" : "Recuperar senha"}
         </h1>
-        <p className="mt-1 text-sm text-[#94a3b8]">
+        <p className="mt-1 text-sm text-faint">
           {mode === "login"
             ? "Acesse o ecossistema BrasUX."
             : mode === "register"
@@ -101,13 +101,13 @@ export default function LoginPage() {
       <div className="-mt-6 rounded-t-4xl bg-[#f0f5ff] px-4 pt-6">
         <form
           onSubmit={handleSubmit}
-          className="rounded-3xl border border-[#e8eaf0] bg-white p-5 shadow-sm"
+          className="rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm"
         >
           {mode === "forgot" && forgotSent && (
             <div className="mb-4 flex flex-col items-center gap-3 rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-6 text-center">
               <CheckCircle2 size={32} className="text-[#16a34a]" />
               <p className="text-sm font-black text-[#16a34a]">E-mail enviado!</p>
-              <p className="text-xs text-[#64748b]">
+              <p className="text-xs text-muted">
                 Se esse e-mail estiver cadastrado, você receberá as instruções em instantes.
               </p>
               <button
@@ -122,20 +122,20 @@ export default function LoginPage() {
 
           {mode === "register" && (
             <div className="mb-4">
-              <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-[#64748b]">
+              <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted">
                 Nome completo
               </label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
-                className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
+                className="w-full rounded-2xl bg-subtle px-4 py-3.5 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-line"
               />
             </div>
           )}
 
           <div className="mb-4">
-            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-[#64748b]">
+            <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted">
               E-mail
             </label>
             <input
@@ -143,13 +143,13 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               type="email"
               placeholder="seu@email.com"
-              className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
+              className="w-full rounded-2xl bg-subtle px-4 py-3.5 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-line"
             />
           </div>
 
           {mode !== "forgot" && (
             <div className="mb-6">
-              <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-[#64748b]">
+              <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted">
                 Senha
               </label>
               <div className="relative">
@@ -158,12 +158,12 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPass ? "text" : "password"}
                   placeholder="Sua senha"
-                  className="w-full rounded-2xl bg-[#f8fafc] px-4 py-3.5 pr-12 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-[#e2e8f0]"
+                  className="w-full rounded-2xl bg-subtle px-4 py-3.5 pr-12 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 border border-line"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-faint"
                 >
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -202,7 +202,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setMode("forgot"); setError(null); }}
-              className="mt-2 w-full text-center text-xs font-bold text-[#64748b] hover:text-[#16a34a]"
+              className="mt-2 w-full text-center text-xs font-bold text-muted hover:text-[#16a34a]"
             >
               Esqueci minha senha
             </button>

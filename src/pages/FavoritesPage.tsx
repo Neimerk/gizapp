@@ -173,7 +173,7 @@ export default function FavoritesPage() {
                           : "border-white/15 bg-white/10 text-faint"
                       }`}
                     >
-                      <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
+                      <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-faint"}`} />
                       {store.isOpen ? "Aberto" : "Fechado"}
                     </span>
                     <span

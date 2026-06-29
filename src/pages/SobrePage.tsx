@@ -150,8 +150,8 @@ export default function SobrePage() {
 
       {/* Ecossistema */}
       <section>
-        <h2 className="mb-1 text-2xl font-black text-[#0f172a]">Ecossistema BrasUX</h2>
-        <p className="mb-6 text-sm text-[#64748b]">
+        <h2 className="mb-1 text-2xl font-black text-content">Ecossistema BrasUX</h2>
+        <p className="mb-6 text-sm text-muted">
           Mais do que um shopping — um ecossistema completo de tecnologia brasileira.
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -159,7 +159,7 @@ export default function SobrePage() {
             const Icon = item.icon;
             const isExternal = item.url.startsWith("http");
             const inner = (
-              <div className="flex flex-col gap-3 rounded-2xl border border-[#e8eaf0] bg-white p-5 hover:border-[#16a34a]/30 hover:shadow-md transition-all h-full">
+              <div className="flex flex-col gap-3 rounded-2xl border border-line-subtle bg-surface p-5 hover:border-[#16a34a]/30 hover:shadow-md transition-all h-full">
                 <div className="flex items-start justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f0fdf4]">
                     <Icon size={20} className="text-[#16a34a]" />
@@ -175,8 +175,8 @@ export default function SobrePage() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="font-black text-[#0f172a]">{item.name}</h3>
-                  <p className="mt-1 text-sm text-[#64748b]">{item.desc}</p>
+                  <h3 className="font-black text-content">{item.name}</h3>
+                  <p className="mt-1 text-sm text-muted">{item.desc}</p>
                 </div>
               </div>
             );
@@ -195,28 +195,28 @@ export default function SobrePage() {
 
       {/* FAQ — AEO/GEO content */}
       <section itemScope itemType="https://schema.org/FAQPage">
-        <h2 className="mb-6 text-2xl font-black text-[#0f172a]">Perguntas Frequentes</h2>
+        <h2 className="mb-6 text-2xl font-black text-content">Perguntas Frequentes</h2>
         <div className="space-y-4">
           {EXTENDED_FAQS.map((faq) => (
             <details
               key={faq.question}
-              className="group rounded-2xl border border-[#e8eaf0] bg-white"
+              className="group rounded-2xl border border-line-subtle bg-surface"
               itemScope
               itemProp="mainEntity"
               itemType="https://schema.org/Question"
             >
               <summary
-                className="flex cursor-pointer items-center justify-between gap-4 p-5 font-black text-[#0f172a] list-none"
+                className="flex cursor-pointer items-center justify-between gap-4 p-5 font-black text-content list-none"
                 itemProp="name"
               >
                 {faq.question}
                 <ArrowRight
                   size={16}
-                  className="shrink-0 text-[#94a3b8] transition-transform group-open:rotate-90"
+                  className="shrink-0 text-faint transition-transform group-open:rotate-90"
                 />
               </summary>
               <div
-                className="border-t border-[#f1f5f9] px-5 pb-5 pt-4 text-sm leading-relaxed text-[#475569]"
+                className="border-t border-subtle-2 px-5 pb-5 pt-4 text-sm leading-relaxed text-muted"
                 itemScope
                 itemProp="acceptedAnswer"
                 itemType="https://schema.org/Answer"
