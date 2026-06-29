@@ -152,8 +152,8 @@ export default function OrdersPage() {
         <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
           <ReceiptText size={40} className="text-[#16a34a]" />
         </div>
-        <h2 className="mt-6 text-xl font-black text-[#0f172a]">Entre para ver seus pedidos</h2>
-        <p className="mt-2 text-sm text-[#64748b]">
+        <h2 className="mt-6 text-xl font-black text-content">Entre para ver seus pedidos</h2>
+        <p className="mt-2 text-sm text-muted">
           Faça login para acompanhar seus pedidos em tempo real.
         </p>
         <Link
@@ -179,15 +179,15 @@ export default function OrdersPage() {
           </button>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-            <h1 className="text-xl font-black text-[#0f172a]">Meus pedidos</h1>
+            <h1 className="text-xl font-black text-content">Meus pedidos</h1>
           </div>
         </div>
         <button
           onClick={() => refetch()}
           disabled={refreshing}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface"
         >
-          <RefreshCw size={16} className={`text-[#64748b] ${refreshing ? "animate-spin" : ""}`} />
+          <RefreshCw size={16} className={`text-muted ${refreshing ? "animate-spin" : ""}`} />
         </button>
       </div>
 
@@ -195,10 +195,10 @@ export default function OrdersPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2].map((i) => (
-              <div key={i} className="rounded-3xl bg-white p-5 shadow-sm">
-                <div className="h-5 w-1/3 rounded bg-[#f1f5f9] animate-pulse" />
-                <div className="mt-3 h-8 w-1/2 rounded bg-[#f1f5f9] animate-pulse" />
-                <div className="mt-4 h-10 rounded-xl bg-[#f1f5f9] animate-pulse" />
+              <div key={i} className="rounded-3xl bg-surface p-5 shadow-sm">
+                <div className="h-5 w-1/3 rounded bg-subtle-2 animate-pulse" />
+                <div className="mt-3 h-8 w-1/2 rounded bg-subtle-2 animate-pulse" />
+                <div className="mt-4 h-10 rounded-xl bg-subtle-2 animate-pulse" />
               </div>
             ))}
           </div>
@@ -207,8 +207,8 @@ export default function OrdersPage() {
             <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
               <ReceiptText size={40} className="text-[#16a34a]" />
             </div>
-            <h2 className="mt-6 text-xl font-black text-[#0f172a]">Nenhum pedido ainda</h2>
-            <p className="mt-2 text-sm text-[#64748b]">Seus pedidos aparecerão aqui em tempo real.</p>
+            <h2 className="mt-6 text-xl font-black text-content">Nenhum pedido ainda</h2>
+            <p className="mt-2 text-sm text-muted">Seus pedidos aparecerão aqui em tempo real.</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -248,7 +248,7 @@ function StatusTimeline({ status }: { status: number }) {
                     ? isCurrent
                       ? "scale-125 border-[#16a34a] bg-[#16a34a]"
                       : "border-[#16a34a] bg-[#16a34a]"
-                    : "border-[#e2e8f0] bg-white"
+                    : "border-line bg-surface"
                 }`}
               />
               {!isLast && (
@@ -290,7 +290,7 @@ function RatingSection({ orderId, firstStoreProductId }: { orderId: string; firs
           Sua avaliação: {"⭐".repeat(existing.stars)}
         </p>
         {existing.comment && (
-          <p className="mt-1 text-xs italic text-[#64748b]">"{existing.comment}"</p>
+          <p className="mt-1 text-xs italic text-muted">"{existing.comment}"</p>
         )}
       </div>
     );
@@ -310,8 +310,8 @@ function RatingSection({ orderId, firstStoreProductId }: { orderId: string; firs
   }
 
   return (
-    <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
-      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+    <div className="rounded-2xl border border-line bg-subtle p-4">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-faint">
         Avalie sua experiência
       </p>
       <div className="flex gap-1">
@@ -337,7 +337,7 @@ function RatingSection({ orderId, firstStoreProductId }: { orderId: string; firs
             onChange={(e) => setComment(e.target.value)}
             placeholder="Deixe um comentário (opcional)…"
             rows={2}
-            className="mt-3 w-full resize-none rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
+            className="mt-3 w-full resize-none rounded-xl border border-line bg-surface px-3 py-2 text-sm text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
           />
           <button
             onClick={handleSave}
@@ -370,14 +370,14 @@ function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void
     <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative z-10 w-full max-w-sm overflow-hidden rounded-t-3xl bg-white p-6 sm:rounded-3xl"
+        className="relative z-10 w-full max-w-sm overflow-hidden rounded-t-3xl bg-surface p-6 sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         {submitted ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <span className="text-5xl">🎉</span>
-            <p className="text-lg font-black text-[#0f172a]">Obrigado pela avaliação!</p>
-            <p className="text-sm text-[#64748b]">Seu feedback ajuda outros compradores.</p>
+            <p className="text-lg font-black text-content">Obrigado pela avaliação!</p>
+            <p className="text-sm text-muted">Seu feedback ajuda outros compradores.</p>
           </div>
         ) : (
           <>
@@ -387,12 +387,12 @@ function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void
               </div>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">Pedido entregue!</p>
-                <h3 className="font-black text-[#0f172a]">Como foi sua experiência?</h3>
+                <h3 className="font-black text-content">Como foi sua experiência?</h3>
               </div>
             </div>
             {order.storeName && (
-              <p className="mb-4 text-sm text-[#64748b]">
-                Avalie sua compra em <strong className="text-[#0f172a]">{order.storeName}</strong>
+              <p className="mb-4 text-sm text-muted">
+                Avalie sua compra em <strong className="text-content">{order.storeName}</strong>
               </p>
             )}
             <div className="mb-4 flex justify-center gap-2">
@@ -415,13 +415,13 @@ function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Deixe um comentário (opcional)…"
                 rows={2}
-                className="mb-4 w-full resize-none rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
+                className="mb-4 w-full resize-none rounded-2xl border border-line bg-subtle px-4 py-3 text-sm text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
               />
             )}
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 rounded-2xl border border-[#e2e8f0] py-3 text-sm font-black text-[#64748b]"
+                className="flex-1 rounded-2xl border border-line py-3 text-sm font-black text-muted"
               >
                 Agora não
               </button>
@@ -461,7 +461,7 @@ function OrderCard({ order }: { order: Order }) {
   }, [order.id, isInTransit]);
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm">
       {/* HEADER */}
       <div className="bg-gradient-to-r from-[#16a34a] to-[#2563eb] p-4">
         <div className="flex items-start justify-between gap-3">
@@ -499,7 +499,7 @@ function OrderCard({ order }: { order: Order }) {
       {/* META + EXPAND */}
       <div className="px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-[#64748b]">
+          <div className="flex items-center gap-1.5 text-xs text-muted">
             <Clock3 size={13} />
             {new Date(order.createdAt).toLocaleString("pt-BR")}
           </div>
@@ -512,20 +512,20 @@ function OrderCard({ order }: { order: Order }) {
         </div>
 
         {open && (
-          <div className="mt-3 space-y-4 border-t border-[#f1f5f9] pt-3">
+          <div className="mt-3 space-y-4 border-t border-subtle-2 pt-3">
             {/* ITEMS */}
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-[#f8fafc] p-3">
+                <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-subtle p-3">
                   <img
                     src={getProductImageUrl(item.imageUrl)}
                     alt={item.productName}
-                    className="h-14 w-14 rounded-xl object-cover bg-white shrink-0"
+                    className="h-14 w-14 rounded-xl object-cover bg-surface shrink-0"
                     onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-black text-[#0f172a] line-clamp-1">{item.productName}</h3>
-                    <p className="text-xs text-[#64748b]">{item.quantity}× {formatBRL(item.unitPrice)}</p>
+                    <h3 className="text-sm font-black text-content line-clamp-1">{item.productName}</h3>
+                    <p className="text-xs text-muted">{item.quantity}× {formatBRL(item.unitPrice)}</p>
                   </div>
                   <span className="text-sm font-black text-[#16a34a] shrink-0">
                     {formatBRL(item.totalPrice)}
@@ -536,7 +536,7 @@ function OrderCard({ order }: { order: Order }) {
 
             {/* MAPA (status >= Saindo) */}
             {(isInTransit || isDelivered) && (
-              <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-[#f1f5f9]" />}>
+              <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-subtle-2" />}>
                 <MapTrack
                   deliveryAddress={order.deliveryAddress}
                   deliveryNumber={order.deliveryNumber}
@@ -548,34 +548,34 @@ function OrderCard({ order }: { order: Order }) {
 
             {/* ENDEREÇO */}
             {!isInTransit && !isDelivered && (
-              <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">Entrega</p>
-                <p className="text-sm font-black text-[#0f172a]">
+              <div className="rounded-2xl border border-line bg-subtle px-4 py-3">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-faint">Entrega</p>
+                <p className="text-sm font-black text-content">
                   {order.deliveryAddress}, {order.deliveryNumber}
                   {order.deliveryComplement ? ` — ${order.deliveryComplement}` : ""}
                 </p>
-                <p className="text-xs text-[#64748b]">{order.deliveryNeighborhood}</p>
+                <p className="text-xs text-muted">{order.deliveryNeighborhood}</p>
               </div>
             )}
 
             {/* TOTAIS + PAGAMENTO */}
             <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-[#64748b]">
+              <div className="flex justify-between text-xs text-muted">
                 <span>Subtotal</span>
                 <strong>{formatBRL(order.subtotal)}</strong>
               </div>
-              <div className="flex justify-between text-xs text-[#64748b]">
+              <div className="flex justify-between text-xs text-muted">
                 <span>Entrega</span>
                 <strong>
                   {Number(order.deliveryFee) === 0 ? "Grátis" : formatBRL(order.deliveryFee)}
                 </strong>
               </div>
-              <div className="flex justify-between text-xs text-[#64748b]">
+              <div className="flex justify-between text-xs text-muted">
                 <span>Pagamento</span>
                 <strong>{PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}</strong>
               </div>
-              <div className="flex justify-between border-t border-[#f1f5f9] pt-1.5">
-                <span className="text-sm font-black text-[#0f172a]">Total</span>
+              <div className="flex justify-between border-t border-subtle-2 pt-1.5">
+                <span className="text-sm font-black text-content">Total</span>
                 <span className="text-base font-black text-[#16a34a]">{formatBRL(order.total)}</span>
               </div>
             </div>

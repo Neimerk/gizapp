@@ -31,7 +31,7 @@ export default function FavoritesPage() {
         </button>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-xl font-black text-[#0f172a]">Favoritos</h1>
+          <h1 className="text-xl font-black text-content">Favoritos</h1>
         </div>
         {total > 0 && (
           <span className="ml-auto rounded-full bg-red-500 px-2.5 py-0.5 text-xs font-black text-white">
@@ -51,7 +51,7 @@ export default function FavoritesPage() {
               className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-black transition-colors ${
                 tab === t
                   ? "bg-[#0f172a] text-white"
-                  : "border border-[#e2e8f0] bg-white text-[#64748b]"
+                  : "border border-line bg-surface text-muted"
               }`}
             >
               {t === "produtos" ? "🛍️" : "🏪"}
@@ -59,7 +59,7 @@ export default function FavoritesPage() {
               {count > 0 && (
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
-                    tab === t ? "bg-white/20 text-white" : "bg-[#f1f5f9] text-[#64748b]"
+                    tab === t ? "bg-white/20 text-white" : "bg-subtle-2 text-muted"
                   }`}
                 >
                   {count}
@@ -75,7 +75,7 @@ export default function FavoritesPage() {
         <>
           {favProducts.length === 0 ? (
             <EmptyState
-              icon={<Heart size={36} className="text-[#94a3b8]" />}
+              icon={<Heart size={36} className="text-faint" />}
               title="Nenhum produto favorito"
               description="Toque no ♥ em qualquer produto para salvar aqui."
               linkTo="/buscar"
@@ -86,7 +86,7 @@ export default function FavoritesPage() {
               {favProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="group relative flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  className="group relative flex flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
                 >
                   {/* Remove favorite */}
                   <button
@@ -99,7 +99,7 @@ export default function FavoritesPage() {
 
                   <Link to={`/lojas/${product.storeId}/produto/${product.id}`} className="flex flex-col">
                     {/* Image */}
-                    <div className="flex h-36 items-center justify-center bg-[#f8fafc] p-3">
+                    <div className="flex h-36 items-center justify-center bg-subtle p-3">
                       {product.imageUrl ? (
                         <img
                           src={getProductImageUrl(product.imageUrl)}
@@ -113,10 +113,10 @@ export default function FavoritesPage() {
                     </div>
 
                     <div className="flex flex-1 flex-col p-3">
-                      <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
+                      <p className="truncate text-[10px] font-bold uppercase tracking-wide text-faint">
                         {product.category}
                       </p>
-                      <h3 className="mt-0.5 flex-1 text-xs font-black leading-tight text-[#0f172a] line-clamp-2">
+                      <h3 className="mt-0.5 flex-1 text-xs font-black leading-tight text-content line-clamp-2">
                         {product.name}
                       </h3>
                       <p className="mt-2 text-sm font-black text-[#16a34a]">
@@ -138,7 +138,7 @@ export default function FavoritesPage() {
         <>
           {favStores.length === 0 ? (
             <EmptyState
-              icon={<StoreIcon size={36} className="text-[#94a3b8]" />}
+              icon={<StoreIcon size={36} className="text-faint" />}
               title="Nenhuma loja favorita"
               description="Toque no ♥ no banner de uma loja para salvar aqui."
               linkTo="/lojas"
@@ -149,7 +149,7 @@ export default function FavoritesPage() {
               {favStores.map((store) => (
                 <div
                   key={store.id}
-                  className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                  className="group flex flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
                 >
                   {/* Banner */}
                   <div
@@ -170,7 +170,7 @@ export default function FavoritesPage() {
                       className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${
                         store.isOpen
                           ? "border-green-700/40 bg-green-900/30 text-green-400"
-                          : "border-white/15 bg-white/10 text-[#94a3b8]"
+                          : "border-white/15 bg-white/10 text-faint"
                       }`}
                     >
                       <span className={`h-1.5 w-1.5 rounded-full ${store.isOpen ? "bg-green-400" : "bg-[#94a3b8]"}`} />
@@ -185,10 +185,10 @@ export default function FavoritesPage() {
                   </div>
 
                   <Link to={`/lojas/${store.id}`} className="flex flex-1 flex-col px-4 pb-4 pt-8">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-faint">
                       {store.category.split(",")[0]}
                     </p>
-                    <h3 className="mt-0.5 font-black text-[#0f172a]">{store.name}</h3>
+                    <h3 className="mt-0.5 font-black text-content">{store.name}</h3>
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                       {[
                         { label: "Entrega", value: `${store.deliveryTimeMin}-${store.deliveryTimeMax}min` },
@@ -198,9 +198,9 @@ export default function FavoritesPage() {
                         },
                         { label: "Nota", value: `⭐ ${Number(store.rating).toFixed(1)}` },
                       ].map((s) => (
-                        <div key={s.label} className="rounded-xl bg-[#f8fafc] px-2 py-1.5" style={{ border: "1px solid #f1f5f9" }}>
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-[#94a3b8]">{s.label}</p>
-                          <p className="text-[10px] font-black text-[#0f172a]">{s.value}</p>
+                        <div key={s.label} className="rounded-xl bg-subtle px-2 py-1.5" style={{ border: "1px solid #f1f5f9" }}>
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-faint">{s.label}</p>
+                          <p className="text-[10px] font-black text-content">{s.value}</p>
                         </div>
                       ))}
                     </div>
@@ -229,11 +229,11 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[#f1f5f9]">
+      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-subtle-2">
         {icon}
       </div>
-      <h2 className="mt-5 text-lg font-black text-[#0f172a]">{title}</h2>
-      <p className="mt-1.5 text-sm text-[#64748b]">{description}</p>
+      <h2 className="mt-5 text-lg font-black text-content">{title}</h2>
+      <p className="mt-1.5 text-sm text-muted">{description}</p>
       <Link
         to={linkTo}
         className="mt-6 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"

@@ -166,14 +166,14 @@ export default function SearchPage() {
     <div className="space-y-6">
       <div>
         <p className="text-xs font-black uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-        <h1 className="mt-0.5 text-3xl font-black text-[#0f172a]">Buscar produtos</h1>
+        <h1 className="mt-0.5 text-3xl font-black text-content">Buscar produtos</h1>
       </div>
 
       {/* Search bar */}
       <div className="relative">
         <div
-          className={`flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm transition-colors ${
-            searchFocused ? "border-[#16a34a]/50 ring-2 ring-[#16a34a]/10" : "border-[#e2e8f0]"
+          className={`flex items-center gap-3 rounded-2xl border bg-surface px-4 py-3 shadow-sm transition-colors ${
+            searchFocused ? "border-[#16a34a]/50 ring-2 ring-[#16a34a]/10" : "border-line"
           }`}
         >
           <Search size={18} className="shrink-0 text-[#16a34a]" />
@@ -185,13 +185,13 @@ export default function SearchPage() {
             onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
             onKeyDown={handleKeyDown}
             placeholder="Buscar produtos, marcas, categorias…"
-            className="flex-1 bg-transparent text-sm font-medium text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+            className="flex-1 bg-transparent text-sm font-medium text-content outline-none placeholder:text-faint"
             autoFocus
           />
           {search && (
             <button
               onClick={() => { setSearch(""); inputRef.current?.focus(); }}
-              className="text-xl leading-none text-[#94a3b8] hover:text-[#0f172a]"
+              className="text-xl leading-none text-faint hover:text-content"
             >
               ×
             </button>
@@ -200,29 +200,29 @@ export default function SearchPage() {
 
         {/* Dropdown: histórico, trending ou sugestões FTS */}
         {showDropdown && (
-          <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-xl">
+          <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-2xl border border-line bg-surface shadow-xl">
 
             {/* Histórico (quando sem texto e há histórico) */}
             {showHistory && (
               <>
                 <div className="flex items-center justify-between px-4 py-2.5">
-                  <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+                  <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-faint">
                     <History size={11} /> Buscas recentes
                   </span>
-                  <button onClick={clearHistory} className="text-[10px] font-bold text-[#94a3b8] hover:text-red-500">
+                  <button onClick={clearHistory} className="text-[10px] font-bold text-faint hover:text-red-500">
                     Limpar
                   </button>
                 </div>
                 {history.map((term) => (
-                  <div key={term} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc]">
+                  <div key={term} className="flex items-center gap-3 px-4 py-2.5 hover:bg-subtle">
                     <button
-                      className="flex flex-1 items-center gap-2 text-left text-sm font-medium text-[#0f172a]"
+                      className="flex flex-1 items-center gap-2 text-left text-sm font-medium text-content"
                       onClick={() => { setSearch(term); setSearchFocused(false); }}
                     >
-                      <Clock size={14} className="shrink-0 text-[#94a3b8]" />
+                      <Clock size={14} className="shrink-0 text-faint" />
                       {term}
                     </button>
-                    <button onClick={() => removeHistory(term)} className="shrink-0 text-[#cbd5e1] hover:text-[#94a3b8]">
+                    <button onClick={() => removeHistory(term)} className="shrink-0 text-[#cbd5e1] hover:text-faint">
                       <X size={13} />
                     </button>
                   </div>
@@ -233,15 +233,15 @@ export default function SearchPage() {
             {/* Trending (quando campo vazio) */}
             {searchFocused && !search.trim() && (
               <div className="px-4 py-3">
-                {showHistory && <div className="mb-3 border-t border-[#f1f5f9]" />}
-                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+                {showHistory && <div className="mb-3 border-t border-subtle-2" />}
+                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-faint">
                   🔥 Em alta
                 </span>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {TRENDING_SEARCHES.map((term) => (
                     <button
                       key={term}
-                      className="rounded-full border border-[#e2e8f0] bg-[#f8fafc] px-3 py-1.5 text-xs font-bold text-[#64748b] hover:border-[#16a34a]/40 hover:bg-[#f0fdf4] hover:text-[#16a34a] transition-colors"
+                      className="rounded-full border border-line bg-subtle px-3 py-1.5 text-xs font-bold text-muted hover:border-[#16a34a]/40 hover:bg-[#f0fdf4] hover:text-[#16a34a] transition-colors"
                       onClick={() => {
                         setSearch(term);
                         commitSearch(term);
@@ -259,14 +259,14 @@ export default function SearchPage() {
             {showSuggestions && (
               <>
                 <div className="px-4 py-2.5">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-faint">
                     Sugestões
                   </span>
                 </div>
                 {suggestions.map((s) => (
                   <button
                     key={s.label}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f8fafc]"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-subtle"
                     onClick={() => {
                       setSearch(s.label);
                       commitSearch(s.label);
@@ -275,8 +275,8 @@ export default function SearchPage() {
                   >
                     <Search size={13} className="shrink-0 text-[#16a34a]" />
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-[#0f172a] truncate">{s.label}</p>
-                      <p className="text-[11px] text-[#94a3b8]">{s.category}</p>
+                      <p className="text-sm font-bold text-content truncate">{s.label}</p>
+                      <p className="text-[11px] text-faint">{s.category}</p>
                     </div>
                   </button>
                 ))}
@@ -303,7 +303,7 @@ export default function SearchPage() {
             className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition-all ${
               chip.active
                 ? "border-[#16a34a] bg-[#f0fdf4] text-[#16a34a]"
-                : "border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#16a34a]/40"
+                : "border-line bg-surface text-muted hover:border-[#16a34a]/40"
             }`}
           >
             {chip.label}
@@ -313,7 +313,7 @@ export default function SearchPage() {
 
       {/* Rating filter chips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+        <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-faint">
           Avaliação
         </span>
         {([3, 4, 4.5] as const).map((r) => (
@@ -323,7 +323,7 @@ export default function SearchPage() {
             className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-black transition-all ${
               minRating === r
                 ? "border-[#f59e0b] bg-[#fffbeb] text-[#b45309]"
-                : "border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#f59e0b]/40"
+                : "border-line bg-surface text-muted hover:border-[#f59e0b]/40"
             }`}
           >
             {"⭐".repeat(Math.floor(r))} {r}+
@@ -341,33 +341,33 @@ export default function SearchPage() {
 
       {/* Filters row: price + sort + view toggle */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#94a3b8]">
+        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-faint">
           <SlidersHorizontal size={13} /> Filtros
         </div>
 
         {/* Price filter */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 shadow-sm focus-within:border-[#16a34a]/40">
-            <span className="text-xs font-bold text-[#94a3b8]">R$</span>
+          <div className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 shadow-sm focus-within:border-[#16a34a]/40">
+            <span className="text-xs font-bold text-faint">R$</span>
             <input
               type="number"
               min="0"
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
               placeholder="Mín"
-              className="w-16 bg-transparent text-sm font-bold text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+              className="w-16 bg-transparent text-sm font-bold text-content outline-none placeholder:text-faint"
             />
           </div>
-          <span className="text-xs text-[#94a3b8]">—</span>
-          <div className="flex items-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 shadow-sm focus-within:border-[#16a34a]/40">
-            <span className="text-xs font-bold text-[#94a3b8]">R$</span>
+          <span className="text-xs text-faint">—</span>
+          <div className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 shadow-sm focus-within:border-[#16a34a]/40">
+            <span className="text-xs font-bold text-faint">R$</span>
             <input
               type="number"
               min="0"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
               placeholder="Máx"
-              className="w-16 bg-transparent text-sm font-bold text-[#0f172a] outline-none placeholder:text-[#94a3b8]"
+              className="w-16 bg-transparent text-sm font-bold text-content outline-none placeholder:text-faint"
             />
           </div>
         </div>
@@ -386,7 +386,7 @@ export default function SearchPage() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortOption)}
-            className="rounded-xl border border-[#e2e8f0] bg-white px-3 py-2 text-xs font-bold text-[#0f172a] outline-none shadow-sm focus:border-[#16a34a]/40 cursor-pointer"
+            className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-bold text-content outline-none shadow-sm focus:border-[#16a34a]/40 cursor-pointer"
           >
             {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
               <option key={key} value={key}>{SORT_LABELS[key]}</option>
@@ -394,17 +394,17 @@ export default function SearchPage() {
           </select>
 
           {/* View mode toggle */}
-          <div className="flex gap-1 rounded-xl border border-[#e2e8f0] bg-white p-1">
+          <div className="flex gap-1 rounded-xl border border-line bg-surface p-1">
             <button
               onClick={() => setViewMode("grid")}
-              className={`rounded-lg p-1.5 transition-colors ${viewMode === "grid" ? "bg-[#0f172a] text-white" : "text-[#94a3b8]"}`}
+              className={`rounded-lg p-1.5 transition-colors ${viewMode === "grid" ? "bg-[#0f172a] text-white" : "text-faint"}`}
               aria-label="Grade"
             >
               <LayoutGrid size={14} />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`rounded-lg p-1.5 transition-colors ${viewMode === "list" ? "bg-[#0f172a] text-white" : "text-[#94a3b8]"}`}
+              className={`rounded-lg p-1.5 transition-colors ${viewMode === "list" ? "bg-[#0f172a] text-white" : "text-faint"}`}
               aria-label="Lista"
             >
               <List size={14} />
@@ -416,13 +416,13 @@ export default function SearchPage() {
       {/* Store results */}
       {filteredStores.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-[#94a3b8]">Lojas</h2>
+          <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-faint">Lojas</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filteredStores.map((s) => (
               <Link
                 key={s.id}
                 to={`/lojas/${s.id}`}
-                className="flex items-center gap-4 rounded-2xl border border-[#e8eaf0] bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                className="flex items-center gap-4 rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#16a34a] text-sm font-black text-white">
                   {s.logoUrl ? (
@@ -432,8 +432,8 @@ export default function SearchPage() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-black text-[#0f172a]">{s.name}</h3>
-                  <p className="text-xs text-[#64748b]">
+                  <h3 className="truncate text-sm font-black text-content">{s.name}</h3>
+                  <p className="text-xs text-muted">
                     {s.category.split(",")[0]} · {s.deliveryTimeMin}–{s.deliveryTimeMax}min
                     {s.deliveryFee === 0 && <span className="ml-1 text-[#16a34a] font-bold">· Frete grátis</span>}
                   </p>
@@ -441,7 +441,7 @@ export default function SearchPage() {
                     <span className="text-[10px] font-bold text-[#f59e0b]">⭐ {s.rating.toFixed(1)}</span>
                   )}
                 </div>
-                <ArrowRight size={16} className="shrink-0 text-[#94a3b8]" />
+                <ArrowRight size={16} className="shrink-0 text-faint" />
               </Link>
             ))}
           </div>
@@ -455,7 +455,7 @@ export default function SearchPage() {
         return (
           <section>
             <div className="mb-3 flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
+              <span className="text-xs font-bold uppercase tracking-widest text-faint">
                 Soluções BrasUX
               </span>
               <span className="rounded-full bg-[#16a34a]/10 px-2 py-0.5 text-[10px] font-black text-[#16a34a]">
@@ -474,15 +474,15 @@ export default function SearchPage() {
       {/* Product results */}
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-faint">
             {search ? "Produtos encontrados" : "Em destaque"}
           </h2>
           <div className="flex items-center gap-2">
             {loadingProducts && (
-              <span className="text-xs text-[#94a3b8]">Buscando…</span>
+              <span className="text-xs text-faint">Buscando…</span>
             )}
             {!loadingProducts && (visibleProducts.length > 0 || totalItems > 0) && (
-              <span className="text-xs font-bold text-[#64748b]">
+              <span className="text-xs font-bold text-muted">
                 {priceFilterActive
                   ? `${visibleProducts.length} resultado${visibleProducts.length !== 1 ? "s" : ""}`
                   : `${totalItems} resultado${totalItems !== 1 ? "s" : ""}`}
@@ -497,27 +497,27 @@ export default function SearchPage() {
             : "flex flex-col gap-3"
           }>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className={`animate-pulse rounded-3xl bg-white shadow-sm ${viewMode === "grid" ? "p-3" : "flex items-center gap-4 p-4"}`}>
-                <div className={viewMode === "grid" ? "h-28 rounded-xl bg-[#f1f5f9]" : "h-20 w-20 shrink-0 rounded-2xl bg-[#f1f5f9]"} />
+              <div key={i} className={`animate-pulse rounded-3xl bg-surface shadow-sm ${viewMode === "grid" ? "p-3" : "flex items-center gap-4 p-4"}`}>
+                <div className={viewMode === "grid" ? "h-28 rounded-xl bg-subtle-2" : "h-20 w-20 shrink-0 rounded-2xl bg-subtle-2"} />
                 {viewMode === "list" && (
                   <div className="flex-1 space-y-2">
-                    <div className="h-3 w-3/4 rounded bg-[#f1f5f9]" />
-                    <div className="h-4 w-1/2 rounded bg-[#f1f5f9]" />
+                    <div className="h-3 w-3/4 rounded bg-subtle-2" />
+                    <div className="h-4 w-1/2 rounded bg-subtle-2" />
                   </div>
                 )}
                 {viewMode === "grid" && (
                   <>
-                    <div className="mt-2 h-3 w-3/4 rounded bg-[#f1f5f9]" />
-                    <div className="mt-1.5 h-4 w-1/2 rounded bg-[#f1f5f9]" />
+                    <div className="mt-2 h-3 w-3/4 rounded bg-subtle-2" />
+                    <div className="mt-1.5 h-4 w-1/2 rounded bg-subtle-2" />
                   </>
                 )}
               </div>
             ))}
           </div>
         ) : !loadingProducts && visibleProducts.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-[#e2e8f0] bg-white p-16 text-center">
-            <p className="text-lg font-black text-[#0f172a]">Nenhum produto encontrado</p>
-            <p className="mt-1 text-sm text-[#64748b]">
+          <div className="rounded-3xl border border-dashed border-line bg-surface p-16 text-center">
+            <p className="text-lg font-black text-content">Nenhum produto encontrado</p>
+            <p className="mt-1 text-sm text-muted">
               {priceFilterActive ? "Tente ajustar o filtro de preço." : "Tente outra busca ou categoria."}
             </p>
           </div>
@@ -569,8 +569,8 @@ function BrasUXSolutionCard({ solution }: { solution: BrasUXSolution }) {
         </div>
         <ExternalLink size={16} className="shrink-0 text-white/60 transition-colors group-hover:text-white" />
       </div>
-      <div className="flex flex-1 flex-col bg-white px-5 pb-5 pt-4">
-        <p className="flex-1 text-sm leading-relaxed text-[#64748b]">{solution.description}</p>
+      <div className="flex flex-1 flex-col bg-surface px-5 pb-5 pt-4">
+        <p className="flex-1 text-sm leading-relaxed text-muted">{solution.description}</p>
         <div
           className={`mt-4 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r py-2.5 text-xs font-black text-white ${solution.gradient}`}
         >
@@ -590,7 +590,7 @@ function SearchProductCard({ product }: { product: Product }) {
     : `/lojas`;
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
       {/* Favorite button */}
       <button
         onClick={(e) => {
@@ -613,7 +613,7 @@ function SearchProductCard({ product }: { product: Product }) {
       </button>
 
       <Link to={to} className="flex flex-col">
-        <div className="flex h-36 items-center justify-center overflow-hidden rounded-t-3xl bg-[#f8fafc] p-3">
+        <div className="flex h-36 items-center justify-center overflow-hidden rounded-t-3xl bg-subtle p-3">
           <ProductImage
             imageUrl={product.imageUrl}
             alt={product.imageAlt || product.name}
@@ -623,10 +623,10 @@ function SearchProductCard({ product }: { product: Product }) {
           />
         </div>
         <div className="flex flex-1 flex-col p-3">
-          <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
+          <p className="truncate text-[10px] font-bold uppercase tracking-wide text-faint">
             {product.category}
           </p>
-          <h3 className="mt-0.5 flex-1 text-xs font-black leading-tight text-[#0f172a] line-clamp-2">
+          <h3 className="mt-0.5 flex-1 text-xs font-black leading-tight text-content line-clamp-2">
             {product.name}
           </h3>
           {product.price != null && (
@@ -651,8 +651,8 @@ function SearchProductCardList({ product }: { product: Product }) {
     : `/lojas`;
 
   return (
-    <div className="flex items-center gap-4 rounded-3xl border border-[#e8eaf0] bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <Link to={to} className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f8fafc]">
+    <div className="flex items-center gap-4 rounded-3xl border border-line-subtle bg-surface p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+      <Link to={to} className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-subtle">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
@@ -665,9 +665,9 @@ function SearchProductCardList({ product }: { product: Product }) {
         )}
       </Link>
       <div className="flex flex-1 flex-col gap-1 min-w-0">
-        <p className="text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">{product.category}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wide text-faint">{product.category}</p>
         <Link to={to}>
-          <h3 className="text-sm font-black text-[#0f172a] line-clamp-2 leading-tight">{product.name}</h3>
+          <h3 className="text-sm font-black text-content line-clamp-2 leading-tight">{product.name}</h3>
         </Link>
         {product.price != null && (
           <p className="text-base font-black text-[#16a34a]">{formatBRL(Number(product.price))}</p>
@@ -683,7 +683,7 @@ function SearchProductCardList({ product }: { product: Product }) {
             price: Number(product.price ?? 0),
             category: product.category,
           })}
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f8fafc] border border-[#e2e8f0]"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-subtle border border-line"
           aria-label={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
         >
           <span className={`text-sm leading-none ${isFav ? "text-red-500" : "text-[#cbd5e1]"}`}>
