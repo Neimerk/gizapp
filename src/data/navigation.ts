@@ -9,7 +9,7 @@
 // Favoritos virou ícone no header (acessível em todas as larguras).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Home, LayoutGrid, Store, ReceiptText, User, Bike } from "lucide-react";
+import { Home, LayoutGrid, Store, ReceiptText, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
@@ -20,7 +20,7 @@ export interface NavItem {
   end?: boolean;
 }
 
-// Cliente/comprador — mesmos destinos no desktop e no mobile.
+// Nav principal do shopping — desktop e mobile.
 export const customerNav: NavItem[] = [
   { label: "Início",     path: "/",           icon: Home,       end: true },
   { label: "Categorias", path: "/categorias", icon: LayoutGrid },
@@ -29,15 +29,7 @@ export const customerNav: NavItem[] = [
   { label: "Conta",      path: "/conta",      icon: User },
 ];
 
-// Entregador — fluxo dedicado.
-export const courierNav: NavItem[] = [
-  { label: "Início",   path: "/",           icon: Home, end: true },
-  { label: "Entregas", path: "/entregador", icon: Bike },
-  { label: "Pedidos",  path: "/pedidos",    icon: ReceiptText },
-  { label: "Conta",    path: "/conta",      icon: User },
-];
-
-/** Nav primário conforme o papel do usuário. */
-export function getPrimaryNav(role?: string): NavItem[] {
-  return role === "Courier" ? courierNav : customerNav;
+/** Nav primário — app de compras, todos os papéis usam o mesmo nav. */
+export function getPrimaryNav(_role?: string): NavItem[] {
+  return customerNav;
 }
