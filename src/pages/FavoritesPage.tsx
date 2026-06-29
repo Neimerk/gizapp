@@ -198,7 +198,7 @@ export default function FavoritesPage() {
                         },
                         { label: "Nota", value: `⭐ ${Number(store.rating).toFixed(1)}` },
                       ].map((s) => (
-                        <div key={s.label} className="rounded-xl bg-subtle px-2 py-1.5" style={{ border: "1px solid #f1f5f9" }}>
+                        <div key={s.label} className="rounded-xl border border-line-subtle bg-subtle px-2 py-1.5">
                           <p className="text-[9px] font-bold uppercase tracking-wide text-faint">{s.label}</p>
                           <p className="text-[10px] font-black text-content">{s.value}</p>
                         </div>
