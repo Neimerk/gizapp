@@ -68,30 +68,41 @@
 }
 
 .dark {
-  --canvas: #0f172a;
-  --surface: #1e293b;
-  --subtle: #162032;
-  --subtle-2: #1a2744;
+  /* ── Superfícies ────────────────────────────────────────────────────────── */
+  --canvas: #0d1520;        /* fundo da página — navy profundo */
+  --surface: #192437;       /* cards, header — uma camada acima */
+  --subtle: #141d2e;        /* hover / áreas internas recuadas */
+  --subtle-2: #1d2f45;      /* chips, trilhos — leve acima da surface */
 
-  --content: #f1f5f9;
-  --muted: #94a3b8;
-  --faint: #64748b;
+  /* ── Texto ──────────────────────────────────────────────────────────────── */
+  --content: #eef2f8;       /* principal — ligeiramente warm vs. #f1f5f9 puro */
+  --muted: #8faabb;         /* secundário — azul-aço, neutro */
+  --faint: #627d96;         /* terciário — levantado de #64748b → ~3.8:1 em surface */
 
-  --line: #334155;
-  --line-subtle: #2d3f5c;
+  /* ── Bordas ─────────────────────────────────────────────────────────────── */
+  --line: #293d55;          /* borda padrão — um step acima da surface */
+  --line-subtle: #213348;   /* borda suave — mesmo hue, menos saliente */
 
+  /* ── Marca ──────────────────────────────────────────────────────────────── */
   --brand: #22c55e;
   --brand-strong: #16a34a;
-  --brand-soft: #0a2218;
+  --brand-soft: #0d2419;
   --on-brand: #04140b;
 
-  --secondary: #3b6fd4;
+  /* ── Secundária ─────────────────────────────────────────────────────────── */
+  --secondary: #4a7fd8;
   --secondary-strong: #1e3a8a;
 
+  /* ── Status ─────────────────────────────────────────────────────────────── */
   --success: #22c55e;
   --danger: #fb7185;
   --warning: #fbbf24;
   --info: #60a5fa;
+
+  /* ── Sombras (preto alpha — sem tint azul de marca) ────────────────────── */
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.30);
+  --shadow-card-hover: 0 20px 48px -8px rgba(0,0,0,0.70), 0 6px 16px -4px rgba(34,197,94,0.16);
+
   /* acentos de departamento mantêm o mesmo hue (já legíveis no escuro) */
 }
 
@@ -249,7 +260,7 @@ button {
    ════════════════════════════════════════════════════════════════════════════ */
 
 /* Backgrounds — cores semânticas brand/status (não são tokens de superfície) */
-html.dark .bg-white               { background-color: #1e293b !important; }
+html.dark .bg-white               { background-color: #192437 !important; }
 html.dark .bg-\[\#f0fdf4\]        { background-color: #0a2218 !important; }
 html.dark .bg-\[\#fff1f2\]        { background-color: #2d1217 !important; }
 html.dark .bg-\[\#fef2f2\]        { background-color: #2d1217 !important; }
@@ -266,27 +277,27 @@ html.dark .hover\:bg-\[\#e2e8f0\]:hover { background-color: #2d3f5c !important; 
 
 /* Input fields */
 html.dark input:not([class*="bg-\[#0"]):not([class*="bg-white"]) {
-  background-color: #1e293b;
-  color: #f1f5f9;
-  border-color: #334155;
+  background-color: #192437;
+  color: #eef2f8;
+  border-color: #293d55;
 }
-html.dark input::placeholder      { color: #475569 !important; }
-html.dark textarea                 { background-color: #1e293b !important; color: #f1f5f9 !important; border-color: #334155 !important; }
-html.dark select                   { background-color: #1e293b !important; color: #f1f5f9 !important; border-color: #334155 !important; }
+html.dark input::placeholder      { color: #627d96 !important; }
+html.dark textarea                 { background-color: #192437 !important; color: #eef2f8 !important; border-color: #293d55 !important; }
+html.dark select                   { background-color: #192437 !important; color: #eef2f8 !important; border-color: #293d55 !important; }
 
 /* Header bar */
 html.dark header[class*="sticky"] {
-  background: rgba(15,23,42,0.95) !important;
-  border-bottom-color: rgba(255,255,255,0.06) !important;
+  background: rgba(13,21,32,0.97) !important;
+  border-bottom-color: rgba(255,255,255,0.07) !important;
 }
 
 /* Scrollbar dark */
-html.dark ::-webkit-scrollbar-thumb { background: #334155; }
+html.dark ::-webkit-scrollbar-thumb { background: #2f4560; }
 
 /* Product image gradient — overridden in dark mode */
 .product-img-bg {
   background: linear-gradient(135deg, #f8fafc, #f1f5f9);
 }
 html.dark .product-img-bg {
-  background: linear-gradient(135deg, #1a2435, #1e293b) !important;
+  background: linear-gradient(135deg, #1d2f45, #192437) !important;
 }
