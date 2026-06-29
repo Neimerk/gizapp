@@ -8,6 +8,7 @@ export type BrasUXSolution = {
   badge: string;
   gradient: string;
   cardImage?: string;
+  price?: string;
 };
 
 export const brasuxSolutions: BrasUXSolution[] = [
@@ -36,7 +37,8 @@ export const brasuxSolutions: BrasUXSolution[] = [
   {
     id: "fabrica-landing-pages",
     name: "Fábrica de Landing Pages BrasUX",
-    description: "Landing page profissional e de alta conversão por apenas R$ 499,00. Design responsivo, botão WhatsApp e entrega em até 5 dias úteis.",
+    description: "Landing Page + botão WhatsApp — entrega em até 5 dias úteis.",
+    price: "R$ 499,00",
     url: "https://produtos.brasux.com.br/",
     categorySlug: "servicos",
     icon: "🚀",

@@ -93,6 +93,23 @@ export default function HeroCarousel() {
             {active.description}
           </p>
 
+          {active.price && (
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="text-sm font-medium text-white/50">por apenas</span>
+              <span
+                className="text-4xl font-black tracking-tight sm:text-5xl"
+                style={{
+                  background: "linear-gradient(135deg, #fcd34d 0%, #f59e0b 60%, #84cc16 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  filter: "drop-shadow(0 0 18px rgba(252,211,77,0.55))",
+                }}
+              >
+                {active.price}
+              </span>
+            </div>
+          )}
+
           <a
             href={active.url}
             target="_blank"
