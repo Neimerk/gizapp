@@ -21,7 +21,7 @@ export default function CartPage() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[11px] font-black uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-2xl font-black text-[#0f172a]">Carrinho</h1>
+          <h1 className="text-2xl font-black text-content">Carrinho</h1>
         </div>
         {items.length > 0 && (
           confirmClear ? (
@@ -34,7 +34,7 @@ export default function CartPage() {
               </button>
               <button
                 onClick={() => setConfirmClear(false)}
-                className="rounded-xl border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-black text-[#64748b]"
+                className="rounded-xl border border-line bg-surface px-3 py-1.5 text-xs font-black text-muted"
               >
                 Cancelar
               </button>
@@ -55,10 +55,10 @@ export default function CartPage() {
           <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
             <ShoppingCart size={40} className="text-[#16a34a]" />
           </div>
-          <h2 className="mt-6 text-xl font-black text-[#0f172a]">
+          <h2 className="mt-6 text-xl font-black text-content">
             Seu carrinho está vazio
           </h2>
-          <p className="mt-2 text-sm text-[#64748b]">
+          <p className="mt-2 text-sm text-muted">
             Adicione produtos de uma loja para continuar.
           </p>
           <Link
@@ -74,23 +74,23 @@ export default function CartPage() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="flex gap-3 rounded-2xl border border-[#e8eaf0] bg-white p-3 shadow-sm"
+              className="flex gap-3 rounded-2xl border border-line-subtle bg-surface p-3 shadow-sm"
             >
               <img
                 src={item.image}
                 alt={item.name}
                 loading="lazy"
-                className="h-20 w-20 shrink-0 rounded-xl object-cover bg-[#f8fafc]"
+                className="h-20 w-20 shrink-0 rounded-xl object-cover bg-subtle"
                 onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
               />
 
               <div className="flex flex-1 flex-col justify-between min-w-0">
                 <div>
-                  <h3 className="text-sm font-black text-[#0f172a] line-clamp-2 leading-tight">
+                  <h3 className="text-sm font-black text-content line-clamp-2 leading-tight">
                     {item.name}
                   </h3>
                   {item.description && (
-                    <p className="mt-0.5 text-xs text-[#64748b] line-clamp-1">
+                    <p className="mt-0.5 text-xs text-muted line-clamp-1">
                       {item.description}
                     </p>
                   )}
@@ -100,19 +100,19 @@ export default function CartPage() {
                 </div>
 
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1 rounded-xl bg-[#f1f5f9] p-1">
+                  <div className="flex items-center gap-1 rounded-xl bg-subtle-2 p-1">
                     <button
                       onClick={() => decreaseItem(item.id)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-white shadow-sm"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface shadow-sm"
                     >
                       <Minus size={13} />
                     </button>
-                    <span className="w-7 text-center text-sm font-black text-[#0f172a]">
+                    <span className="w-7 text-center text-sm font-black text-content">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => increaseItem(item.id)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-white shadow-sm"
+                      className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface shadow-sm"
                     >
                       <Plus size={13} />
                     </button>
@@ -131,23 +131,23 @@ export default function CartPage() {
 
           {/* SUMMARY */}
           <div className="rounded-3xl bg-[#0f172a] p-5">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-[#64748b]">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-muted">
               Resumo
             </h2>
 
             <div className="mt-3 space-y-2">
-              <div className="flex justify-between text-sm text-[#94a3b8]">
+              <div className="flex justify-between text-sm text-faint">
                 <span>{totalItems} {totalItems === 1 ? "item" : "itens"}</span>
                 <strong className="text-white">{formatBRL(totalPrice)}</strong>
               </div>
-              <div className="flex justify-between text-sm text-[#94a3b8]">
+              <div className="flex justify-between text-sm text-faint">
                 <span>Taxa de entrega</span>
                 <strong className="text-white">no checkout</strong>
               </div>
             </div>
 
             <div className="mt-4 border-t border-white/10 pt-4 flex items-center justify-between">
-              <span className="text-base font-bold text-[#94a3b8]">Total</span>
+              <span className="text-base font-bold text-faint">Total</span>
               <span className="text-2xl font-black text-white">
                 {formatBRL(totalPrice)}
               </span>

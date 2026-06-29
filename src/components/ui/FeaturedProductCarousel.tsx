@@ -80,7 +80,7 @@ export default function FeaturedProductCarousel({ products }: Props) {
         </div>
 
         {/* Imagem do produto */}
-        <div className="flex h-52 items-center justify-center bg-white p-6">
+        <div className="flex h-52 items-center justify-center bg-surface p-6">
           <ProductImage
             imageUrl={p.imageUrl}
             alt={p.imageAlt || p.name}
@@ -142,7 +142,7 @@ export default function FeaturedProductCarousel({ products }: Props) {
               key={i}
               onClick={() => go(i)}
               aria-label={`Produto ${i + 1}`}
-              className="rounded-full bg-white transition-all"
+              className="rounded-full bg-surface transition-all"
               style={{
                 width:   i === current ? 20 : 6,
                 height:  6,

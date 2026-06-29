@@ -210,7 +210,7 @@ export default function AccountPage() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">
             BrasUX
           </p>
-          <h1 className="text-xl font-black text-[#0f172a]">Minha conta</h1>
+          <h1 className="text-xl font-black text-content">Minha conta</h1>
         </div>
       </div>
 
@@ -230,7 +230,7 @@ export default function AccountPage() {
             <h2 className="text-lg font-black text-white truncate">
               {auth ? auth.name : "Bem-vindo!"}
             </h2>
-            <p className="text-sm text-[#94a3b8] truncate">
+            <p className="text-sm text-faint truncate">
               {auth ? auth.email : "Complete seu cadastro"}
             </p>
             {auth && (
@@ -332,7 +332,7 @@ export default function AccountPage() {
               {cepLoading && (
                 <Loader2
                   size={15}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#94a3b8]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-faint"
                 />
               )}
             </div>
@@ -386,18 +386,18 @@ export default function AccountPage() {
           <SectionCard icon={<Heart size={16} className="text-red-500" />} title="Favoritos">
             {favStores.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8] flex items-center gap-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-faint flex items-center gap-1">
                   <StoreIcon size={10} /> Lojas
                 </p>
                 {favStores.map((store) => (
-                  <div key={store.id} className="flex items-center gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                  <div key={store.id} className="flex items-center gap-3 rounded-xl border border-line bg-subtle p-3">
                     <Link to={`/lojas/${store.id}`} className="flex flex-1 items-center gap-3 min-w-0">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#16a34a] text-xs font-black text-white">
                         {store.name.charAt(0)}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-[#0f172a]">{store.name}</p>
-                        <p className="text-xs text-[#64748b]">{store.category.split(",")[0]}</p>
+                        <p className="truncate text-sm font-black text-content">{store.name}</p>
+                        <p className="text-xs text-muted">{store.category.split(",")[0]}</p>
                       </div>
                     </Link>
                     <button
@@ -413,11 +413,11 @@ export default function AccountPage() {
             )}
             {favProducts.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+                <p className="text-[10px] font-black uppercase tracking-widest text-faint">
                   Produtos
                 </p>
                 {favProducts.map((product) => (
-                  <div key={product.id} className="flex items-center gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                  <div key={product.id} className="flex items-center gap-3 rounded-xl border border-line bg-subtle p-3">
                     <Link
                       to={`/lojas/${product.storeId}/produto/${product.id}`}
                       className="flex flex-1 items-center gap-3 min-w-0"
@@ -426,16 +426,16 @@ export default function AccountPage() {
                         <img
                           src={getProductImageUrl(product.imageUrl)}
                           alt={product.name}
-                          className="h-10 w-10 shrink-0 rounded-xl object-cover bg-white"
+                          className="h-10 w-10 shrink-0 rounded-xl object-cover bg-surface"
                           onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
                         />
                       ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f1f5f9] text-xl">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-subtle-2 text-xl">
                           🛍️
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-black text-[#0f172a]">{product.name}</p>
+                        <p className="truncate text-sm font-black text-content">{product.name}</p>
                         <p className="text-xs font-bold text-[#16a34a]">
                           {formatBRL(Number(product.promotionalPrice ?? product.price))}
                         </p>
@@ -504,7 +504,7 @@ export default function AccountPage() {
           <button
             onClick={handleDeleteAccount}
             disabled={deletingAccount}
-            className="mt-3 flex items-center gap-2 rounded-xl border border-red-300 bg-white px-4 py-2.5 text-xs font-black text-red-600 hover:bg-red-100 disabled:opacity-60"
+            className="mt-3 flex items-center gap-2 rounded-xl border border-red-300 bg-surface px-4 py-2.5 text-xs font-black text-red-600 hover:bg-red-100 disabled:opacity-60"
           >
             {deletingAccount
               ? <><Loader2 size={13} className="animate-spin" /> Excluindo…</>
@@ -518,7 +518,7 @@ export default function AccountPage() {
 }
 
 const inputCls =
-  "w-full rounded-xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
+  "w-full rounded-xl bg-subtle border border-line px-4 py-3 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
 
 function PushNotificationsCard() {
   const { status, subscribe, unsubscribe } = usePushNotifications();
@@ -537,12 +537,12 @@ function PushNotificationsCard() {
 
   return (
     <SectionCard icon={<Bell size={16} className="text-[#16a34a]" />} title="Notificações">
-      <div className="flex items-center justify-between rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3.5">
+      <div className="flex items-center justify-between rounded-2xl border border-line bg-subtle px-4 py-3.5">
         <div>
-          <p className="text-sm font-black text-[#0f172a]">
+          <p className="text-sm font-black text-content">
             {isOn ? "Notificações ativadas ✅" : "Ativar notificações push"}
           </p>
-          <p className="mt-0.5 text-xs text-[#64748b]">
+          <p className="mt-0.5 text-xs text-muted">
             {status === "denied"
               ? "Permissão negada — habilite nas configurações do navegador."
               : isOn
@@ -661,7 +661,7 @@ function LoyaltyWidget({
         <p className="mb-2 text-[10px] font-black uppercase tracking-widest" style={{ color: level.color }}>
           {level.emoji} Benefícios nível {level.name}
         </p>
-        <ul className="space-y-1 text-xs text-[#64748b]">
+        <ul className="space-y-1 text-xs text-muted">
           {level.name === "Bronze"   && <><li>• Cashback 1× em pontos</li><li>• Acesso a cupons gerais</li></>}
           {level.name === "Prata"    && <><li>• Cashback 1.5× em pontos</li><li>• Frete grátis em compras acima de R$80</li></>}
           {level.name === "Ouro"     && <><li>• Cashback 2× em pontos</li><li>• Frete grátis em compras acima de R$50</li><li>• Acesso antecipado a flash sales</li></>}
@@ -672,7 +672,7 @@ function LoyaltyWidget({
 
       {/* Conquistas */}
       <div>
-        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Conquistas</p>
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-faint">Conquistas</p>
         <div className="grid grid-cols-3 gap-2">
           {BADGES.map((b) => (
             <div
@@ -680,11 +680,11 @@ function LoyaltyWidget({
               className={`flex flex-col items-center gap-1 rounded-2xl border py-3 transition-all ${
                 b.unlocked
                   ? "border-[#16a34a]/30 bg-[#f0fdf4]"
-                  : "border-[#e2e8f0] bg-[#f8fafc] opacity-40"
+                  : "border-line bg-subtle opacity-40"
               }`}
             >
               <span className="text-xl">{b.unlocked ? b.emoji : "🔒"}</span>
-              <p className="text-center text-[9px] font-black leading-tight text-[#64748b]">{b.label}</p>
+              <p className="text-center text-[9px] font-black leading-tight text-muted">{b.label}</p>
             </div>
           ))}
         </div>
@@ -693,12 +693,12 @@ function LoyaltyWidget({
       {/* Histórico */}
       {pointsHistory.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Histórico recente</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint">Histórico recente</p>
           {pointsHistory.slice(0, 5).map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between rounded-xl bg-[#f8fafc] px-3 py-2">
+            <div key={entry.id} className="flex items-center justify-between rounded-xl bg-subtle px-3 py-2">
               <div>
-                <p className="text-xs font-bold text-[#0f172a]">{entry.description}</p>
-                <p className="text-[10px] text-[#94a3b8]">
+                <p className="text-xs font-bold text-content">{entry.description}</p>
+                <p className="text-[10px] text-faint">
                   {new Date(entry.date).toLocaleDateString("pt-BR")}
                 </p>
               </div>
@@ -723,12 +723,12 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+    <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#f8fafc]">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-subtle">
           {icon}
         </div>
-        <h2 className="text-sm font-black text-[#0f172a]">{title}</h2>
+        <h2 className="text-sm font-black text-content">{title}</h2>
       </div>
       <div className="space-y-3">{children}</div>
     </div>
@@ -738,7 +738,7 @@ function SectionCard({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-[10px] font-black uppercase tracking-wide text-[#94a3b8]">
+      <label className="mb-1 block text-[10px] font-black uppercase tracking-wide text-faint">
         {label}
       </label>
       {children}

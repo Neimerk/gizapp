@@ -144,15 +144,15 @@ export default function ProductPage() {
     return (
       <div className="space-y-4">
         <div className="h-10 w-10 animate-pulse rounded-xl bg-white" />
-        <div className="h-80 animate-pulse rounded-3xl bg-white shadow-sm" />
-        <div className="h-48 animate-pulse rounded-3xl bg-white shadow-sm" />
+        <div className="h-80 animate-pulse rounded-3xl bg-surface shadow-sm" />
+        <div className="h-48 animate-pulse rounded-3xl bg-surface shadow-sm" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="rounded-3xl bg-white p-10 text-center shadow-sm">
+      <div className="rounded-3xl bg-surface p-10 text-center shadow-sm">
         <p className="font-black text-red-500">Produto não encontrado.</p>
         <Link
           to={`/lojas/${storeId}`}
@@ -193,7 +193,7 @@ export default function ProductPage() {
       <div className="flex items-center justify-between">
         <Link
           to={`/lojas/${storeId}`}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
         >
           <ArrowLeft size={17} />
         </Link>
@@ -205,7 +205,7 @@ export default function ProductPage() {
             className={`flex h-10 w-10 items-center justify-center rounded-xl border text-xl transition-all hover:scale-110 ${
               isFav
                 ? "border-red-200 bg-red-50 text-red-500"
-                : "border-[#e2e8f0] bg-white text-[#cbd5e1] hover:text-red-400"
+                : "border-line bg-surface text-[#cbd5e1] hover:text-red-400"
             }`}
             aria-label={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
           >
@@ -215,7 +215,7 @@ export default function ProductPage() {
           {/* Share */}
           <button
             onClick={handleShare}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#e2e8f0] bg-white text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
             aria-label="Compartilhar produto"
           >
             <Share2 size={16} />
@@ -242,32 +242,32 @@ export default function ProductPage() {
         <div className="flex flex-col gap-4">
           {/* Tags */}
           <div className="flex flex-wrap gap-2">
-            <span className="rounded-full bg-[#f1f5f9] px-3 py-1 text-[11px] font-bold text-[#475569]">
+            <span className="rounded-full bg-subtle-2 px-3 py-1 text-[11px] font-bold text-muted">
               {product.category}
             </span>
             {product.brand && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#e2e8f0] bg-white px-3 py-1 text-[11px] font-bold text-[#64748b]">
+              <span className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-3 py-1 text-[11px] font-bold text-muted">
                 <Tag size={10} /> {product.brand}
               </span>
             )}
             {product.subCategory && (
-              <span className="rounded-full bg-[#f1f5f9] px-3 py-1 text-[11px] font-bold text-[#475569]">
+              <span className="rounded-full bg-subtle-2 px-3 py-1 text-[11px] font-bold text-muted">
                 {product.subCategory}
               </span>
             )}
           </div>
 
           {/* Name */}
-          <h1 className="text-3xl font-black leading-tight text-[#0f172a]">{product.name}</h1>
+          <h1 className="text-3xl font-black leading-tight text-content">{product.name}</h1>
 
           {/* Price */}
-          <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4">
+          <div className="rounded-2xl border border-line-subtle bg-surface p-4">
             {product.promotionalPrice ? (
               <div className="flex flex-wrap items-end gap-3">
                 <span className="text-4xl font-black text-[#16a34a]">
                   {formatBRL(Number(product.promotionalPrice))}
                 </span>
-                <span className="mb-1 text-base font-bold text-[#94a3b8] line-through">
+                <span className="mb-1 text-base font-bold text-faint line-through">
                   {formatBRL(Number(product.price))}
                 </span>
                 <span className="mb-1 rounded-full bg-[#16a34a]/10 px-2.5 py-0.5 text-xs font-black text-[#16a34a]">
@@ -333,9 +333,9 @@ export default function ProductPage() {
 
           {/* Description */}
           {product.description && (
-            <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Descrição</p>
-              <p className="mt-2 text-sm leading-relaxed text-[#475569]">{product.description}</p>
+            <div className="rounded-2xl border border-line-subtle bg-surface p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-faint">Descrição</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{product.description}</p>
             </div>
           )}
 
@@ -346,7 +346,7 @@ export default function ProductPage() {
           {store && (
             <Link
               to={`/lojas/${storeId}`}
-              className="flex items-center gap-4 rounded-2xl border border-[#e8eaf0] bg-white p-4 transition-all hover:border-[#16a34a]/30 hover:shadow-sm"
+              className="flex items-center gap-4 rounded-2xl border border-line-subtle bg-surface p-4 transition-all hover:border-[#16a34a]/30 hover:shadow-sm"
             >
               <div
                 className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-sm font-black text-white"
@@ -355,9 +355,9 @@ export default function ProductPage() {
                 <StoreLogo logoUrl={store.logoUrl} name={store.name} />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">Vendido por</p>
-                <p className="truncate font-black text-[#0f172a]">{store.name}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-[#64748b]">
+                <p className="text-[10px] font-black uppercase tracking-widest text-faint">Vendido por</p>
+                <p className="truncate font-black text-content">{store.name}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-muted">
                   <span className="flex items-center gap-1">
                     <Clock3 size={10} /> {store.deliveryTimeMin}–{store.deliveryTimeMax}min
                   </span>
@@ -369,7 +369,7 @@ export default function ProductPage() {
                   </span>
                 </div>
               </div>
-              <ArrowRight size={16} className="shrink-0 text-[#94a3b8]" />
+              <ArrowRight size={16} className="shrink-0 text-faint" />
             </Link>
           )}
         </div>
@@ -378,7 +378,7 @@ export default function ProductPage() {
       {/* Related products */}
       {related.length > 0 && (
         <section>
-          <h2 className="mb-4 text-xl font-black text-[#0f172a]">Mais desta categoria</h2>
+          <h2 className="mb-4 text-xl font-black text-content">Mais desta categoria</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {related.map((p) => (
               <RelatedCard key={p.id} product={p} storeId={storeId} />
@@ -406,18 +406,18 @@ function ProductReviewSection({ productId }: { productId: string }) {
   const activeStars = hovered || editStars;
 
   return (
-    <div className="rounded-2xl border border-[#e8eaf0] bg-white p-4 space-y-4">
+    <div className="rounded-2xl border border-line-subtle bg-surface p-4 space-y-4">
       {/* Aggregate stats */}
       {stats.total > 0 && (
         <div className="flex items-center gap-4">
           <div className="text-center">
-            <p className="text-3xl font-black text-[#0f172a]">{stats.average.toFixed(1)}</p>
+            <p className="text-3xl font-black text-content">{stats.average.toFixed(1)}</p>
             <div className="flex gap-0.5 justify-center">
               {[1, 2, 3, 4, 5].map((s) => (
                 <span key={s} className={`text-sm ${s <= Math.round(stats.average) ? "text-yellow-400" : "text-[#e2e8f0]"}`}>★</span>
               ))}
             </div>
-            <p className="text-[10px] text-[#94a3b8] mt-0.5">{stats.total} {stats.total === 1 ? "avaliação" : "avaliações"}</p>
+            <p className="text-[10px] text-faint mt-0.5">{stats.total} {stats.total === 1 ? "avaliação" : "avaliações"}</p>
           </div>
           <div className="flex-1 space-y-1">
             {([5, 4, 3, 2, 1] as const).map((s) => {
@@ -425,11 +425,11 @@ function ProductReviewSection({ productId }: { productId: string }) {
               const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
               return (
                 <div key={s} className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-[#64748b] w-3">{s}</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-[#f1f5f9] overflow-hidden">
+                  <span className="text-[10px] font-bold text-muted w-3">{s}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-subtle-2 overflow-hidden">
                     <div className="h-full rounded-full bg-yellow-400 transition-all" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="text-[10px] text-[#94a3b8] w-6 text-right">{count}</span>
+                  <span className="text-[10px] text-faint w-6 text-right">{count}</span>
                 </div>
               );
             })}
@@ -439,12 +439,12 @@ function ProductReviewSection({ productId }: { productId: string }) {
 
       {/* Minha avaliação */}
       <div>
-        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-faint">
           Sua avaliação
         </p>
 
         {!user ? (
-          <p className="text-xs text-[#94a3b8]">Faça login para avaliar este produto.</p>
+          <p className="text-xs text-faint">Faça login para avaliar este produto.</p>
         ) : myReview && !isEditing ? (
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
@@ -453,12 +453,12 @@ function ProductReviewSection({ productId }: { productId: string }) {
                   <span key={s} className={`text-lg ${s <= myReview.stars ? "text-yellow-400" : "text-[#e2e8f0]"}`}>★</span>
                 ))}
               </div>
-              <span className="text-xs text-[#94a3b8]">
+              <span className="text-xs text-faint">
                 {new Date(myReview.createdAt).toLocaleDateString("pt-BR")}
               </span>
             </div>
             {myReview.comment && (
-              <p className="text-sm italic text-[#475569]">"{myReview.comment}"</p>
+              <p className="text-sm italic text-muted">"{myReview.comment}"</p>
             )}
             <div className="flex gap-3 pt-1">
               <button onClick={startEdit} className="text-xs font-bold text-[#16a34a]">Editar</button>
@@ -493,7 +493,7 @@ function ProductReviewSection({ productId }: { productId: string }) {
                   onChange={(e) => setEditComment(e.target.value)}
                   placeholder="Deixe um comentário (opcional)…"
                   rows={2}
-                  className="mt-3 w-full resize-none rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 py-2 text-sm text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
+                  className="mt-3 w-full resize-none rounded-xl border border-line bg-subtle px-3 py-2 text-sm text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
                 />
                 {error && <p className="mt-1 text-xs font-bold text-red-500">{error}</p>}
                 <div className="mt-2 flex gap-2">
@@ -507,7 +507,7 @@ function ProductReviewSection({ productId }: { productId: string }) {
                   {isEditing && (
                     <button
                       onClick={cancelEdit}
-                      className="rounded-xl border border-[#e2e8f0] px-4 py-2.5 text-xs font-black text-[#64748b]"
+                      className="rounded-xl border border-line px-4 py-2.5 text-xs font-black text-muted"
                     >
                       Cancelar
                     </button>
@@ -515,15 +515,15 @@ function ProductReviewSection({ productId }: { productId: string }) {
                 </div>
               </>
             )}
-            {!editStars && <p className="mt-2 text-xs text-[#94a3b8]">Clique nas estrelas para avaliar.</p>}
+            {!editStars && <p className="mt-2 text-xs text-faint">Clique nas estrelas para avaliar.</p>}
           </div>
         )}
       </div>
 
       {/* Avaliações públicas */}
       {allReviews.length > 0 && (
-        <div className="space-y-3 border-t border-[#f1f5f9] pt-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+        <div className="space-y-3 border-t border-subtle-2 pt-3">
+          <p className="text-[10px] font-black uppercase tracking-widest text-faint">
             O que outros acharam
           </p>
           {allReviews.slice(0, 5).map((r) => (
@@ -533,7 +533,7 @@ function ProductReviewSection({ productId }: { productId: string }) {
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#16a34a]/10 text-[10px] font-black text-[#16a34a]">
                     {r.userName.charAt(0).toUpperCase()}
                   </div>
-                  <span className="text-xs font-bold text-[#0f172a]">{r.userName}</span>
+                  <span className="text-xs font-bold text-content">{r.userName}</span>
                 </div>
                 <div className="flex gap-0.5">
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -541,7 +541,7 @@ function ProductReviewSection({ productId }: { productId: string }) {
                   ))}
                 </div>
               </div>
-              {r.comment && <p className="pl-8 text-xs text-[#64748b]">{r.comment}</p>}
+              {r.comment && <p className="pl-8 text-xs text-muted">{r.comment}</p>}
             </div>
           ))}
         </div>
@@ -554,9 +554,9 @@ function RelatedCard({ product, storeId }: { product: StoreProduct; storeId: str
   return (
     <Link
       to={`/lojas/${storeId}/produto/${product.id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-[#e8eaf0] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="flex h-36 items-center justify-center overflow-hidden rounded-t-3xl bg-[#f8fafc] p-4">
+      <div className="flex h-36 items-center justify-center overflow-hidden rounded-t-3xl bg-subtle p-4">
         <ProductImage
           imageUrl={product.imageUrl}
           alt={product.imageAlt || product.name}
@@ -566,7 +566,7 @@ function RelatedCard({ product, storeId }: { product: StoreProduct; storeId: str
         />
       </div>
       <div className="flex flex-1 flex-col p-3">
-        <h3 className="flex-1 text-xs font-black leading-tight text-[#0f172a] line-clamp-2">
+        <h3 className="flex-1 text-xs font-black leading-tight text-content line-clamp-2">
           {product.name}
         </h3>
         <p className="mt-2 text-sm font-black text-[#16a34a]">

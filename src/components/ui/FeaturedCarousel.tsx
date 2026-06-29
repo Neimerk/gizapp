@@ -23,7 +23,7 @@ export default function FeaturedCarousel({ store }: Props) {
 
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-3xl bg-white"
+      className="flex flex-col overflow-hidden rounded-3xl bg-surface"
       style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04)" }}
     >
       {/* Store header */}
@@ -50,7 +50,7 @@ export default function FeaturedCarousel({ store }: Props) {
         className="group flex flex-1 flex-col p-4"
       >
         {/* Image */}
-        <div className="relative mx-auto mb-3 h-36 w-full overflow-hidden rounded-2xl bg-[#f8fafc]">
+        <div className="relative mx-auto mb-3 h-36 w-full overflow-hidden rounded-2xl bg-subtle">
           {product.imageUrl ? (
             <img
               src={product.imageUrl}
@@ -63,16 +63,16 @@ export default function FeaturedCarousel({ store }: Props) {
         </div>
 
         {/* Info */}
-        <p className="truncate text-[10px] font-bold uppercase tracking-wide text-[#94a3b8]">
+        <p className="truncate text-[10px] font-bold uppercase tracking-wide text-faint">
           {product.category}{product.brand ? ` · ${product.brand}` : ""}
         </p>
-        <h3 className="mt-1 line-clamp-2 text-sm font-black leading-tight text-[#0f172a]">
+        <h3 className="mt-1 line-clamp-2 text-sm font-black leading-tight text-content">
           {product.name}
         </h3>
         <div className="mt-2">
           {product.promotionalPrice ? (
             <>
-              <p className="text-[10px] font-bold text-[#94a3b8] line-through">
+              <p className="text-[10px] font-bold text-faint line-through">
                 {formatBRL(product.price)}
               </p>
               <p className="text-base font-black text-[#16a34a]">
@@ -93,7 +93,7 @@ export default function FeaturedCarousel({ store }: Props) {
 
       {/* Dots */}
       {products.length > 1 && (
-        <div className="flex items-center justify-center gap-1.5 border-t border-[#f1f5f9] py-2.5">
+        <div className="flex items-center justify-center gap-1.5 border-t border-subtle-2 py-2.5">
           {products.map((_, i) => (
             <button
               key={i}

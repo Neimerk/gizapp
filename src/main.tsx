@@ -1,5 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+
+// Prevent browser from restoring scroll position on F5 / hard reload.
+// AppLayout already calls window.scrollTo(0, 0) on route changes.
+window.history.scrollRestoration = 'manual';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '@fontsource-variable/inter/index.css'
 import './index.css'

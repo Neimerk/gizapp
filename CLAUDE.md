@@ -83,9 +83,12 @@ Substituir hex literais pelos utilitários de token, surface por surface:
 - **Migrados:** `index.css`, `taxonomy.ts`, `navigation.ts`, `CategoryTile`,
   `DepartmentCard`, `AppLayout`, `BottomNavigation`, `StoreCard`, `HomePage`,
   `CategoriesPage`, `CategoryPage`, `home/SectionHeader`, `home/FlashSale`,
-  `home/JoinCtaSection`.
-- **Faltam (mesma receita):** `Footer`, `ProductPage`, `StorePage`,
-  `CartPage`/`CheckoutPage`, `AccountPage` e os demais `components/ui/*`.
+  `home/JoinCtaSection`, `Footer`, `ProductPage`, `StorePage`,
+  `CartPage`, `CheckoutPage`, `AccountPage`, `ui/Pagination`,
+  `ui/FeaturedCarousel`, `ui/CategoryScroll`, `ui/FeaturedProductCarousel`.
+- **Faltam (mesma receita):** `CourierPage`, `AdminPage`, `SellerPage`,
+  `FavoritesPage`, `SearchPage`, `OrdersPage` e demais `components/ui/*`
+  não listados acima (Toast, Onboarding, CookieBanner, etc.).
 
 ## Regras de trabalho
 - Entregar **arquivos completos drop-in**, não fragmentos.

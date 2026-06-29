@@ -17,9 +17,9 @@ export default function Pagination({ page, totalPages, totalItems, pageSize, onP
 
   return (
     <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p className="text-xs text-[#94a3b8]">
-        Mostrando <strong className="text-[#64748b]">{from}–{to}</strong> de{" "}
-        <strong className="text-[#64748b]">{totalItems}</strong> itens
+      <p className="text-xs text-faint">
+        Mostrando <strong className="text-muted">{from}–{to}</strong> de{" "}
+        <strong className="text-muted">{totalItems}</strong> itens
       </p>
 
       <div className="flex items-center gap-1">
@@ -29,7 +29,7 @@ export default function Pagination({ page, totalPages, totalItems, pageSize, onP
 
         {pages.map((p, i) =>
           p === "…" ? (
-            <span key={`e-${i}`} className="px-1 text-sm text-[#94a3b8]">…</span>
+            <span key={`e-${i}`} className="px-1 text-sm text-faint">…</span>
           ) : (
             <PageBtn key={p} onClick={() => onPageChange(p as number)} active={p === page}>
               {p}
@@ -62,7 +62,7 @@ function PageBtn({
       className={`flex h-8 min-w-8 items-center justify-center rounded-xl px-2 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${
         active
           ? "bg-[#16a34a] text-white shadow-sm shadow-[#16a34a]/40"
-          : "border border-[#e2e8f0] bg-white text-[#64748b] hover:bg-[#f8fafc] hover:text-[#0f172a]"
+          : "border border-line bg-surface text-muted hover:bg-subtle hover:text-content"
       }`}
     >
       {children}

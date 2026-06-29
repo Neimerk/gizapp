@@ -135,7 +135,7 @@ export default function Footer() {
                 Bras<span className="text-[#4ade80]">UX</span>
               </span>
             </Link>
-            <p className="mt-4 text-sm leading-relaxed text-[#64748b]">
+            <p className="mt-4 text-sm leading-relaxed text-muted">
               O Shopping Brasileiro de Soluções Tecnológicas. Restaurantes, mercado,
               farmácia, eletrônicos e muito mais com entrega rápida.
             </p>
@@ -149,7 +149,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`BrasUX no ${label}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-[#64748b] transition-colors hover:border-[#16a34a]/40 hover:text-[#4ade80]"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 text-muted transition-colors hover:border-[#16a34a]/40 hover:text-[#4ade80]"
                 >
                   {svg}
                 </a>
@@ -162,7 +162,7 @@ export default function Footer() {
               <div>
                 <h2>EM breve...</h2>
                 <p className="text-[11px] font-black text-white/70">Instale o app</p>
-                <p className="text-[10px] text-[#475569]">Disponível no Android e iPhone</p>
+                <p className="text-[10px] text-muted">Disponível no Android e iPhone</p>
               </div>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function Footer() {
                 <li key={cat.slug}>
                   <Link
                     to={`/categorias/${cat.slug}`}
-                    className="text-sm text-[#64748b] transition-colors hover:text-white"
+                    className="text-sm text-muted transition-colors hover:text-white"
                   >
                     {cat.name}
                   </Link>
@@ -206,10 +206,10 @@ export default function Footer() {
                     href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group inline-flex items-center gap-2 text-sm text-[#64748b] transition-colors hover:text-white"
+                    className="group inline-flex items-center gap-2 text-sm text-muted transition-colors hover:text-white"
                   >
                     {item.name}
-                    <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-[#475569] transition-colors group-hover:bg-[#16a34a]/20 group-hover:text-[#4ade80]">
+                    <span className="rounded-full bg-white/8 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-muted transition-colors group-hover:bg-[#16a34a]/20 group-hover:text-[#4ade80]">
                       {item.badge}
                     </span>
                     <ExternalLink size={11} className="opacity-0 transition-opacity group-hover:opacity-50" />
@@ -230,7 +230,7 @@ export default function Footer() {
                   <li key={item.name}>
                     <Link
                       to={item.to}
-                      className="text-sm text-[#64748b] transition-colors hover:text-white"
+                      className="text-sm text-muted transition-colors hover:text-white"
                     >
                       {item.name}
                     </Link>
@@ -247,7 +247,7 @@ export default function Footer() {
                   <li key={item.name}>
                     <Link
                       to={item.to}
-                      className="text-sm text-[#64748b] transition-colors hover:text-white"
+                      className="text-sm text-muted transition-colors hover:text-white"
                     >
                       {item.name}
                     </Link>

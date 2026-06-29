@@ -97,12 +97,12 @@ function StepIndicator({ step }: { step: WizardStep }) {
               ? "bg-[#16a34a] text-white"
               : i + 1 === step
               ? "bg-[#0f172a] text-white"
-              : "bg-[#f1f5f9] text-[#94a3b8]"
+              : "bg-subtle-2 text-faint"
           }`}>
             {i + 1 < step ? "✓" : i + 1}
           </div>
           <span className={`hidden sm:block text-[10px] font-bold transition-colors ${
-            i + 1 === step ? "text-[#0f172a]" : "text-[#94a3b8]"
+            i + 1 === step ? "text-content" : "text-faint"
           }`}>
             {s}
           </span>
@@ -376,8 +376,8 @@ export default function CheckoutPage() {
         <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
           <ShoppingBag size={40} className="text-[#16a34a]" />
         </div>
-        <h2 className="mt-6 text-xl font-black text-[#0f172a]">Carrinho vazio</h2>
-        <p className="mt-2 text-sm text-[#64748b]">Adicione produtos antes de continuar.</p>
+        <h2 className="mt-6 text-xl font-black text-content">Carrinho vazio</h2>
+        <p className="mt-2 text-sm text-muted">Adicione produtos antes de continuar.</p>
         <Link to="/" className="mt-6 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white">
           Explorar lojas
         </Link>
@@ -396,7 +396,7 @@ export default function CheckoutPage() {
       </button>
       <div className="flex-1">
         <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-        <h1 className="text-xl font-black text-[#0f172a]">Checkout</h1>
+        <h1 className="text-xl font-black text-content">Checkout</h1>
       </div>
       <StepIndicator step={step} />
     </div>
@@ -410,15 +410,15 @@ export default function CheckoutPage() {
 
         {/* Guest info — só aparece quando não logado */}
         {!auth && (
-          <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+          <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#6366f1]/10">
                   <User size={15} className="text-[#6366f1]" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-[#0f172a]">Suas informações</h2>
-                  <p className="text-[10px] text-[#94a3b8]">
+                  <h2 className="text-sm font-black text-content">Suas informações</h2>
+                  <p className="text-[10px] text-faint">
                     Compra sem conta.{" "}
                     <Link to="/login" state={{ from: "/checkout" }} className="font-black text-[#6366f1]">
                       Entrar →
@@ -453,13 +453,13 @@ export default function CheckoutPage() {
           </div>
         )}
 
-        <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+        <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#16a34a]/10">
                 <MapPin size={15} className="text-[#16a34a]" />
               </div>
-              <h2 className="text-sm font-black text-[#0f172a]">Endereço de entrega</h2>
+              <h2 className="text-sm font-black text-content">Endereço de entrega</h2>
             </div>
             {!showAddressForm && (
               <button
@@ -479,7 +479,7 @@ export default function CheckoutPage() {
                   className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3 transition-colors ${
                     selectedAddressId === addr.id
                       ? "border-[#16a34a]/40 bg-[#f0fdf4]"
-                      : "border-[#e2e8f0] bg-[#f8fafc]"
+                      : "border-line bg-subtle"
                   }`}
                   onClick={() => setSelectedAddressId(addr.id)}
                 >
@@ -500,14 +500,14 @@ export default function CheckoutPage() {
                     {addr.label && (
                       <p className="text-[10px] font-black uppercase tracking-wide text-[#16a34a]">{addr.label}</p>
                     )}
-                    <p className="text-sm font-black text-[#0f172a]">
+                    <p className="text-sm font-black text-content">
                       {addr.address}, {addr.number}
                       {addr.complement ? ` — ${addr.complement}` : ""}
                     </p>
-                    <p className="text-xs text-[#64748b]">
+                    <p className="text-xs text-muted">
                       {addr.neighborhood}{addr.city ? `, ${addr.city}` : ""}
                     </p>
-                    {addr.phone && <p className="text-xs text-[#94a3b8]">{addr.phone}</p>}
+                    {addr.phone && <p className="text-xs text-faint">{addr.phone}</p>}
                   </div>
                   <button
                     onClick={(e) => {
@@ -564,12 +564,12 @@ export default function CheckoutPage() {
       <div className="space-y-4">
         {header}
 
-        <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+        <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#2563eb]/10">
               <CreditCard size={15} className="text-[#2563eb]" />
             </div>
-            <h2 className="text-sm font-black text-[#0f172a]">Forma de pagamento</h2>
+            <h2 className="text-sm font-black text-content">Forma de pagamento</h2>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -580,7 +580,7 @@ export default function CheckoutPage() {
                 className={`rounded-2xl py-3 text-sm font-black transition-colors ${
                   paymentMethod === m
                     ? "bg-[#0f172a] text-white"
-                    : "border border-[#e2e8f0] bg-[#f8fafc] text-[#64748b]"
+                    : "border border-line bg-subtle text-muted"
                 }`}
               >
                 {m === "pix" ? "Pix" : m === "card" ? "Cartão" : "Boleto"}
@@ -589,25 +589,25 @@ export default function CheckoutPage() {
           </div>
 
           {paymentMethod === "pix" && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-subtle p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f172a]">
                 <span className="text-lg">🔑</span>
               </div>
               <div>
-                <p className="text-sm font-black text-[#0f172a]">Pix — pagamento instantâneo</p>
-                <p className="text-xs text-[#64748b]">QR Code gerado ao confirmar. Expira em 30 minutos.</p>
+                <p className="text-sm font-black text-content">Pix — pagamento instantâneo</p>
+                <p className="text-xs text-muted">QR Code gerado ao confirmar. Expira em 30 minutos.</p>
               </div>
             </div>
           )}
 
           {paymentMethod === "boleto" && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-subtle p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f172a]">
                 <span className="text-lg">🧾</span>
               </div>
               <div>
-                <p className="text-sm font-black text-[#0f172a]">Boleto bancário</p>
-                <p className="text-xs text-[#64748b]">Vencimento em 3 dias úteis. Pedido confirmado após compensação.</p>
+                <p className="text-sm font-black text-content">Boleto bancário</p>
+                <p className="text-xs text-muted">Vencimento em 3 dias úteis. Pedido confirmado após compensação.</p>
               </div>
             </div>
           )}
@@ -682,18 +682,18 @@ export default function CheckoutPage() {
       {header}
 
       {/* Cupom */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+      <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f59e0b]/10">
             <Tag size={15} className="text-[#f59e0b]" />
           </div>
-          <h2 className="text-sm font-black text-[#0f172a]">Cupom de desconto</h2>
+          <h2 className="text-sm font-black text-content">Cupom de desconto</h2>
         </div>
 
         {/* Cupons disponíveis — clique para aplicar */}
         {availableCoupons.length > 0 && !coupon && (
           <div className="mb-3 space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+            <p className="text-[10px] font-black uppercase tracking-widest text-faint">
               Cupons disponíveis
             </p>
             <div className="flex flex-wrap gap-2">
@@ -708,8 +708,8 @@ export default function CheckoutPage() {
                 >
                   <Tag size={11} className="text-[#f59e0b]" />
                   <div className="text-left">
-                    <p className="font-black text-[#0f172a]">{c.code}</p>
-                    <p className="text-[10px] text-[#64748b]">{c.label}</p>
+                    <p className="font-black text-content">{c.code}</p>
+                    <p className="text-[10px] text-muted">{c.label}</p>
                   </div>
                 </button>
               ))}
@@ -726,7 +726,7 @@ export default function CheckoutPage() {
                 <p className="text-xs text-[#16a34a]/70">{coupon.label} aplicado</p>
               </div>
             </div>
-            <button onClick={removeCoupon} className="rounded-lg p-1 text-[#94a3b8] hover:text-red-500">
+            <button onClick={removeCoupon} className="rounded-lg p-1 text-faint hover:text-red-500">
               <X size={16} />
             </button>
           </div>
@@ -737,7 +737,7 @@ export default function CheckoutPage() {
               onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === "Enter" && applyCoupon(couponInput)}
               placeholder="Ou digite o código do cupom"
-              className="flex-1 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-2.5 text-sm font-bold text-[#0f172a] uppercase outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1] placeholder:normal-case"
+              className="flex-1 rounded-xl border border-line bg-subtle px-4 py-2.5 text-sm font-bold text-content uppercase outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1] placeholder:normal-case"
             />
             <button
               onClick={() => applyCoupon(couponInput)}
@@ -753,26 +753,26 @@ export default function CheckoutPage() {
 
       {/* Pontos */}
       {availablePoints > 0 && (
-        <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+        <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f59e0b]/10">
               <Star size={15} className="text-[#f59e0b]" />
             </div>
-            <h2 className="text-sm font-black text-[#0f172a]">Usar pontos BrasUX</h2>
+            <h2 className="text-sm font-black text-content">Usar pontos BrasUX</h2>
           </div>
 
-          <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
+          <div className="rounded-2xl border border-line bg-subtle px-4 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#64748b]">Saldo disponível</p>
+                <p className="text-xs text-muted">Saldo disponível</p>
                 <p className="text-lg font-black text-[#f59e0b]">
                   {availablePoints.toLocaleString("pt-BR")} pts
                 </p>
-                <p className="text-[10px] text-[#94a3b8]">1 ponto = R$ 1,00 de desconto</p>
+                <p className="text-[10px] text-faint">1 ponto = R$ 1,00 de desconto</p>
               </div>
               {pointsDiscount > 0 && (
                 <div className="text-right">
-                  <p className="text-[10px] text-[#64748b]">Desconto</p>
+                  <p className="text-[10px] text-muted">Desconto</p>
                   <p className="text-base font-black text-[#16a34a]">-{formatBRL(pointsDiscount)}</p>
                 </div>
               )}
@@ -783,13 +783,13 @@ export default function CheckoutPage() {
                 onChange={(e) => setPointsToUse(Number(e.target.value))}
                 className="flex-1 accent-[#f59e0b]"
               />
-              <div className="flex items-center gap-1 rounded-xl border border-[#e2e8f0] bg-white px-3 py-1.5">
+              <div className="flex items-center gap-1 rounded-xl border border-line bg-surface px-3 py-1.5">
                 <input
                   type="number" min={0} max={maxPoints} value={pointsToUse}
                   onChange={(e) => setPointsToUse(Math.min(maxPoints, Math.max(0, Number(e.target.value))))}
-                  className="w-16 bg-transparent text-right text-sm font-black text-[#0f172a] outline-none"
+                  className="w-16 bg-transparent text-right text-sm font-black text-content outline-none"
                 />
-                <span className="text-xs text-[#94a3b8]">pts</span>
+                <span className="text-xs text-faint">pts</span>
               </div>
             </div>
             <div className="mt-2 flex gap-2">
@@ -802,7 +802,7 @@ export default function CheckoutPage() {
               {pointsToUse > 0 && (
                 <button
                   onClick={() => setPointsToUse(0)}
-                  className="rounded-xl bg-[#f1f5f9] px-3 py-1.5 text-xs font-black text-[#64748b]"
+                  className="rounded-xl bg-subtle-2 px-3 py-1.5 text-xs font-black text-muted"
                 >
                   Remover
                 </button>
@@ -813,12 +813,12 @@ export default function CheckoutPage() {
       )}
 
       {/* Resumo */}
-      <div className="rounded-3xl border border-[#e8eaf0] bg-white p-4 shadow-sm">
+      <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
         <div className="mb-3 flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#ec4899]/10">
             <ReceiptText size={15} className="text-[#ec4899]" />
           </div>
-          <h2 className="text-sm font-black text-[#0f172a]">Resumo do pedido</h2>
+          <h2 className="text-sm font-black text-content">Resumo do pedido</h2>
         </div>
 
         <div className="space-y-2.5">
@@ -826,14 +826,14 @@ export default function CheckoutPage() {
             <div key={item.id} className="flex items-center gap-3">
               <img
                 src={item.image} alt={item.name}
-                className="h-12 w-12 shrink-0 rounded-xl object-cover bg-[#f8fafc]"
+                className="h-12 w-12 shrink-0 rounded-xl object-cover bg-subtle"
                 onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
               />
               <div className="min-w-0 flex-1">
-                <h3 className="text-xs font-black text-[#0f172a] line-clamp-1">
+                <h3 className="text-xs font-black text-content line-clamp-1">
                   {item.quantity}× {item.name}
                 </h3>
-                <p className="text-xs text-[#64748b]">
+                <p className="text-xs text-muted">
                   {formatBRL((item.promotionalPrice ?? item.price) * item.quantity)}
                 </p>
               </div>
@@ -841,12 +841,12 @@ export default function CheckoutPage() {
           ))}
         </div>
 
-        <div className="mt-4 space-y-2 border-t border-[#f1f5f9] pt-4">
-          <div className="flex justify-between text-xs text-[#64748b]">
+        <div className="mt-4 space-y-2 border-t border-subtle-2 pt-4">
+          <div className="flex justify-between text-xs text-muted">
             <span>{totalItems} {totalItems === 1 ? "item" : "itens"}</span>
             <strong>{formatBRL(subtotal)}</strong>
           </div>
-          <div className="flex justify-between text-xs text-[#64748b]">
+          <div className="flex justify-between text-xs text-muted">
             <span className="flex items-center gap-1">
               Entrega
               {distanceKm != null && (
@@ -856,7 +856,7 @@ export default function CheckoutPage() {
               )}
             </span>
             {loadingFee
-              ? <span className="h-3 w-12 animate-pulse rounded bg-[#f1f5f9]" />
+              ? <span className="h-3 w-12 animate-pulse rounded bg-subtle-2" />
               : <strong>{deliveryFee === 0 ? "Grátis" : formatBRL(deliveryFee)}</strong>
             }
           </div>
@@ -873,18 +873,18 @@ export default function CheckoutPage() {
             </div>
           )}
           <div className="flex justify-between pt-1">
-            <span className="text-base font-black text-[#0f172a]">Total</span>
+            <span className="text-base font-black text-content">Total</span>
             {loadingFee
-              ? <span className="h-5 w-20 animate-pulse rounded bg-[#f1f5f9]" />
+              ? <span className="h-5 w-20 animate-pulse rounded bg-subtle-2" />
               : <span className="text-xl font-black text-[#16a34a]">{formatBRL(total)}</span>
             }
           </div>
         </div>
 
         {/* Resumo: endereço + pagamento selecionado */}
-        <div className="mt-4 space-y-2 border-t border-[#f1f5f9] pt-3">
+        <div className="mt-4 space-y-2 border-t border-subtle-2 pt-3">
           {selectedAddress && (
-            <div className="flex items-start gap-2 text-xs text-[#64748b]">
+            <div className="flex items-start gap-2 text-xs text-muted">
               <MapPin size={12} className="mt-0.5 shrink-0 text-[#16a34a]" />
               <span>
                 {selectedAddress.address}, {selectedAddress.number}
@@ -893,7 +893,7 @@ export default function CheckoutPage() {
               </span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs text-[#64748b]">
+          <div className="flex items-center gap-2 text-xs text-muted">
             <CreditCard size={12} className="shrink-0 text-[#2563eb]" />
             <span className="font-bold capitalize">{paymentMethod === "pix" ? "Pix" : paymentMethod === "card" ? "Cartão de crédito" : "Boleto bancário"}</span>
           </div>
@@ -918,14 +918,14 @@ export default function CheckoutPage() {
 
 function GuestOrderBox({ orderId }: { orderId: string }) {
   return (
-    <div className="w-full rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4 text-center">
-      <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+    <div className="w-full rounded-2xl border border-line bg-subtle p-4 text-center">
+      <p className="text-[10px] font-black uppercase tracking-widest text-faint">
         Guarde o número do seu pedido
       </p>
-      <p className="mt-1 font-mono text-xl font-black text-[#0f172a]">
+      <p className="mt-1 font-mono text-xl font-black text-content">
         #{orderId.slice(0, 8).toUpperCase()}
       </p>
-      <p className="mt-1 text-xs text-[#64748b]">
+      <p className="mt-1 text-xs text-muted">
         Você precisará dele para acompanhar a entrega.
       </p>
       <Link
@@ -964,8 +964,8 @@ function PaymentResultScreen({
           <span className="text-4xl">✅</span>
         </div>
         <div>
-          <h2 className="text-xl font-black text-[#0f172a]">Pix confirmado!</h2>
-          <p className="mt-2 text-sm text-[#64748b]">
+          <h2 className="text-xl font-black text-content">Pix confirmado!</h2>
+          <p className="mt-2 text-sm text-muted">
             Pagamento recebido. Seu pedido está sendo preparado!
           </p>
         </div>
@@ -987,11 +987,11 @@ function PaymentResultScreen({
           <span className="text-4xl">❌</span>
         </div>
         <div>
-          <h2 className="text-xl font-black text-[#0f172a]">Pagamento recusado</h2>
-          <p className="mt-2 text-sm text-[#64748b]">{result.error ?? "Verifique os dados do cartão e tente novamente."}</p>
+          <h2 className="text-xl font-black text-content">Pagamento recusado</h2>
+          <p className="mt-2 text-sm text-muted">{result.error ?? "Verifique os dados do cartão e tente novamente."}</p>
         </div>
         <div className="w-full space-y-3">
-          <p className="text-xs text-[#94a3b8]">
+          <p className="text-xs text-faint">
             Seu pedido foi salvo. Você pode tentar pagar novamente pelos seus pedidos.
           </p>
           <button
@@ -1012,8 +1012,8 @@ function PaymentResultScreen({
           <span className="text-4xl">✅</span>
         </div>
         <div>
-          <h2 className="text-xl font-black text-[#0f172a]">Pagamento aprovado!</h2>
-          <p className="mt-2 text-sm text-[#64748b]">Seu pedido foi confirmado e o lojista já foi notificado.</p>
+          <h2 className="text-xl font-black text-content">Pagamento aprovado!</h2>
+          <p className="mt-2 text-sm text-muted">Seu pedido foi confirmado e o lojista já foi notificado.</p>
         </div>
         {isGuest && <GuestOrderBox orderId={result.orderId} />}
         <button
@@ -1032,12 +1032,12 @@ function PaymentResultScreen({
         <div className="flex items-center gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-            <h1 className="text-xl font-black text-[#0f172a]">Pague com Pix</h1>
+            <h1 className="text-xl font-black text-content">Pague com Pix</h1>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#e8eaf0] bg-white p-6 shadow-sm text-center space-y-4">
-          <p className="text-sm text-[#64748b]">
+        <div className="rounded-3xl border border-line-subtle bg-surface p-6 shadow-sm text-center space-y-4">
+          <p className="text-sm text-muted">
             Escaneie o QR Code ou copie o código no seu app de banco.
           </p>
 
@@ -1045,12 +1045,12 @@ function PaymentResultScreen({
             <img
               src={`data:image/png;base64,${result.pixQrCodeImage}`}
               alt="QR Code Pix"
-              className="h-52 w-52 rounded-2xl border border-[#e2e8f0]"
+              className="h-52 w-52 rounded-2xl border border-line"
             />
           </div>
 
-          <div className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
-            <p className="break-all font-mono text-[11px] text-[#64748b] leading-relaxed">
+          <div className="rounded-2xl border border-line bg-subtle p-3">
+            <p className="break-all font-mono text-[11px] text-muted leading-relaxed">
               {result.pixCode}
             </p>
           </div>
@@ -1068,7 +1068,7 @@ function PaymentResultScreen({
           </button>
 
           {result.expirationDate && (
-            <p className="text-[11px] text-[#94a3b8]">
+            <p className="text-[11px] text-faint">
               Expira em: {new Date(result.expirationDate).toLocaleString("pt-BR")}
             </p>
           )}
@@ -1076,7 +1076,7 @@ function PaymentResultScreen({
 
         <button
           onClick={onContinue}
-          className="w-full rounded-2xl border border-[#e2e8f0] bg-white py-3.5 text-sm font-black text-[#64748b]"
+          className="w-full rounded-2xl border border-line bg-surface py-3.5 text-sm font-black text-muted"
         >
           Já paguei — ver meus pedidos
         </button>
@@ -1089,10 +1089,10 @@ function PaymentResultScreen({
       <div className="space-y-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-xl font-black text-[#0f172a]">Boleto gerado</h1>
+          <h1 className="text-xl font-black text-content">Boleto gerado</h1>
         </div>
 
-        <div className="rounded-3xl border border-[#e8eaf0] bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-3xl border border-line-subtle bg-surface p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-3 rounded-2xl bg-[#fffbeb] border border-[#fde68a] p-4">
             <span className="text-2xl">🧾</span>
             <div>
@@ -1105,22 +1105,22 @@ function PaymentResultScreen({
             </div>
           </div>
 
-          <p className="text-sm text-[#64748b]">
+          <p className="text-sm text-muted">
             Pague o boleto até o vencimento para confirmar seu pedido.
             Após a compensação bancária (até 3 dias úteis), seu pedido será processado.
           </p>
 
           {result.boletoBarCode && (
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#94a3b8]">
+              <p className="text-[10px] font-black uppercase tracking-widest text-faint">
                 Linha digitável
               </p>
-              <div className="rounded-xl bg-[#f8fafc] border border-[#e2e8f0] p-3">
-                <p className="font-mono text-xs text-[#64748b] break-all">{result.boletoBarCode}</p>
+              <div className="rounded-xl bg-subtle border border-line p-3">
+                <p className="font-mono text-xs text-muted break-all">{result.boletoBarCode}</p>
               </div>
               <button
                 onClick={() => copy(result.boletoBarCode!)}
-                className="w-full rounded-xl border border-[#e2e8f0] py-2.5 text-xs font-black text-[#64748b]"
+                className="w-full rounded-xl border border-line py-2.5 text-xs font-black text-muted"
               >
                 {copied ? "✓ Copiado!" : "Copiar linha digitável"}
               </button>
@@ -1141,7 +1141,7 @@ function PaymentResultScreen({
 
         <button
           onClick={onContinue}
-          className="w-full rounded-2xl border border-[#e2e8f0] bg-white py-3.5 text-sm font-black text-[#64748b]"
+          className="w-full rounded-2xl border border-line bg-surface py-3.5 text-sm font-black text-muted"
         >
           Ver meus pedidos
         </button>
@@ -1155,10 +1155,10 @@ function PaymentResultScreen({
 // ── AddressForm ──────────────────────────────────────────────────
 
 const inputCls =
-  "w-full rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
+  "w-full rounded-2xl bg-subtle border border-line px-4 py-3 text-sm font-semibold text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]";
 
 const labelCls =
-  "mb-1 block text-[10px] font-black uppercase tracking-wide text-[#94a3b8]";
+  "mb-1 block text-[10px] font-black uppercase tracking-wide text-faint";
 
 function AddressForm({
   value,
@@ -1214,7 +1214,7 @@ function AddressForm({
             inputMode="numeric"
             className={`${inputCls} ${cepLoading ? "pr-10" : ""}`}
           />
-          {cepLoading && <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#94a3b8]" />}
+          {cepLoading && <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-faint" />}
         </div>
         {cepError && <p className="mt-1 text-xs font-bold text-red-500">{cepError}</p>}
       </div>
@@ -1242,7 +1242,7 @@ function AddressForm({
       </div>
       <div className="flex gap-2">
         {onCancel && (
-          <button onClick={onCancel} className="flex-1 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] py-3 text-sm font-black text-[#64748b]">
+          <button onClick={onCancel} className="flex-1 rounded-2xl border border-line bg-subtle py-3 text-sm font-black text-muted">
             Cancelar
           </button>
         )}

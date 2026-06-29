@@ -54,7 +54,7 @@ export default function CategoryScroll({
       <button
         onClick={() => scroll("left")}
         aria-hidden={!canLeft}
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-sm transition-all ${
           canLeft ? "opacity-100 hover:border-[#16a34a]/30 hover:text-[#16a34a]" : "pointer-events-none opacity-0"
         }`}
       >
@@ -71,14 +71,14 @@ export default function CategoryScroll({
           className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition-colors ${
             activeSlug === ""
               ? "bg-[#0f172a] text-white"
-              : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
+              : "border border-line bg-surface text-content hover:bg-subtle"
           }`}
         >
           {allLabel}
           {allCount !== undefined && (
             <span
               className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
-                activeSlug === "" ? "bg-white/20 text-white" : "bg-[#f1f5f9] text-[#64748b]"
+                activeSlug === "" ? "bg-white/20 text-white" : "bg-subtle-2 text-muted"
               }`}
             >
               {allCount}
@@ -93,7 +93,7 @@ export default function CategoryScroll({
             className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition-colors ${
               activeSlug === tab.slug
                 ? "bg-[#16a34a] text-white"
-                : "border border-[#e2e8f0] bg-white text-[#0f172a] hover:bg-[#f8fafc]"
+                : "border border-line bg-surface text-content hover:bg-subtle"
             }`}
           >
             {tab.icon && <span>{tab.icon}</span>}
@@ -101,7 +101,7 @@ export default function CategoryScroll({
             {tab.count !== undefined && (
               <span
                 className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${
-                  activeSlug === tab.slug ? "bg-white/20 text-white" : "bg-[#f1f5f9] text-[#64748b]"
+                  activeSlug === tab.slug ? "bg-white/20 text-white" : "bg-subtle-2 text-muted"
                 }`}
               >
                 {tab.count}
@@ -114,7 +114,7 @@ export default function CategoryScroll({
       <button
         onClick={() => scroll("right")}
         aria-hidden={!canRight}
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e2e8f0] bg-white shadow-sm transition-all ${
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-surface shadow-sm transition-all ${
           canRight ? "opacity-100 hover:border-[#16a34a]/30 hover:text-[#16a34a]" : "pointer-events-none opacity-0"
         }`}
       >
