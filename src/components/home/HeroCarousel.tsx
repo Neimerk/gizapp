@@ -46,13 +46,38 @@ export default function HeroCarousel() {
   // vai direto para um slide real
   const goTo = useCallback((idx: number) => setCurrent(idx + 1), []);
 
-  // auto-avanço
+  // auto-avanço — pausa quando a aba está oculta para não acumular current
   useEffect(() => {
     if (paused) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setInterval(next, AUTO_MS);
-    return () => clearInterval(t);
-  }, [paused, next]);
+
+    let timer: ReturnType<typeof setInterval> | undefined;
+
+    const start = () => {
+      if (document.hidden) return;
+      timer = setInterval(next, AUTO_MS);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        clearInterval(timer);
+        timer = undefined;
+      } else {
+        // Aba voltou a ser visível: reseta estado possivelmente corrompido
+        afterSnapRef.current = false;
+        setAnimated(true);
+        setCurrent((c) => Math.min(Math.max(c, 1), n));
+        start();
+      }
+    };
+
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [paused, next, n]);
 
   // teclado
   useEffect(() => {
