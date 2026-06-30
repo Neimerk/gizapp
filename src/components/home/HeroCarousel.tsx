@@ -6,7 +6,7 @@ import { brasuxSolutions, type BrasUXSolution } from "../../data/brasuxSolutions
 // Track: [clone_último, slide0, slide1, …, slideN, clone_primeiro]
 // Quando o usuário chega nos clones, faz-se snap silencioso para o slide real.
 
-const AUTO_MS = 6000;
+const AUTO_MS = 9000;
 
 function accentOf(gradient: string): string {
   return gradient.match(/#[0-9a-fA-F]{6}/)?.[0] ?? "#16a34a";
@@ -193,7 +193,7 @@ function Slide({ item, active }: { item: BrasUXSolution; active: boolean }) {
 
   return (
     <div className="relative w-full flex-shrink-0" aria-hidden={!active}>
-      <div className="relative z-10 grid items-center gap-4 p-5 sm:p-6 md:grid-cols-[1.15fr_0.85fr] md:gap-6 lg:p-8">
+      <div className="relative z-10 grid items-center gap-4 p-4 sm:p-5 md:grid-cols-[1.15fr_0.85fr] md:gap-6 lg:p-7">
         {/* Texto */}
         <div>
           <div className="flex items-center gap-2">
@@ -211,7 +211,7 @@ function Slide({ item, active }: { item: BrasUXSolution; active: boolean }) {
             {item.description}
           </p>
 
-          {item.price && (
+          {item.price ? (
             <div className="mt-4 flex items-baseline gap-2">
               <span className="text-sm font-medium text-white/50">por apenas</span>
               <span
@@ -226,7 +226,11 @@ function Slide({ item, active }: { item: BrasUXSolution; active: boolean }) {
                 {item.price}
               </span>
             </div>
-          )}
+          ) : item.highlight ? (
+            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-white/40">
+              {item.highlight}
+            </p>
+          ) : null}
 
           {item.id === "brasux-shopping" ? (
             <p className="mt-4 text-lg font-black text-white sm:text-xl" style={{ textShadow: `0 0 24px ${accent}99` }}>

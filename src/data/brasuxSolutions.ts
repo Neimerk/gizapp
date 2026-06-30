@@ -9,6 +9,7 @@ export type BrasUXSolution = {
   gradient: string;
   cardImage?: string;
   price?: string;
+  highlight?: string;
 };
 
 export const brasuxSolutions: BrasUXSolution[] = [
@@ -22,6 +23,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
     badge: "BrasUX Shopping",
     gradient: "from-[#002776] to-[#16a34a]",
     cardImage: "/home.webp",
+    highlight: "Mais de 30 categorias · Lojistas e entregadores parceiros",
   },
   {
     id: "brasux-caixa",
@@ -33,6 +35,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
     badge: "BrasUX Comercial",
     gradient: "from-[#064e3b] to-[#022c22]",
     cardImage: "/card-pdv.webp",
+    highlight: "Plano inicial gratuito · Sem fidelidade · Acesse agora",
   },
   {
     id: "fabrica-landing-pages",
@@ -56,6 +59,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
     badge: "BrasUX Edu",
     gradient: "from-[#16a34a] to-[#15803d]",
     cardImage: "/card-notaon.webp",
+    highlight: "Videoaulas · Material didático · Correção de redação",
   },
   {
     id: "simulenm",
@@ -67,6 +71,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
     badge: "BrasUX Edu",
     gradient: "from-[#0f766e] to-[#134e4a]",
     cardImage: "/card-simulenem.webp",
+    highlight: "Gratuito · Ranking nacional · Gabarito comentado",
   },
   {
     id: "simulaioab",
@@ -78,6 +83,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
     badge: "BrasUX Edu",
     gradient: "from-[#1d4ed8] to-[#1e3a8a]",
     cardImage: "/card-simulaioab.webp",
+    highlight: "1ª e 2ª fase · Questões comentadas · Resultado imediato",
   },
   {
     id: "brasux-ti",
@@ -89,5 +95,6 @@ export const brasuxSolutions: BrasUXSolution[] = [
     badge: "BrasUX Dev",
     gradient: "from-[#7c3aed] to-[#312e81]",
     cardImage: "/card-ti.webp",
+    highlight: "Desenvolvimento · Dados · IA · Arquitetura · Consultoria",
   },
 ];
