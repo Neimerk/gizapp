@@ -2220,6 +2220,30 @@ export const queryKeys = {
   storeHours: (storeId: string) => ["stores", storeId, "hours"] as const,
 };
 
+/* ── ADMIN: STORE MANAGEMENT ─────────────────────────────── */
+
+export async function adminUpdateStore(
+  id: string,
+  patch: { active?: boolean; featured?: boolean; isOpen?: boolean },
+): Promise<void> {
+  const update: Record<string, unknown> = {};
+  if (patch.active    !== undefined) update.active   = patch.active;
+  if (patch.featured  !== undefined) update.featured = patch.featured;
+  if (patch.isOpen    !== undefined) update.is_open  = patch.isOpen;
+  const { error } = await shoppingDb.from("stores").update(update).eq("id", id);
+  if (error) throw new Error("Erro ao atualizar loja.");
+}
+
+/* ── ADMIN: USER ROLE MANAGEMENT ─────────────────────────── */
+
+export async function adminUpdateUserRole(
+  id: string,
+  role: "admin" | "customer" | "seller" | "courier",
+): Promise<void> {
+  const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
+  if (error) throw new Error("Erro ao atualizar função do usuário.");
+}
+
 /* ── IMAGES ──────────────────────────────────────────────── */
 
 export function getProductImageUrl(imageUrl?: string): string {

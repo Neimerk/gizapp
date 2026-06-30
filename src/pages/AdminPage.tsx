@@ -16,6 +16,7 @@ import {
   adminGetBanners, adminCreateBanner, adminUpdateBanner, adminDeleteBanner,
   adminGetCoupons, adminCreateCoupon, adminUpdateCoupon, adminDeleteCoupon,
   adminGetWithdrawals, adminUpdateWithdrawal,
+  adminUpdateStore, adminUpdateUserRole,
   queryKeys,
   type AdminBanner, type BannerPayload,
   type CouponAdmin, type CouponAdminPayload,
@@ -434,6 +435,7 @@ function OrdersTab() {
 function UsersTab() {
   const queryClient = useQueryClient();
   const show = useToastStore((s) => s.show);
+  const { user: currentUser } = useAuthStore();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
 
@@ -450,6 +452,16 @@ function UsersTab() {
       show("Usuário atualizado.", "success");
     },
     onError: () => show("Erro ao atualizar usuário.", "error"),
+  });
+
+  const roleMutation = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: "admin" | "customer" | "seller" | "courier" }) =>
+      adminUpdateUserRole(id, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      show("Função atualizada.", "success");
+    },
+    onError: () => show("Erro ao atualizar função.", "error"),
   });
 
   const filtered = users.filter((u) => {
@@ -541,17 +553,39 @@ function UsersTab() {
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      {u.role !== "Admin" && (
-                        <button
-                          onClick={() => toggleMutation.mutate({ id: u.id, active: !u.active })}
-                          disabled={toggleMutation.isPending}
-                          className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-[11px] font-black text-muted hover:bg-subtle disabled:opacity-50"
-                        >
-                          {u.active
-                            ? <><ToggleRight size={14} className="text-[#16a34a]" /> Desativar</>
-                            : <><ToggleLeft size={14} className="text-red-400" /> Ativar</>}
-                        </button>
-                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {u.role !== "Admin" && (
+                          <button
+                            onClick={() => toggleMutation.mutate({ id: u.id, active: !u.active })}
+                            disabled={toggleMutation.isPending}
+                            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-1.5 text-[11px] font-black text-muted hover:bg-subtle disabled:opacity-50"
+                          >
+                            {u.active
+                              ? <><ToggleRight size={14} className="text-[#16a34a]" /> Desativar</>
+                              : <><ToggleLeft size={14} className="text-red-400" /> Ativar</>}
+                          </button>
+                        )}
+                        {currentUser?.id !== u.id && (
+                          <div className="relative">
+                            <select
+                              value={u.role.toLowerCase()}
+                              onChange={(e) => {
+                                const newRole = e.target.value as "admin" | "customer" | "seller" | "courier";
+                                if (newRole === "admin" && !confirm(`Promover ${u.name} a Admin? Esta ação concede acesso total ao painel.`)) return;
+                                roleMutation.mutate({ id: u.id, role: newRole });
+                              }}
+                              disabled={roleMutation.isPending}
+                              className="appearance-none rounded-xl border border-line bg-surface py-1.5 pl-3 pr-7 text-[11px] font-black text-content shadow-sm outline-none cursor-pointer hover:bg-subtle disabled:opacity-50"
+                            >
+                              <option value="customer">Cliente</option>
+                              <option value="seller">Vendedor</option>
+                              <option value="courier">Entregador</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            <ChevronDown size={11} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-faint" />
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1426,11 +1460,23 @@ function WithdrawalsTab() {
 
 /* ── STORES ── */
 function StoresTab() {
+  const queryClient = useQueryClient();
+  const show = useToastStore((s) => s.show);
   const [search, setSearch] = useState("");
 
   const { data: stores = [], isLoading } = useQuery({
     queryKey: ["stores"],
     queryFn: getStores,
+  });
+
+  const storeMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: { active?: boolean; featured?: boolean; isOpen?: boolean } }) =>
+      adminUpdateStore(id, patch),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stores"] });
+      show("Loja atualizada.", "success");
+    },
+    onError: () => show("Erro ao atualizar loja.", "error"),
   });
 
   const filtered = stores.filter(
@@ -1464,7 +1510,7 @@ function StoresTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-subtle-2">
-                  {["Loja", "Categoria", "Entrega", "Taxa", "Avaliação", "Status"].map((h) => (
+                  {["Loja", "Categoria", "Entrega", "Taxa", "Avaliação", "Status", "Ações"].map((h) => (
                     <th key={h} className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
                   ))}
                 </tr>
@@ -1494,6 +1540,44 @@ function StoresTab() {
                         <span className={`w-fit rounded-full px-2.5 py-0.5 text-[10px] font-black ${s.active ? "bg-[#f0fdf4] text-[#16a34a]" : "bg-[#fef2f2] text-red-400"}`}>
                           {s.active ? "Ativo" : "Inativo"}
                         </span>
+                        {s.featured && (
+                          <span className="w-fit rounded-full bg-[#fef9c3] px-2.5 py-0.5 text-[10px] font-black text-[#a16207]">
+                            Destaque
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          onClick={() => storeMutation.mutate({ id: s.id, patch: { active: !s.active } })}
+                          disabled={storeMutation.isPending}
+                          className={`flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[10px] font-black transition-colors disabled:opacity-50 ${
+                            s.active
+                              ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                              : "border-[#16a34a]/30 bg-[#f0fdf4] text-[#16a34a] hover:bg-[#dcfce7]"
+                          }`}
+                        >
+                          {s.active ? <><ToggleRight size={12} /> Desativar</> : <><ToggleLeft size={12} /> Ativar</>}
+                        </button>
+                        <button
+                          onClick={() => storeMutation.mutate({ id: s.id, patch: { isOpen: !s.isOpen } })}
+                          disabled={storeMutation.isPending}
+                          className="flex items-center gap-1 rounded-xl border border-line bg-surface px-2.5 py-1.5 text-[10px] font-black text-muted hover:bg-subtle disabled:opacity-50"
+                        >
+                          {s.isOpen ? "Fechar" : "Abrir"}
+                        </button>
+                        <button
+                          onClick={() => storeMutation.mutate({ id: s.id, patch: { featured: !s.featured } })}
+                          disabled={storeMutation.isPending}
+                          className={`flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[10px] font-black transition-colors disabled:opacity-50 ${
+                            s.featured
+                              ? "border-[#ca8a04]/30 bg-[#fef9c3] text-[#a16207] hover:bg-[#fef08a]"
+                              : "border-line bg-surface text-muted hover:bg-subtle"
+                          }`}
+                        >
+                          {s.featured ? "Sem destaque" : "Destacar"}
+                        </button>
                       </div>
                     </td>
                   </tr>
