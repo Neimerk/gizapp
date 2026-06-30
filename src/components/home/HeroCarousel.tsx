@@ -75,7 +75,7 @@ export default function HeroCarousel() {
       {/* linha de scan superior */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
-      <div className="relative z-10 grid items-center gap-8 p-7 sm:p-10 md:grid-cols-[1.15fr_0.85fr] md:gap-6 lg:p-12">
+      <div className="relative z-10 grid items-center gap-8 p-7 sm:p-10 md:grid-cols-[1.15fr_0.85fr] md:gap-6 lg:p-12 min-h-[420px] sm:min-h-[460px] lg:min-h-[500px]">
         {/* ── TEXTO (troca por slide) ── */}
         <div key={`txt-${i}`} className="hero-in">
           <div className="flex items-center gap-2">
