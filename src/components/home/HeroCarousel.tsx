@@ -36,6 +36,9 @@ export default function HeroCarousel() {
     current - 1;
 
   const active = items[realIdx];
+
+  if (!active) return null;
+
   const accent = accentOf(active.gradient);
 
   // avança/recua na track
