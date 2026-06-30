@@ -98,7 +98,7 @@ export default function LoginPage() {
       </div>
 
       {/* FORM CARD */}
-      <div className="-mt-6 rounded-t-4xl bg-[#f0f5ff] px-4 pt-6">
+      <div className="-mt-6 rounded-t-4xl bg-canvas px-4 pt-6">
         <form
           onSubmit={handleSubmit}
           className="rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm"

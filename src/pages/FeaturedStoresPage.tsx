@@ -50,7 +50,7 @@ export default function FeaturedStoresPage() {
         </div>
       ) : featuredStores.length === 0 ? (
         <div className="rounded-3xl border-2 border-dashed border-line bg-surface p-16 text-center">
-          <Star size={32} className="mx-auto mb-4 text-[#cbd5e1]" />
+          <Star size={32} className="mx-auto mb-4 text-faint" />
           <p className="font-black text-content">Nenhuma loja em destaque ainda</p>
           <p className="mt-1 text-sm text-muted">As lojas parceiras aparecerão aqui em breve.</p>
         </div>

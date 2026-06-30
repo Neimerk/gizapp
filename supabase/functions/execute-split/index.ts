@@ -1,12 +1,6 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-/**
- * execute-split
- * Chamada internamente pelo webhook-payment após pagamento aprovado.
- * Executa a divisão financeira do pedido via Postgres function atômica.
- * Requer SUPABASE_SERVICE_ROLE_KEY — não exposta ao browser.
- */
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
@@ -35,8 +29,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data, error } = await admin.rpc("execute_order_split", {
-      p_order_id:  orderId,
+    const { data, error } = await admin.rpc("execute_order_split_v2", {
+      p_order_id:   orderId,
       p_payment_id: paymentId,
     });
 
