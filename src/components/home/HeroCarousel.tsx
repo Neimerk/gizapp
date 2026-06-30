@@ -29,17 +29,15 @@ export default function HeroCarousel() {
   const touchX                      = useRef(0);
   const afterSnapRef                = useRef(false);
 
-  // índice real (0..n-1) para HUD e glow
-  const realIdx =
+  // índice real (0..n-1) para HUD e glow — clampado para tolerar current fora de range
+  const rawIdx =
     current === 0     ? n - 1 :
     current === n + 1 ? 0     :
     current - 1;
+  const realIdx = Math.min(Math.max(rawIdx, 0), n > 0 ? n - 1 : 0);
 
-  const active = items[realIdx];
-
-  if (!active) return null;
-
-  const accent = accentOf(active.gradient);
+  const active = items[realIdx] ?? items[0];
+  const accent = accentOf(active?.gradient ?? "from-[#002776] to-[#16a34a]");
 
   // avança/recua na track
   const next = useCallback(() => setCurrent((c) => c + 1), []);

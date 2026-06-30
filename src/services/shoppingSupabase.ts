@@ -1,11 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 
-const SUPABASE_URL = import.meta.env.VITE_SHOPPING_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SHOPPING_SUPABASE_ANON_KEY as string;
-
-export const shoppingDb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-});
+// Alias do cliente singleton — elimina a segunda instância GoTrueClient
+export const shoppingDb = supabase;
 
 export type FeaturedProduct = {
   id: string;
