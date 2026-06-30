@@ -16,7 +16,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
   {
     id: "brasux-shopping",
     name: "BrasUX Shopping",
-    description: "Marketplace com lojas locais, restaurantes, mercados, farmácias e muito mais — entrega rápida em todo o Brasil.",
+    description: "Marketplace com lojas locais, restaurantes, mercados, farmácias e muito mais — entrega rápida em sua região.",
     url: "https://shopping.brasux.com.br",
     categorySlug: "shopping",
     icon: "🛍️",
@@ -64,7 +64,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
   {
     id: "simulenm",
     name: "SimulENEM",
-    description: "Simulados do ENEM com gabarito comentado, ranking nacional e estatísticas de desempenho.",
+    description: "Questões inéditas e redação ao molde do ENEM — prepare-se com simulados completos e gabarito comentado.",
     url: "https://simulenem.com",
     categorySlug: "cursos-online",
     icon: "📝",
