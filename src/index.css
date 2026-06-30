@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source not "../**/*.md";
 
 /* Habilita o variant `dark:` com estratégia de classe (.dark no <html>, que o
    themeStore alterna). A partir daqui, código migrado pode usar dark:bg-… */
