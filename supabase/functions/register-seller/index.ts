@@ -6,6 +6,9 @@ const ALLOWED_ORIGINS = [
   "https://shopping.brasux.com.br",
   "https://brasux.com.br",
   "https://brasux.vercel.app",
+  "https://loja.brasux.com.br",
+  "https://brasux-loja.vercel.app",
+  "http://localhost:5174",
 ];
 
 function corsHeaders(req: Request) {
