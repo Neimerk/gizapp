@@ -22,7 +22,8 @@ const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 const FavoritesPage = lazy(() => import("../pages/FavoritesPage"));
 const ComparePage = lazy(() => import("../pages/ComparePage"));
 const ChatPage = lazy(() => import("../pages/ChatPage"));
-const ServicesPage = lazy(() => import("../pages/ServicesPage"));
+const ServicesPage    = lazy(() => import("../pages/ServicesPage"));
+const EcossistemaPage = lazy(() => import("../pages/EcossistemaPage"));
 const SellerPage   = lazy(() => import("../pages/SellerPage"));
 const CourierPage  = lazy(() => import("../pages/CourierPage"));
 const SobrePage    = lazy(() => import("../pages/SobrePage"));
@@ -109,7 +110,8 @@ export const router = createBrowserRouter([
       { path: "favoritos", element: <FavoritesPage /> },
       { path: "comparar", element: <ComparePage /> },
       { path: "lojas/:storeId/chat", element: <ChatPage /> },
-      { path: "servicos", element: <ServicesPage /> },
+      { path: "servicos",    element: <ServicesPage /> },
+      { path: "ecossistema", element: <EcossistemaPage /> },
       { path: "sobre",       element: <SobrePage /> },
       { path: "privacidade", element: <PrivacyPage /> },
       { path: "ajuda",       element: <AjudaPage /> },

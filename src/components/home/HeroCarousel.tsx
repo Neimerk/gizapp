@@ -110,16 +110,22 @@ export default function HeroCarousel() {
             </div>
           )}
 
-          <a
-            href={active.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group mt-7 inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
-            style={{ background: `linear-gradient(135deg, ${accent}, #001a4e 130%)`, boxShadow: `0 10px 30px -6px ${accent}66` }}
-          >
-            Acessar {active.name.split(" ")[0]}
-            <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </a>
+          {active.id === "brasux-shopping" ? (
+            <p className="mt-6 text-xl font-black text-white sm:text-2xl" style={{ textShadow: `0 0 24px ${accent}99` }}>
+              Compre ou venda com a BrasUX.
+            </p>
+          ) : (
+            <a
+              href={active.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group mt-7 inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black text-white transition-transform hover:scale-[1.03] active:scale-[0.98]"
+              style={{ background: `linear-gradient(135deg, ${accent}, #001a4e 130%)`, boxShadow: `0 10px 30px -6px ${accent}66` }}
+            >
+              Acessar {active.name.split(" ")[0]}
+              <ArrowUpRight size={16} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </a>
+          )}
         </div>
 
         {/* ── VISUAL DIREITO: imagem real ou órbitas futuristas ── */}
@@ -156,28 +162,44 @@ export default function HeroCarousel() {
 
       {/* ── IMAGEM DO CARD (absoluta, lado direito, full-height) ── */}
       {active.cardImage && (
-        <a
-          key={`img-${i}`}
-          href={active.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Acessar ${active.name}`}
-          className="hero-in pointer-events-none absolute right-0 top-0 hidden h-full w-[55%] overflow-hidden rounded-r-3xl md:block"
-          style={{ pointerEvents: "auto" }}
-        >
-          <img
-            src={active.cardImage}
-            alt=""
-            className="h-full w-full object-cover object-center"
-            loading="lazy"
-            decoding="async"
-          />
-          {/* fade esquerda para blend com o texto e os blobs */}
-          <div className="absolute inset-y-0 left-0 w-36 bg-gradient-to-r from-black/80 to-transparent" />
-          {/* vinheta sutil no topo e base */}
-          <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent" />
-        </a>
+        active.id !== "brasux-shopping" ? (
+          <a
+            key={`img-${i}`}
+            href={active.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Acessar ${active.name}`}
+            className="hero-in pointer-events-none absolute right-0 top-0 hidden h-full w-[55%] overflow-hidden rounded-r-3xl md:block"
+            style={{ pointerEvents: "auto" }}
+          >
+            <img
+              src={active.cardImage}
+              alt=""
+              className="h-full w-full object-cover object-center"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="absolute inset-y-0 left-0 w-36 bg-gradient-to-r from-black/80 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent" />
+          </a>
+        ) : (
+          <div
+            key={`img-${i}`}
+            className="hero-in pointer-events-none absolute right-0 top-0 hidden h-full w-[55%] overflow-hidden rounded-r-3xl md:block"
+          >
+            <img
+              src={active.cardImage}
+              alt=""
+              className="h-full w-full object-cover object-center"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="absolute inset-y-0 left-0 w-36 bg-gradient-to-r from-black/80 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/30 to-transparent" />
+          </div>
+        )
       )}
 
       {/* ── HUD INFERIOR: contador + indicadores + setas ── */}

@@ -25,7 +25,7 @@ const ECOSYSTEM = [
 
 const COMPANY = [
   { name: "Sobre o BrasUX",        to: "/sobre" },
-  { name: "Serviços",              to: "/servicos" },
+  { name: "Ecossistema",           to: "/ecossistema" },
   { name: "Todas as categorias",   to: "/categorias" },
   { name: "Todas as lojas",        to: "/lojas" },
 ];

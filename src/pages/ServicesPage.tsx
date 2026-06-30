@@ -1,4 +1,4 @@
-import { ArrowRight, Mail, CheckCircle2, Code2, BarChart3, Layers, Brain, Target, Lightbulb } from "lucide-react";
+import { ArrowRight, ArrowLeft, Mail, CheckCircle2, Code2, BarChart3, Layers, Brain, Target, Lightbulb } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { FC } from "react";
 
@@ -404,6 +404,16 @@ const STATS = [
 export default function ServicesPage() {
   return (
     <div className="space-y-6">
+
+      {/* ── VOLTAR ── */}
+      <div>
+        <Link
+          to="/ecossistema"
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-black text-muted transition-colors hover:border-white/20 hover:text-white"
+        >
+          <ArrowLeft size={14} /> Ecossistema BrasUX
+        </Link>
+      </div>
 
       {/* ── HERO ── */}
       <section
