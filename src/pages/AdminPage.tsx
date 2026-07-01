@@ -10,7 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { logout } from "../services/auth";
-import { useAuthStore, type AuthUser } from "../stores/authStore";
+import { useAuthStore, initAuth, type AuthUser } from "../stores/authStore";
 import {
   adminGetUsers, adminToggleUserActive, adminGetAllOrders, adminUpdateOrderStatus, getStores,
   adminGetBanners, adminCreateBanner, adminUpdateBanner, adminDeleteBanner,
@@ -41,6 +41,9 @@ const ROLE_COLOR: Record<string, string> = {
 export default function AdminPage() {
   const navigate = useNavigate();
   const { user: auth, initialized } = useAuthStore();
+
+  // Garante que auth inicializa mesmo quando /admin é acessada diretamente
+  useEffect(() => { initAuth(); }, []);
 
   useEffect(() => {
     if (initialized && (!auth || auth.role !== "Admin")) {
