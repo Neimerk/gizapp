@@ -283,18 +283,20 @@ export type CreateOrderPayload = {
   deliveryNumber: string;
   deliveryComplement: string;
   deliveryNeighborhood: string;
+  deliveryZipCode?: string;
   paymentMethod: string;
   items: CreateOrderItem[];
-  /**
-   * Taxa calculada por distância pelo hook useDeliveryFee.
-   * O servidor valida que não é menor que store.delivery_fee nem maior que R$500.
-   * Se omitida, usa a taxa padrão da loja.
-   */
   deliveryFeeOverride?: number;
-  /** Código de cupom a aplicar. Validado atomicamente no servidor via use_coupon_atomic. */
   couponCode?: string;
-  /** Pontos BrasUX a usar como desconto (1 ponto = R$1). Debitados no servidor. */
   pointsDiscount?: number;
+  customerCpfCnpj?: string;
+  customerEmail?: string;
+  // Dados do cartão (apenas para paymentMethod === 'card')
+  cardNumber?: string;
+  cardHolderName?: string;
+  cardExpiryMonth?: string;
+  cardExpiryYear?: string;
+  cardCcv?: string;
 };
 
 export type OrderItem = {
@@ -333,6 +335,10 @@ export type Order = {
   pixPayload?: string;
   pixQrCodeImage?: string;
   dueDate?: string;
+  // Campos específicos do cartão
+  cardConfirmed?: boolean;
+  cardDeclined?: boolean;
+  cardDeclineReason?: string | null;
 };
 
 type OrderRow = {
@@ -590,8 +596,19 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
     paymentMethod:         payload.paymentMethod,
     items:                 payload.items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
   };
-  if (payload.couponCode?.trim()) body.couponCode = payload.couponCode.trim();
+  if (payload.couponCode?.trim())           body.couponCode = payload.couponCode.trim();
   if (payload.deliveryFeeOverride !== undefined) body.deliveryFeeOverride = payload.deliveryFeeOverride;
+  if (payload.deliveryZipCode)              body.deliveryZipCode = payload.deliveryZipCode.replace(/\D/g, '');
+  if (payload.customerCpfCnpj)             body.customerCpfCnpj = payload.customerCpfCnpj;
+  if (payload.customerEmail)               body.customerEmail = payload.customerEmail;
+  // Cartão: só envia se todos os campos obrigatórios estiverem presentes
+  if (payload.paymentMethod === 'card' && payload.cardNumber && payload.cardHolderName && payload.cardExpiryMonth && payload.cardExpiryYear && payload.cardCcv) {
+    body.cardNumber      = payload.cardNumber.replace(/\D/g, '');
+    body.cardHolderName  = payload.cardHolderName;
+    body.cardExpiryMonth = payload.cardExpiryMonth;
+    body.cardExpiryYear  = payload.cardExpiryYear;
+    body.cardCcv         = payload.cardCcv;
+  }
 
   return brasuxFetch<Order>("/api/orders", { method: "POST", body: JSON.stringify(body) });
 }

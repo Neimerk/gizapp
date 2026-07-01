@@ -267,6 +267,14 @@ export default function CheckoutPage() {
 
       const effectiveCpf = paymentMethod === "card" ? card.cpf : pixCpf;
 
+      // Expiry: "MMYY" → mês e ano separados
+      const [cardExpMonth, cardExpYear] = (() => {
+        const raw = card.expiration.replace(/\D/g, "");
+        return raw.length >= 4
+          ? [raw.slice(0, 2), `20${raw.slice(2, 4)}`]
+          : ["", ""];
+      })();
+
       const order = await createOrder({
         storeId,
         customerName:         auth?.name ?? guestInfo.name.trim(),
@@ -275,12 +283,21 @@ export default function CheckoutPage() {
         deliveryNumber:       selectedAddress.number,
         deliveryComplement:   selectedAddress.complement,
         deliveryNeighborhood: selectedAddress.neighborhood,
+        deliveryZipCode:      selectedAddress.cep,
         paymentMethod,
         items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
         deliveryFeeOverride:  feeSource === "distance" ? deliveryFee : undefined,
         couponCode:     coupon?.code,
         pointsDiscount: pointsDiscount > 0 ? pointsDiscount : undefined,
         ...(effectiveCpf.replace(/\D/g, "").length === 11 && { customerCpfCnpj: effectiveCpf }),
+        // Dados do cartão
+        ...(paymentMethod === "card" && {
+          cardNumber:      card.number,
+          cardHolderName:  card.name,
+          cardExpiryMonth: cardExpMonth,
+          cardExpiryYear:  cardExpYear,
+          cardCcv:         card.cvv,
+        }),
       });
 
       saveOrderId(order.id);
@@ -324,11 +341,18 @@ export default function CheckoutPage() {
       }
 
       if (paymentMethod === "card") {
-        if (auth) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
+        if (order.cardDeclined) {
+          // Cartão recusado: não limpa carrinho, mostra motivo
+          const reason = order.cardDeclineReason ?? "Cartão recusado pela operadora.";
+          useToastStore.getState().show(`Pagamento recusado: ${reason}`);
+          setSaving(false);
+          return;
+        }
+        if (auth && order.cardConfirmed) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
         setPaymentResult({
           method:      "card",
           orderId:     order.id,
-          confirmed:   !!order.paymentLink,
+          confirmed:   !!order.cardConfirmed,
           paymentLink: order.paymentLink,
         });
       }
