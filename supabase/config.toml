@@ -1,3 +1,6 @@
+[functions.cron-runner]
+verify_jwt = false
+
 [functions.marketplace-webhook]
 verify_jwt = false
 
