@@ -11,10 +11,6 @@ import {
   queryKeys, type PublicCoupon,
 } from "../services/gizApi";
 import { useDeliveryFee } from "../hooks/useDeliveryFee";
-import {
-  createPixCharge, createCardCharge, createBoletoCharge, notifyOrderPlaced,
-  type PixResult, type CardResult, type BoletoResult,
-} from "../services/asaasApi";
 import { useCartStore } from "../stores/cartStore";
 import { usePointsStore } from "../stores/pointsStore";
 import { useToastStore } from "../stores/toastStore";
@@ -37,9 +33,9 @@ type CardData = {
 };
 
 type PaymentResult =
-  | ({ method: "pix";    orderId: string } & Omit<PixResult, "chargeId">)
-  | ({ method: "boleto"; orderId: string } & Omit<BoletoResult, "chargeId">)
-  | ({ method: "card";   orderId: string; confirmed: boolean; error?: string });
+  | { method: "pix";    orderId: string; pixQrCodeImage: string; pixCode: string; expirationDate: string }
+  | { method: "boleto"; orderId: string; boletoUrl: string; boletoBarCode: string; dueDate: string }
+  | { method: "card";   orderId: string; confirmed: boolean; error?: string; paymentLink?: string };
 
 type WizardStep = 1 | 2 | 3;
 
@@ -135,9 +131,9 @@ export default function CheckoutPage() {
     enabled:  !!storeId,
   });
 
-  const { data: availableCoupons = [] } = useQuery({
+  const { data: availableCoupons = [] } = useQuery<PublicCoupon[]>({
     queryKey: queryKeys.availableCoupons(),
-    queryFn: getAvailableCoupons,
+    queryFn: () => getAvailableCoupons(storeId),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -176,6 +172,7 @@ export default function CheckoutPage() {
     (["card", "boleto"].includes(saved.paymentMethod) ? saved.paymentMethod : "pix") as PaymentMethod,
   );
   const [card, setCard] = useState<CardData>(EMPTY_CARD);
+  const [pixCpf, setPixCpf] = useState("");
 
   // Estado pós-confirmação
   const [saving, setSaving] = useState(false);
@@ -225,10 +222,12 @@ export default function CheckoutPage() {
       if (stopped) return;
       try {
         const status = await getOrderPaymentStatus(orderId);
-        if (status === "CONFIRMED" || status === "RECEIVED") {
+        if (status === "paid") {
           stopped = true;
           if (auth) earnPoints(finalTotal, `Pedido #${orderId.slice(0, 8)}`);
           setPixConfirmed(true);
+        } else if (status === "refunded" || status === "chargeback" || status === "overdue" || status === "cancelled") {
+          stopped = true;
         }
       } catch { /* silencioso */ }
     };
@@ -266,6 +265,8 @@ export default function CheckoutPage() {
       setSaving(true);
       setFinalTotal(total); // captura antes de limpar carrinho/cupom
 
+      const effectiveCpf = paymentMethod === "card" ? card.cpf : pixCpf;
+
       const order = await createOrder({
         storeId,
         customerName:         auth?.name ?? guestInfo.name.trim(),
@@ -277,13 +278,12 @@ export default function CheckoutPage() {
         paymentMethod,
         items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
         deliveryFeeOverride:  feeSource === "distance" ? deliveryFee : undefined,
-        // Cupom e pontos validados/debitados atomicamente no servidor:
         couponCode:     coupon?.code,
         pointsDiscount: pointsDiscount > 0 ? pointsDiscount : undefined,
+        ...(effectiveCpf.replace(/\D/g, "").length === 11 && { customerCpfCnpj: effectiveCpf }),
       });
 
       saveOrderId(order.id);
-      notifyOrderPlaced(order.id);
 
       // Sincroniza estado local de pontos com o que o servidor debitou
       if (pointsDiscount > 0) {
@@ -293,62 +293,44 @@ export default function CheckoutPage() {
       clearCart();
       removeCoupon();
 
+      // A cobrança Asaas é criada pelo brasux-api junto com o pedido.
+      // Os dados de pagamento chegam na resposta do createOrder.
       if (paymentMethod === "pix") {
-        const result: PixResult = await createPixCharge(order.id);
+        if (!order.pixQrCodeImage && !order.pixPayload) {
+          // Pedido criado mas sem QR (CPF ausente ou falha Asaas)
+          useToastStore.getState().show("Pedido criado! " + (order.paymentLink ? "Acesse o link para pagar: " + order.paymentLink : "Entre em contato para instruções de pagamento."));
+          setSaving(false);
+          return;
+        }
         setPaymentResult({
           method:         "pix",
           orderId:        order.id,
-          pixQrCodeImage: result.pixQrCodeImage,
-          pixCode:        result.pixCode,
-          expirationDate: result.expirationDate,
+          pixQrCodeImage: order.pixQrCodeImage ?? "",
+          pixCode:        order.pixPayload ?? "",
+          expirationDate: order.dueDate ?? "",
         });
         return;
       }
 
       if (paymentMethod === "boleto") {
-        const result: BoletoResult = await createBoletoCharge(order.id);
         setPaymentResult({
           method:        "boleto",
           orderId:       order.id,
-          boletoUrl:     result.boletoUrl,
-          boletoBarCode: result.boletoBarCode,
-          dueDate:       result.dueDate,
+          boletoUrl:     order.paymentLink ?? "",
+          boletoBarCode: "",
+          dueDate:       order.dueDate ?? "",
         });
         return;
       }
 
       if (paymentMethod === "card") {
-        const expParts = num(card.expiration);
-        const result: CardResult = await createCardCharge(
-          order.id,
-          {
-            holderName:  card.name,
-            number:      num(card.number),
-            expiryMonth: expParts.slice(0, 2),
-            expiryYear:  `20${expParts.slice(2, 4)}`,
-            ccv:         card.cvv,
-          },
-          {
-            name:          auth?.name ?? guestInfo.name.trim(),
-            email:         auth?.email ?? guestInfo.email.trim(),
-            cpfCnpj:       num(card.cpf),
-            postalCode:    num(selectedAddress.cep),
-            addressNumber: selectedAddress.number,
-            phone:         num(selectedAddress.phone || guestInfo.phone),
-          },
-        );
-
-        if (result.confirmed) {
-          if (auth) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
-          setPaymentResult({ method: "card", orderId: order.id, confirmed: true });
-        } else {
-          setPaymentResult({
-            method:    "card",
-            orderId:   order.id,
-            confirmed: false,
-            error:     result.error ?? "Cartão recusado.",
-          });
-        }
+        if (auth) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
+        setPaymentResult({
+          method:      "card",
+          orderId:     order.id,
+          confirmed:   !!order.paymentLink,
+          paymentLink: order.paymentLink,
+        });
       }
     } catch (e) {
       useToastStore.getState().show(e instanceof Error ? e.message : "Erro ao finalizar pedido.");
@@ -589,14 +571,23 @@ export default function CheckoutPage() {
           </div>
 
           {paymentMethod === "pix" && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-subtle p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f172a]">
-                <span className="text-lg">🔑</span>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f172a]">
+                  <span className="text-lg">🔑</span>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-[#0f172a]">Pix — pagamento instantâneo</p>
+                  <p className="text-xs text-[#64748b]">QR Code gerado ao confirmar. Expira em 30 minutos.</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-black text-content">Pix — pagamento instantâneo</p>
-                <p className="text-xs text-muted">QR Code gerado ao confirmar. Expira em 30 minutos.</p>
-              </div>
+              <input
+                value={pixCpf}
+                onChange={(e) => setPixCpf(fmtCPF(e.target.value))}
+                placeholder="CPF (opcional — necessário para PIX)"
+                inputMode="numeric"
+                className="w-full rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1] placeholder:font-normal"
+              />
             </div>
           )}
 

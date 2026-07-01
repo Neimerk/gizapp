@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabase";
 import { shoppingDb } from "./shoppingSupabase";
 import { useAuthStore } from "../stores/authStore";
+import { BRASUX_API, authHeaders } from "./auth";
 
 const IMAGE_BASE_URL =
   import.meta.env.VITE_IMAGE_BASE_URL ||
@@ -11,6 +12,16 @@ export const GIZ_API_URL = (import.meta.env.VITE_API_URL as string) || "";
 
 // ID da loja no Supabase (usado em todas as queries Supabase)
 export const DEFAULT_STORE_ID = "21f2f9d1-de5f-40b5-a3fc-765aba6d70a0";
+
+async function brasuxFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BRASUX_API}${path}`, {
+    ...init,
+    headers: { ...authHeaders(), ...(init?.headers ?? {}) },
+  });
+  const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+  if (!res.ok) throw new Error((data.message as string) ?? `Erro ${res.status}`);
+  return data as T;
+}
 
 /* ── AUTH TYPES ─────────────────────────────────────────── */
 
@@ -33,63 +44,18 @@ export type RegisterPayload = {
   storeId?: null;
 };
 
-export async function loginCustomer(_payload: LoginPayload): Promise<AuthResponse> {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: _payload.email,
-    password: _payload.password,
+export async function loginCustomer(payload: LoginPayload): Promise<AuthResponse> {
+  return brasuxFetch<AuthResponse>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email: payload.email.trim().toLowerCase(), password: payload.password }),
   });
-  if (error || !data.user) throw new Error("Email ou senha inválidos.");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("name, role, store_id")
-    .eq("id", data.user.id)
-    .single();
-
-  const roleMap: Record<string, AuthResponse["role"]> = {
-    admin: "Admin", customer: "Customer", seller: "Seller", courier: "Courier",
-  };
-
-  const role = roleMap[profile?.role ?? "customer"] ?? "Customer";
-
-  // Auditoria: login de admin registrado no banco
-  if (role === "Admin") {
-    supabase.from("audit_logs").insert({
-      user_id:    data.user.id,
-      action:     "ADMIN_LOGIN",
-      table_name: "auth",
-      extra:      { email: data.user.email, ua: navigator.userAgent.slice(0, 200) },
-    }).then(() => null);
-  }
-
-  return {
-    id: data.user.id,
-    name: profile?.name ?? "",
-    email: data.user.email ?? "",
-    role,
-    storeId: profile?.store_id ?? null,
-    token: data.session?.access_token ?? "",
-  };
 }
 
 export async function registerCustomer(payload: RegisterPayload): Promise<AuthResponse> {
-  const { data, error } = await supabase.auth.signUp({
-    email: payload.email,
-    password: payload.password,
-    // Não passar 'role' no metadata — o trigger handle_new_user ignora qualquer role
-    // e sempre define 'customer'. Passar nome apenas.
-    options: { data: { name: payload.name } },
+  return brasuxFetch<AuthResponse>("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ name: payload.name.trim(), email: payload.email.trim().toLowerCase(), password: payload.password, role: "Customer" }),
   });
-  if (error || !data.user) throw new Error(error?.message || "Erro ao cadastrar cliente.");
-
-  return {
-    id: data.user.id,
-    name: payload.name,
-    email: payload.email,
-    role: "Customer",
-    storeId: null,
-    token: data.session?.access_token ?? "",
-  };
 }
 
 /* ── STORE TYPES ─────────────────────────────────────────── */
@@ -362,6 +328,11 @@ export type Order = {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  // Campos de pagamento Asaas (presentes apenas quando cobrança foi criada)
+  paymentLink?: string;
+  pixPayload?: string;
+  pixQrCodeImage?: string;
+  dueDate?: string;
 };
 
 type OrderRow = {
@@ -600,155 +571,29 @@ export async function getProductBySlug(slug: string): Promise<Product> {
 /* ── ORDERS API ──────────────────────────────────────────── */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ALLOWED_PAYMENT_METHODS = new Set(["pix", "card", "boleto"]);
+const ALLOWED_PAYMENT_METHODS = new Set(["pix", "card", "boleto", "cash", "dinheiro"]);
 
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  // Validação de entrada antes de qualquer query
   if (!UUID_RE.test(payload.storeId)) throw new Error("Loja inválida.");
   if (!payload.items?.length || payload.items.length > 50) throw new Error("Itens inválidos.");
   if (!ALLOWED_PAYMENT_METHODS.has(payload.paymentMethod)) throw new Error("Método de pagamento inválido.");
   if (!payload.deliveryAddress?.trim() || !payload.deliveryNeighborhood?.trim()) throw new Error("Endereço incompleto.");
-  for (const item of payload.items) {
-    if (!UUID_RE.test(item.storeProductId)) throw new Error("Produto inválido.");
-    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) throw new Error("Quantidade inválida.");
-  }
 
-  const user = useAuthStore.getState().user;
-
-  const { data: store, error: storeErr } = await shoppingDb
-    .from("stores")
-    .select("id, name, delivery_fee")
-    .eq("id", payload.storeId)
-    .single();
-  if (storeErr || !store) throw new Error("Loja não encontrada.");
-
-  const productIds = payload.items.map((i) => i.storeProductId);
-  const { data: products, error: prodErr } = await shoppingDb
-    .from("store_products")
-    .select("id, name, price, promotional_price, image_url")
-    .in("id", productIds);
-  if (prodErr) throw new Error("Erro ao buscar produtos.");
-
-  const enriched = payload.items.map((item) => {
-    const p = products.find((x) => x.id === item.storeProductId);
-    if (!p) throw new Error(`Produto ${item.storeProductId} não encontrado.`);
-    const unitPrice = Number(p.promotional_price ?? p.price);
-    return { ...item, unitPrice, totalPrice: unitPrice * item.quantity, productName: p.name, imageUrl: p.image_url };
-  });
-
-  const storeDefaultFee = Number(store.delivery_fee);
-  let deliveryFee: number;
-
-  if (payload.deliveryFeeOverride !== undefined) {
-    const raw = Number(payload.deliveryFeeOverride);
-    if (!isFinite(raw) || raw < 0) throw new Error("Taxa de entrega inválida.");
-    // Nunca abaixo da taxa mínima da loja, nunca acima de R$500
-    deliveryFee = Math.max(storeDefaultFee, Math.min(500, raw));
-  } else {
-    deliveryFee = storeDefaultFee;
-  }
-
-  const subtotal = enriched.reduce((s, i) => s + i.totalPrice, 0);
-
-  // ── Cupom: validação atômica no servidor (resolve race condition) ──────────
-  let couponDiscount = 0;
-  if (payload.couponCode?.trim()) {
-    const { data: couponData, error: couponErr } = await supabase.rpc("use_coupon_atomic", {
-      p_code:    payload.couponCode.trim(),
-      p_user_id: user?.id ?? null,
-    });
-    if (couponErr) {
-      const msg = couponErr.message.includes("INVALID_COUPON")   ? "Cupom inválido ou expirado."
-                : couponErr.message.includes("EXPIRED_COUPON")   ? "Cupom expirado."
-                : couponErr.message.includes("EXHAUSTED_COUPON") ? "Cupom esgotado."
-                : couponErr.message.includes("ALREADY_USED")     ? "Você já utilizou este cupom."
-                : "Cupom inválido.";
-      throw new Error(msg);
-    }
-    const c = couponData as { type: string; value: number };
-    if (c.type === "percent")        couponDiscount = Math.round((subtotal * c.value) / 100 * 100) / 100;
-    else if (c.type === "fixed")     couponDiscount = Math.min(c.value, subtotal);
-    else if (c.type === "free_delivery") couponDiscount = deliveryFee;
-  }
-
-  // ── Pontos: debitar no servidor antes de criar o pedido ───────────────────
-  const pointsDiscount = Math.max(0, Math.floor(payload.pointsDiscount ?? 0));
-  if (pointsDiscount > 0 && user) {
-    const { data: ok, error: pointsErr } = await supabase.rpc("spend_points", {
-      p_user_id:    user.id,
-      p_amount:     pointsDiscount,
-      p_description: "Desconto em pedido",
-      p_order_id:   null,
-    });
-    if (pointsErr || !ok) throw new Error("Pontos insuficientes ou erro ao debitar.");
-  }
-
-  const total = Math.max(0.01, subtotal + deliveryFee - couponDiscount - pointsDiscount);
-
-  const { data: order, error: orderErr } = await supabase
-    .from("orders")
-    .insert({
-      store_id: payload.storeId,
-      customer_id: user?.id ?? null,
-      customer_name: payload.customerName,
-      customer_phone: payload.customerPhone,
-      delivery_address: payload.deliveryAddress,
-      delivery_number: payload.deliveryNumber,
-      delivery_complement: payload.deliveryComplement,
-      delivery_neighborhood: payload.deliveryNeighborhood,
-      payment_method: payload.paymentMethod,
-      delivery_fee: deliveryFee,
-      subtotal,
-      total,
-      status: 0,
-    })
-    .select()
-    .single();
-  if (orderErr || !order) throw new Error("Erro ao criar pedido.");
-
-  const { error: itemsErr } = await supabase.from("order_items").insert(
-    enriched.map((i) => ({
-      order_id: order.id,
-      store_product_id: i.storeProductId,
-      product_name: i.productName,
-      image_url: i.imageUrl,
-      unit_price: i.unitPrice,
-      quantity: i.quantity,
-      total_price: i.totalPrice,
-    }))
-  );
-  if (itemsErr) throw new Error("Erro ao registrar itens do pedido.");
-
-  return {
-    id: order.id,
-    storeId: order.store_id,
-    storeName: store.name,
-    customerId: order.customer_id ?? undefined,
-    customerName: order.customer_name,
-    customerPhone: order.customer_phone,
-    deliveryAddress: order.delivery_address,
-    deliveryNumber: order.delivery_number ?? "",
-    deliveryComplement: order.delivery_complement ?? "",
-    deliveryNeighborhood: order.delivery_neighborhood,
-    paymentMethod: order.payment_method,
-    deliveryFee,
-    subtotal,
-    total,
-    status: 0,
-    paymentStatus: "PENDING",
-    createdAt: order.created_at,
-    updatedAt: order.updated_at,
-    items: enriched.map((i, idx) => ({
-      id: `${order.id}-${idx}`,
-      orderId: order.id,
-      storeProductId: i.storeProductId,
-      productName: i.productName,
-      imageUrl: i.imageUrl,
-      unitPrice: i.unitPrice,
-      quantity: i.quantity,
-      totalPrice: i.totalPrice,
-    })),
+  const body: Record<string, unknown> = {
+    storeId:               payload.storeId,
+    customerName:          payload.customerName,
+    customerPhone:         payload.customerPhone,
+    deliveryAddress:       payload.deliveryAddress,
+    deliveryNumber:        payload.deliveryNumber,
+    deliveryComplement:    payload.deliveryComplement,
+    deliveryNeighborhood:  payload.deliveryNeighborhood,
+    paymentMethod:         payload.paymentMethod,
+    items:                 payload.items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
   };
+  if (payload.couponCode?.trim()) body.couponCode = payload.couponCode.trim();
+  if (payload.deliveryFeeOverride !== undefined) body.deliveryFeeOverride = payload.deliveryFeeOverride;
+
+  return brasuxFetch<Order>("/api/orders", { method: "POST", body: JSON.stringify(body) });
 }
 
 export async function getMyOrders(): Promise<Order[]> {
@@ -1389,36 +1234,19 @@ export type CouponDB = {
   minOrder: number;
 };
 
-export async function validateCoupon(code: string): Promise<CouponDB> {
-  const { data, error } = await supabase
-    .from("coupons")
-    .select("*")
-    .eq("code", code.toUpperCase().trim())
-    .eq("active", true)
-    .maybeSingle();
-
-  if (error || !data) throw new Error("Cupom inválido ou expirado.");
-  if (data.expires_at && new Date(data.expires_at) < new Date()) throw new Error("Cupom expirado.");
-  if (data.max_uses !== null && data.uses_count >= data.max_uses) throw new Error("Cupom esgotado.");
-
-  const user = useAuthStore.getState().user;
-  if (user && data.max_uses === 1) {
-    const { data: used } = await supabase
-      .from("user_coupons")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("coupon_id", data.id)
-      .maybeSingle();
-    if (used) throw new Error("Você já utilizou este cupom.");
-  }
-
+export async function validateCoupon(code: string, storeId: string, orderValue?: number): Promise<CouponDB> {
+  type ValidateResp = { valid: boolean; discountType: string; discountValue: number; description?: string; minOrderValue?: number };
+  const resp = await brasuxFetch<ValidateResp>("/api/coupons/validate", {
+    method: "POST",
+    body: JSON.stringify({ code: code.toUpperCase().trim(), storeId, orderValue: orderValue ?? 0 }),
+  });
   return {
-    id: data.id,
-    code: data.code,
-    type: data.type as CouponDB["type"],
-    value: Number(data.value),
-    label: data.label,
-    minOrder: Number(data.min_order ?? 0),
+    id: code,
+    code: code.toUpperCase().trim(),
+    type: (resp.discountType === "percent" ? "percent" : "fixed") as CouponDB["type"],
+    value: Number(resp.discountValue),
+    label: resp.description ?? (resp.discountType === "percent" ? `${resp.discountValue}% off` : `R$ ${resp.discountValue} off`),
+    minOrder: Number(resp.minOrderValue ?? 0),
   };
 }
 
@@ -2076,12 +1904,12 @@ export async function getActiveBanners(): Promise<Banner[]> {
 /* ── PIX STATUS POLLING ──────────────────────────────────── */
 
 export async function getOrderPaymentStatus(orderId: string): Promise<string> {
-  const { data } = await supabase
-    .from("orders")
-    .select("payment_status")
-    .eq("id", orderId)
-    .single();
-  return (data?.payment_status as string | null) ?? "PENDING";
+  try {
+    const data = await brasuxFetch<{ paymentStatus?: string }>(`/api/orders/${orderId}`)
+    return data.paymentStatus ?? "pending";
+  } catch {
+    return "pending";
+  }
 }
 
 /* ── CUPONS DISPONÍVEIS (públicos, ativos) ───────────────── */
@@ -2090,30 +1918,28 @@ export type PublicCoupon = {
   id: string;
   code: string;
   label: string;
-  type: "percentage" | "fixed" | "free_shipping";
+  type: "percent" | "fixed";
   value: number;
   minOrderValue: number | null;
   expiresAt: string | null;
 };
 
-export async function getAvailableCoupons(): Promise<PublicCoupon[]> {
-  const now = new Date().toISOString();
-  const { data } = await supabase
-    .from("coupons")
-    .select("id, code, label, type, value, min_order_value, expires_at")
-    .eq("active", true)
-    .or(`expires_at.is.null,expires_at.gt.${now}`)
-    .order("value", { ascending: false })
-    .limit(6);
-  return (data ?? []).map((r) => ({
-    id: r.id as string,
-    code: r.code as string,
-    label: r.label as string,
-    type: r.type as PublicCoupon["type"],
-    value: Number(r.value),
-    minOrderValue: r.min_order_value != null ? Number(r.min_order_value) : null,
-    expiresAt: r.expires_at as string | null,
-  }));
+export async function getAvailableCoupons(storeId?: string): Promise<PublicCoupon[]> {
+  if (!storeId) return [];
+  type ApiCoupon = { id: string; code: string; discount_type: string; discount_value: number; description?: string; min_order_value?: number; valid_until?: string };
+  const list = await brasuxFetch<ApiCoupon[]>(`/api/coupons?storeId=${storeId}`);
+  return list
+    .filter((c) => !c.valid_until || new Date(c.valid_until) > new Date())
+    .slice(0, 6)
+    .map((c) => ({
+      id: c.id,
+      code: c.code,
+      label: c.description ?? (c.discount_type === "percent" ? `${c.discount_value}% off` : `R$ ${c.discount_value} off`),
+      type: (c.discount_type === "percent" ? "percent" : "fixed") as PublicCoupon["type"],
+      value: Number(c.discount_value),
+      minOrderValue: c.min_order_value != null ? Number(c.min_order_value) : null,
+      expiresAt: c.valid_until ?? null,
+    }));
 }
 
 /* ── SELLER WITHDRAWALS ──────────────────────────────────── */

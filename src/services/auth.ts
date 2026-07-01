@@ -1,18 +1,26 @@
-import { supabase } from "../lib/supabase";
-import { useAuthStore, type AuthUser } from "../stores/authStore";
+import { useAuthStore, initAuth, type AuthUser } from "../stores/authStore";
 
-export type { AuthUser };
+export { initAuth, type AuthUser };
+
+export const BRASUX_API =
+  (import.meta.env.VITE_BRASUX_API_URL as string) ||
+  "https://brasux-api.brasux-account.workers.dev";
 
 export function getAuth(): AuthUser | null {
   return useAuthStore.getState().user;
 }
 
 export function getAuthToken(): string {
-  return "";
+  return useAuthStore.getState().user?.token ?? "";
 }
 
-export function saveAuth(_user: AuthUser) {}
+export function authHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return token
+    ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+    : { "Content-Type": "application/json" };
+}
 
 export async function logout(): Promise<void> {
-  await supabase.auth.signOut();
+  useAuthStore.getState().clearAuth();
 }

@@ -3,17 +3,18 @@ import { validateCoupon, type CouponDB } from "../services/gizApi";
 
 export type { CouponDB as Coupon };
 
-export function useCoupon() {
+export function useCoupon(storeId?: string) {
   const [coupon, setCoupon] = useState<CouponDB | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
 
-  const apply = useCallback(async (code: string): Promise<boolean> => {
+  const apply = useCallback(async (code: string, orderValue?: number): Promise<boolean> => {
     if (!code.trim()) { setError("Informe um código de cupom."); return false; }
+    if (!storeId) { setError("Loja não identificada."); return false; }
     setApplying(true);
     setError(null);
     try {
-      const found = await validateCoupon(code);
+      const found = await validateCoupon(code, storeId, orderValue);
       setCoupon(found);
       return true;
     } catch (e) {
@@ -22,7 +23,7 @@ export function useCoupon() {
     } finally {
       setApplying(false);
     }
-  }, []);
+  }, [storeId]);
 
   const remove = useCallback(() => {
     setCoupon(null);

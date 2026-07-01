@@ -3,58 +3,38 @@ import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react"
 import BrasUXLogo from "../components/ui/BrasUXLogo";
 import { useNavigate, useLocation } from "react-router-dom";
 
-import { supabase } from "../lib/supabase";
+import { loginCustomer, registerCustomer } from "../services/gizApi";
+import { useAuthStore } from "../stores/authStore";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string } | null)?.from ?? "/";
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
+  const [forgotSent, setForgotSent] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [forgotSent, setForgotSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    if (mode === "forgot") {
-      if (!email.trim()) { setError("Informe seu e-mail."); return; }
-      try {
-        setLoading(true);
-        await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/conta`,
-        });
-        setForgotSent(true);
-      } catch {
-        setForgotSent(true);
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
     try {
       setLoading(true);
 
       if (mode === "login") {
-        const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-        if (authError) throw new Error("Email ou senha inválidos.");
+        const resp = await loginCustomer({ email, password });
+        useAuthStore.getState().setAuth({ id: resp.id, name: resp.name, email: resp.email, role: resp.role, storeId: resp.storeId, token: resp.token });
       } else {
         if (!name.trim()) throw new Error("Informe seu nome completo.");
-        const { error: authError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { name, role: "customer" } },
-        });
-        if (authError) throw new Error(authError.message || "Erro ao cadastrar.");
+        const resp = await registerCustomer({ name, email, password });
+        useAuthStore.getState().setAuth({ id: resp.id, name: resp.name, email: resp.email, role: resp.role, storeId: resp.storeId, token: resp.token });
       }
 
-      // onAuthStateChange no authStore atualiza o user automaticamente
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao entrar.");
@@ -86,9 +66,9 @@ export default function LoginPage() {
         />
 
         <h1 className="mt-5 text-3xl font-black text-white">
-          {mode === "login" ? "Entrar" : mode === "register" ? "Criar conta" : "Recuperar senha"}
+          {mode === "login" ? "Entrar" : "Criar conta"}
         </h1>
-        <p className="mt-1 text-sm text-faint">
+        <p className="mt-1 text-sm text-[#94a3b8]">
           {mode === "login"
             ? "Acesse o ecossistema BrasUX."
             : mode === "register"
@@ -120,6 +100,7 @@ export default function LoginPage() {
             </div>
           )}
 
+
           {mode === "register" && (
             <div className="mb-4">
               <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted">
@@ -147,7 +128,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {mode !== "forgot" && (
+          {(
             <div className="mb-6">
               <label className="mb-1.5 block text-xs font-black uppercase tracking-wide text-muted">
                 Senha
@@ -178,25 +159,17 @@ export default function LoginPage() {
             </div>
           )}
 
-          {!forgotSent && (
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl py-4 text-sm font-black text-white shadow-lg disabled:opacity-60 active:scale-[0.98] transition-transform"
-              style={{
-                background: "linear-gradient(135deg, #16a34a 0%, #0f766e 100%)",
-                boxShadow: "0 6px 20px rgba(22,163,74,0.35)",
-              }}
-            >
-              {loading
-                ? "Aguarde…"
-                : mode === "login"
-                ? "Entrar na conta"
-                : mode === "register"
-                ? "Criar minha conta"
-                : "Enviar link de recuperação"}
-            </button>
-          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-2xl py-4 text-sm font-black text-white shadow-lg disabled:opacity-60 active:scale-[0.98] transition-transform"
+            style={{
+              background: "linear-gradient(135deg, #16a34a 0%, #0f766e 100%)",
+              boxShadow: "0 6px 20px rgba(22,163,74,0.35)",
+            }}
+          >
+            {loading ? "Aguarde…" : mode === "login" ? "Entrar na conta" : "Criar minha conta"}
+          </button>
 
           {mode === "login" && !forgotSent && (
             <button
