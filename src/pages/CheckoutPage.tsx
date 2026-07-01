@@ -22,7 +22,7 @@ import { formatBRL } from "../utils/format";
 
 // ── Tipos ──────────────────────────────────────────────────────
 
-type PaymentMethod = "pix" | "card" | "boleto";
+type PaymentMethod = "pix" | "card" | "boleto" | "cash";
 
 type CardData = {
   number: string;
@@ -35,7 +35,8 @@ type CardData = {
 type PaymentResult =
   | { method: "pix";    orderId: string; pixQrCodeImage: string; pixCode: string; expirationDate: string }
   | { method: "boleto"; orderId: string; boletoUrl: string; boletoBarCode: string; dueDate: string }
-  | { method: "card";   orderId: string; confirmed: boolean; error?: string; paymentLink?: string };
+  | { method: "card";   orderId: string; confirmed: boolean; error?: string; paymentLink?: string }
+  | { method: "cash";   orderId: string };
 
 type WizardStep = 1 | 2 | 3;
 
@@ -169,7 +170,7 @@ export default function CheckoutPage() {
   // Pagamento
   const saved = loadCheckout();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    (["card", "boleto"].includes(saved.paymentMethod) ? saved.paymentMethod : "pix") as PaymentMethod,
+    (["card", "boleto", "cash"].includes(saved.paymentMethod) ? saved.paymentMethod : "pix") as PaymentMethod,
   );
   const [card, setCard] = useState<CardData>(EMPTY_CARD);
   const [pixCpf, setPixCpf] = useState("");
@@ -360,6 +361,10 @@ export default function CheckoutPage() {
           confirmed:   !!order.cardConfirmed,
           paymentLink: order.paymentLink,
         });
+      }
+
+      if (paymentMethod === "cash") {
+        setPaymentResult({ method: "cash", orderId: order.id });
       }
     } catch (e) {
       useToastStore.getState().show(e instanceof Error ? e.message : "Erro ao finalizar pedido.");
@@ -583,8 +588,8 @@ export default function CheckoutPage() {
             <h2 className="text-sm font-black text-content">Forma de pagamento</h2>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {(["pix", "card", "boleto"] as const).map((m) => (
+          <div className="grid grid-cols-2 gap-2">
+            {(["pix", "card", "boleto", "cash"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setPaymentMethod(m)}
@@ -594,7 +599,7 @@ export default function CheckoutPage() {
                     : "border border-line bg-subtle text-muted"
                 }`}
               >
-                {m === "pix" ? "Pix" : m === "card" ? "Cartão" : "Boleto"}
+                {m === "pix" ? "Pix" : m === "card" ? "Cartão" : m === "boleto" ? "Boleto" : "Dinheiro"}
               </button>
             ))}
           </div>
@@ -628,6 +633,18 @@ export default function CheckoutPage() {
               <div>
                 <p className="text-sm font-black text-content">Boleto bancário</p>
                 <p className="text-xs text-muted">Vencimento em 3 dias úteis. Pedido confirmado após compensação.</p>
+              </div>
+            </div>
+          )}
+
+          {paymentMethod === "cash" && (
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[#d97706]/30 bg-[#fffbeb] p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d97706]">
+                <span className="text-lg">💵</span>
+              </div>
+              <div>
+                <p className="text-sm font-black text-[#92400e]">Pagamento na entrega</p>
+                <p className="text-xs text-[#b45309]">Tenha o valor exato em mãos. O entregador não troca.</p>
               </div>
             </div>
           )}
@@ -915,7 +932,7 @@ export default function CheckoutPage() {
           )}
           <div className="flex items-center gap-2 text-xs text-muted">
             <CreditCard size={12} className="shrink-0 text-[#2563eb]" />
-            <span className="font-bold capitalize">{paymentMethod === "pix" ? "Pix" : paymentMethod === "card" ? "Cartão de crédito" : "Boleto bancário"}</span>
+            <span className="font-bold capitalize">{paymentMethod === "pix" ? "Pix" : paymentMethod === "card" ? "Cartão de crédito" : paymentMethod === "boleto" ? "Boleto bancário" : "Dinheiro / Entrega"}</span>
           </div>
         </div>
       </div>
@@ -1164,6 +1181,40 @@ function PaymentResultScreen({
           className="w-full rounded-2xl border border-line bg-surface py-3.5 text-sm font-black text-muted"
         >
           Ver meus pedidos
+        </button>
+      </div>
+    );
+  }
+
+  if (result.method === "cash") {
+    return (
+      <div className="space-y-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#d97706]">BrasUX</p>
+          <h1 className="text-xl font-black text-content">Pedido confirmado!</h1>
+        </div>
+
+        <div className="rounded-3xl border border-line-subtle bg-surface p-6 shadow-sm space-y-4">
+          <div className="flex items-center gap-3 rounded-2xl bg-[#fffbeb] border border-[#fde68a] p-4">
+            <span className="text-2xl">💵</span>
+            <div>
+              <p className="font-black text-[#92400e] text-sm">Pagamento na entrega</p>
+              <p className="text-[#b45309] text-xs">Tenha o valor exato em mãos ao receber.</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted">
+            Seu pedido foi enviado para a loja. O entregador levará até você — pague em dinheiro no momento da entrega.
+          </p>
+
+          <p className="text-xs text-faint font-mono">Pedido #{result.orderId.slice(0, 8).toUpperCase()}</p>
+        </div>
+
+        <button
+          onClick={onContinue}
+          className="w-full rounded-2xl bg-gradient-to-r from-[#d97706] to-[#f59e0b] py-3.5 text-sm font-black text-white shadow-lg shadow-[#d97706]/30"
+        >
+          Acompanhar pedido
         </button>
       </div>
     );
