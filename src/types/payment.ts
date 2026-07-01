@@ -1,6 +1,6 @@
 // ── Planos de assinatura ────────────────────────────────────
 
-export type SubscriptionPlan = "free" | "start" | "pro" | "premium" | "whitelabel";
+export type SubscriptionPlan = "free" | "start" | "pro" | "whitelabel";
 export type SubscriptionStatus = "trial" | "active" | "overdue" | "suspended" | "cancelled";
 
 export const PLAN_CONFIG: Record<SubscriptionPlan, {
@@ -9,11 +9,10 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, {
   commissionRate: number;
   color: string;
 }> = {
-  free:       { label: "Gratuito",    monthlyPrice: 0,      commissionRate: 0.08, color: "#64748b" },
-  start:      { label: "Start",       monthlyPrice: 49.90,  commissionRate: 0.05, color: "#2563eb" },
-  pro:        { label: "Pro",         monthlyPrice: 99.90,  commissionRate: 0.03, color: "#7c3aed" },
-  premium:    { label: "Premium",     monthlyPrice: 199.90, commissionRate: 0.02, color: "#f59e0b" },
-  whitelabel: { label: "White Label", monthlyPrice: 299.90, commissionRate: 0.00, color: "#0f172a" },
+  free:       { label: "Gratuito",    monthlyPrice: 0,      commissionRate: 0.12, color: "#64748b" },
+  start:      { label: "Start",       monthlyPrice: 49.00,  commissionRate: 0.09, color: "#2563eb" },
+  pro:        { label: "Pro",         monthlyPrice: 99.00,  commissionRate: 0.07, color: "#7c3aed" },
+  whitelabel: { label: "White Label", monthlyPrice: 199.90, commissionRate: 0.05, color: "#0f172a" },
 };
 
 export type Subscription = {

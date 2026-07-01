@@ -1587,6 +1587,7 @@ export async function updateDeliveryStatus(
     await supabase.from("courier_earnings").insert({
       courier_id: user.id,
       delivery_id: deliveryId,
+      order_id:   delivery.order_id,
       amount: Number(delivery.earnings),
       description: `Entrega #${(delivery.order_id as string).slice(0, 8).toUpperCase()}`,
     });

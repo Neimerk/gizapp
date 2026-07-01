@@ -323,9 +323,10 @@ export default function CheckoutPage() {
         setPaymentResult({
           method:         "pix",
           orderId:        order.id,
-          pixQrCodeImage: order.pixQrCodeImage ?? "",
-          pixCode:        order.pixPayload ?? "",
-          expirationDate: order.dueDate ?? "",
+          paymentId:      result.paymentId,
+          pixQrCodeImage: result.pixQrCodeImage,
+          pixCode:        result.pixCode,
+          expirationDate: result.expirationDate,
         });
         return;
       }
@@ -339,9 +340,10 @@ export default function CheckoutPage() {
         setPaymentResult({
           method:        "boleto",
           orderId:       order.id,
-          boletoUrl:     order.boletoUrl ?? order.paymentLink ?? "",
-          boletoBarCode: order.boletoBarCode ?? "",
-          dueDate:       order.dueDate ?? "",
+          paymentId:     result.paymentId,
+          boletoUrl:     result.boletoUrl,
+          boletoBarCode: result.boletoBarCode,
+          dueDate:       result.dueDate,
         });
         return;
       }
