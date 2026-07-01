@@ -330,11 +330,16 @@ export default function CheckoutPage() {
       }
 
       if (paymentMethod === "boleto") {
+        if (!order.boletoUrl && !order.paymentLink) {
+          useToastStore.getState().show("Boleto gerado! Acesse o link no histórico de pedidos para pagar.");
+          setSaving(false);
+          return;
+        }
         setPaymentResult({
           method:        "boleto",
           orderId:       order.id,
-          boletoUrl:     order.paymentLink ?? "",
-          boletoBarCode: "",
+          boletoUrl:     order.boletoUrl ?? order.paymentLink ?? "",
+          boletoBarCode: order.boletoBarCode ?? "",
           dueDate:       order.dueDate ?? "",
         });
         return;

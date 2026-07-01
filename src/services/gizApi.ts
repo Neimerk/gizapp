@@ -334,6 +334,8 @@ export type Order = {
   paymentLink?: string;
   pixPayload?: string;
   pixQrCodeImage?: string;
+  boletoUrl?: string | null;
+  boletoBarCode?: string | null;
   dueDate?: string;
   // Campos específicos do cartão
   cardConfirmed?: boolean;
