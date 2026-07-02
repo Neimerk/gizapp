@@ -425,6 +425,8 @@ function ProductCard({ product }: { product: StoreProduct }) {
   const cartItem = items.find((i) => i.id === product.id);
   const finalPrice = Number(product.promotionalPrice ?? product.price ?? 0);
 
+  const [justAdded, setJustAdded] = useState(false);
+
   function handleAdd() {
     addItem({
       id: product.id,
@@ -438,6 +440,8 @@ function ProductCard({ product }: { product: StoreProduct }) {
       image: getProductImageUrl(product.imageUrl),
       stock: product.stock,
     });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 500);
   }
 
   return (
@@ -498,7 +502,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
             + Adicionar
           </button>
         ) : (
-          <div className="flex items-center gap-1 rounded-xl bg-[#0f172a] p-1">
+          <div className={`flex items-center gap-1 rounded-xl bg-[#0f172a] p-1 transition-transform duration-200 ${justAdded ? "scale-[1.1]" : "scale-100"}`}>
             <button
               onClick={() => decreaseItem(product.id)}
               className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 font-black text-white"

@@ -15,7 +15,7 @@ const CATEGORIES = [
 
 const ECOSYSTEM = [
   { name: "BrasUX Loja",          href: "https://brasux.store",             badge: "Lojistas" },
-  { name: "BrasUX Entregas",      href: "https://entregas.brasux.com.br",           badge: "Entregadores" },
+  { name: "BrasUX Entregas",      href: "https://entregas.brasux.store",           badge: "Entregadores" },
   { name: "SimulENEM",            href: "https://simulenem.com",                    badge: "Edu" },
   { name: "SimulaiOAB",           href: "https://simulaioab.com",                   badge: "Edu" },
   { name: "Curso NotaOn",         href: "https://cursonotaon.com.br",               badge: "Edu" },

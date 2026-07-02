@@ -224,7 +224,7 @@ export default function AppLayout() {
       <Footer />
 
       {/* ── FLOATING CART BAR (mobile) ── */}
-      {totalItems > 0 && (
+      {totalItems > 0 && !pathname.startsWith("/carrinho") && !pathname.startsWith("/checkout") && (
         <Link
           to="/carrinho"
           onMouseEnter={prefetchCheckout}
@@ -259,7 +259,7 @@ export default function AppLayout() {
       <BottomNavigation />
 
       {/* ── DESKTOP CART BAR ── */}
-      {totalItems > 0 && (
+      {totalItems > 0 && !pathname.startsWith("/carrinho") && !pathname.startsWith("/checkout") && (
         <div className="fixed bottom-6 right-6 z-40 hidden md:block">
           <Link
             to="/carrinho"

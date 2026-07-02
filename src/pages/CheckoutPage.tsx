@@ -423,7 +423,8 @@ export default function CheckoutPage() {
   // ── Step 1: Endereço ───────────────────────────────────────
   if (step === 1) {
     return (
-      <div className="space-y-4">
+      <>
+      <div className="space-y-4 pb-36 md:pb-0">
         {header}
 
         {/* Guest info — só aparece quando não logado */}
@@ -555,31 +556,42 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        <button
-          onClick={() => {
-            if (!auth && !guestInfo.name.trim()) {
-              useToastStore.getState().show("Informe seu nome para continuar.");
-              return;
-            }
-            if (!hasFullAddress) {
-              useToastStore.getState().show("Selecione ou preencha um endereço de entrega.");
-              return;
-            }
-            setStep(2);
-          }}
-          disabled={!hasFullAddress || !guestReady}
-          className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#15803d] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 transition-transform active:scale-[0.98] disabled:opacity-60"
-        >
-          {hasFullAddress && guestReady ? "Continuar para pagamento →" : "Preencha os campos obrigatórios"}
-        </button>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-[88px] pt-3 md:px-8 md:pb-4">
+          <div>
+            <p className="text-[11px] text-muted">{totalItems} {totalItems === 1 ? "item" : "itens"}</p>
+            <p className="text-lg font-black text-content">{formatBRL(subtotal)}</p>
+          </div>
+          <button
+            onClick={() => {
+              if (!auth && !guestInfo.name.trim()) {
+                useToastStore.getState().show("Informe seu nome para continuar.");
+                return;
+              }
+              if (!hasFullAddress) {
+                useToastStore.getState().show("Selecione ou preencha um endereço de entrega.");
+                return;
+              }
+              setStep(2);
+            }}
+            disabled={!hasFullAddress || !guestReady}
+            className="shrink-0 rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#15803d] px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30 disabled:opacity-60"
+          >
+            {hasFullAddress && guestReady ? "Continuar →" : "Preencha os campos"}
+          </button>
+        </div>
+      </div>
+      </>
     );
   }
 
   // ── Step 2: Pagamento ──────────────────────────────────────
   if (step === 2) {
     return (
-      <div className="space-y-4">
+      <>
+      <div className="space-y-4 pb-36 md:pb-0">
         {header}
 
         <div className="rounded-3xl border border-line-subtle bg-surface p-4 shadow-sm">
@@ -698,26 +710,37 @@ export default function CheckoutPage() {
           )}
         </div>
 
-        <button
-          onClick={() => {
-            if (!cardValid) {
-              useToastStore.getState().show("Preencha todos os dados do cartão.");
-              return;
-            }
-            setStep(3);
-          }}
-          disabled={!cardValid}
-          className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 transition-transform active:scale-[0.98] disabled:opacity-60"
-        >
-          Continuar para revisão →
-        </button>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-[88px] pt-3 md:px-8 md:pb-4">
+          <div>
+            <p className="text-[11px] text-muted">Subtotal</p>
+            <p className="text-lg font-black text-content">{formatBRL(subtotal)}</p>
+          </div>
+          <button
+            onClick={() => {
+              if (!cardValid) {
+                useToastStore.getState().show("Preencha todos os dados do cartão.");
+                return;
+              }
+              setStep(3);
+            }}
+            disabled={!cardValid}
+            className="shrink-0 rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30 disabled:opacity-60"
+          >
+            Continuar →
+          </button>
+        </div>
+      </div>
+      </>
     );
   }
 
   // ── Step 3: Revisão ────────────────────────────────────────
   return (
-    <div className="space-y-4">
+    <>
+    <div className="space-y-4 pb-36 md:pb-0">
       {header}
 
       {/* Cupom */}
@@ -939,17 +962,29 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Botão de confirmação */}
-      <button
-        onClick={handleFinish}
-        disabled={saving || loadingFee}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-xl shadow-[#16a34a]/30 transition-transform active:scale-[0.98] disabled:opacity-60"
-      >
-        {saving
-          ? <><Loader2 size={16} className="animate-spin" /> Processando…</>
-          : "Confirmar pedido"}
-      </button>
     </div>
+
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-[88px] pt-3 md:px-8 md:pb-4">
+        <div>
+          <p className="text-[11px] text-muted">Total</p>
+          {loadingFee
+            ? <span className="mt-0.5 h-5 w-20 animate-pulse rounded bg-subtle-2 block" />
+            : <p className="text-xl font-black text-[#16a34a]">{formatBRL(total)}</p>
+          }
+        </div>
+        <button
+          onClick={handleFinish}
+          disabled={saving || loadingFee}
+          className="flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30 disabled:opacity-60"
+        >
+          {saving
+            ? <><Loader2 size={16} className="animate-spin" /> Processando…</>
+            : "Confirmar pedido"}
+        </button>
+      </div>
+    </div>
+    </>
   );
 }
 

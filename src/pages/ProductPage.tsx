@@ -53,6 +53,8 @@ export default function ProductPage() {
   const decreaseItem = useCartStore((s) => s.decreaseItem);
   const cartItem = items.find((i) => i.id === productId);
 
+  const [justAdded, setJustAdded] = useState(false);
+
   const toggleProduct = useFavoritesStore((s) => s.toggleProduct);
   const isFav = useFavoritesStore((s) =>
     product ? s.products.some((p) => p.id === product.id) : false,
@@ -72,6 +74,8 @@ export default function ProductPage() {
       image: getProductImageUrl(product.imageUrl),
       stock: product.stock,
     });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 500);
   }
 
   usePageMeta({
@@ -312,7 +316,7 @@ export default function ProductPage() {
                 <ShoppingCart size={18} /> Adicionar ao carrinho
               </button>
             ) : (
-              <div className="flex items-center justify-between rounded-2xl bg-[#0f172a] px-5 py-3">
+              <div className={`flex items-center justify-between rounded-2xl bg-[#0f172a] px-5 py-3 transition-transform duration-200 ${justAdded ? "scale-[1.03]" : "scale-100"}`}>
                 <button
                   onClick={() => decreaseItem(productId)}
                   className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20"
