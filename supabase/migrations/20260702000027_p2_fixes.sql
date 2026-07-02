@@ -13,7 +13,7 @@ SELECT cron.schedule(
   '0 * * * *',                    -- toda hora
   $$
     DELETE FROM public.rate_limit_log
-    WHERE  requested_at < now() - INTERVAL '1 hour';
+    WHERE  hit_at < now() - INTERVAL '1 hour';
   $$
 );
 
