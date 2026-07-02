@@ -27,6 +27,10 @@ const JOBS: Record<string, { path: string; body: unknown }> = {
     path: "/process-withdrawal",
     body: { processAll: true },
   },
+  "alert-dead-letter": {
+    path: "/alert-dead-letter",
+    body: {},
+  },
 };
 
 serve(async (req) => {

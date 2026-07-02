@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, json, optionsResponse } from "../_shared/cors.ts";
+import { requireAsaasBase } from "../_shared/asaas.ts";
 
 /**
  * create-payment
@@ -17,8 +18,9 @@ import { corsHeaders, json, optionsResponse } from "../_shared/cors.ts";
  * Authorization: Bearer <user_jwt>
  */
 
-const ASAAS_BASE = Deno.env.get("ASAAS_API_URL") ?? "https://sandbox.asaas.com/api/v3";
-const ASAAS_KEY  = Deno.env.get("ASAAS_API_KEY")  ?? "";
+const ASAAS_BASE_RAW = requireAsaasBase("create-payment");
+const ASAAS_BASE     = ASAAS_BASE_RAW ?? "";
+const ASAAS_KEY      = Deno.env.get("ASAAS_API_KEY") ?? "";
 
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const ANON_KEY       = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -67,6 +69,7 @@ async function asaas(path: string, method = "GET", body?: unknown): Promise<Reco
 serve(async (req) => {
   if (req.method === "OPTIONS") return optionsResponse(req);
   if (req.method !== "POST")   return json({ error: "Method Not Allowed" }, 405, req);
+  if (!ASAAS_BASE_RAW) return new Response("Service Unavailable", { status: 503 });
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return json({ error: "Não autenticado." }, 401, req);

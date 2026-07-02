@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAsaasBase } from "../_shared/asaas.ts";
 
-const ASAAS_BASE    = Deno.env.get("ASAAS_API_URL") ?? "https://sandbox.asaas.com/api/v3";
+const ASAAS_BASE_RAW = requireAsaasBase("process-withdrawal");
+const ASAAS_BASE     = ASAAS_BASE_RAW ?? "";
 const ASAAS_KEY     = Deno.env.get("ASAAS_API_KEY") ?? "";
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -34,6 +36,7 @@ async function asaas(path: string, method = "GET", body?: unknown) {
 
 serve(async (req) => {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
+  if (!ASAAS_BASE_RAW) return new Response("Service Unavailable", { status: 503 });
 
   const internalKey = Deno.env.get("INTERNAL_FUNCTION_KEY") ?? "";
   const reqKey      = req.headers.get("x-internal-key") ?? "";
