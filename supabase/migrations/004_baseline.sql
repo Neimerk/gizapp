@@ -1,0 +1,1 @@
+-- baseline migration (applied remotely as 04 before timestamp-format migrations)
