@@ -75,7 +75,7 @@ export async function getMyWallet(): Promise<Wallet | null> {
     .eq("id", user.id)
     .single();
 
-  const role = profile.data?.role as string;
+  const role = (profile.data?.role as string | undefined)?.toLowerCase();
   const walletType = role === "seller" ? "vendor" : role === "courier" ? "courier" : null;
   if (!walletType) return null;
 
@@ -353,6 +353,34 @@ export async function adminGetPlatformLedger(limit = 100): Promise<WalletTransac
 
   if (error) throw new Error("Erro ao buscar ledger.");
   return (data ?? []).map(mapWalletTransaction);
+}
+
+// ── SUBSCRIPTION CHANGE ─────────────────────────────────────
+
+export type SubscriptionChangeResult = {
+  ok: true;
+  plan: string;
+  monthlyPrice: number;
+  activated: boolean;
+  devMode?: boolean;
+  firstPayment?: {
+    paymentId?: string;
+    pixQrCode?: string;
+    pixCode?: string;
+    expirationDate?: string;
+    value?: number;
+    dueDate?: string;
+  };
+  message?: string;
+};
+
+/** Cria ou altera assinatura do vendedor autenticado. */
+export async function changeSubscription(planId: string): Promise<SubscriptionChangeResult> {
+  const res = await supabase.functions.invoke("create-subscription", { body: { planId } });
+  if (res.error) throw new Error(res.error.message ?? "Erro ao alterar plano.");
+  const data = res.data as { ok?: boolean; error?: string } & SubscriptionChangeResult;
+  if (!data.ok) throw new Error((data as Record<string, unknown>).error as string ?? "Erro ao alterar plano.");
+  return data;
 }
 
 // ── QUERY KEYS (para React Query) ────────────────────────────

@@ -218,10 +218,10 @@ function Slide({ item, active }: { item: BrasUXSolution; active: boolean }) {
   const accent = accentOf(item.gradient);
 
   return (
-    <div className="relative w-full flex-shrink-0" aria-hidden={!active}>
-      <div className="relative z-10 grid items-center gap-4 p-4 sm:p-5 md:grid-cols-[1.15fr_0.85fr] md:gap-6 lg:p-7">
+    <div className="relative w-full flex-shrink-0 min-h-[260px] md:min-h-[320px]" aria-hidden={!active}>
+      <div className="relative z-10 grid h-full items-center gap-4 p-4 sm:p-5 md:grid-cols-[1.15fr_0.85fr] md:gap-6 lg:p-7">
         {/* Texto */}
-        <div>
+        <div className={item.cardImage ? "flex h-full flex-col justify-center" : ""}>
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/70 backdrop-blur-sm">
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent, boxShadow: `0 0 8px ${accent}` }} />
@@ -233,7 +233,7 @@ function Slide({ item, active }: { item: BrasUXSolution; active: boolean }) {
             {item.name}
           </h2>
 
-          <p className="mt-3 max-w-md text-base leading-relaxed text-white/55">
+          <p className="mt-3 max-w-md text-base font-medium leading-relaxed text-white/80">
             {item.description}
           </p>
 
@@ -253,14 +253,22 @@ function Slide({ item, active }: { item: BrasUXSolution; active: boolean }) {
               </span>
             </div>
           ) : item.highlight ? (
-            <p className="mt-4 text-xs font-bold uppercase tracking-widest text-white/40">
+            <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-white/55">
               {item.highlight}
             </p>
           ) : null}
 
           {item.id === "brasux-shopping" ? (
-            <p className="mt-4 text-lg font-black text-white sm:text-xl" style={{ textShadow: `0 0 24px ${accent}99` }}>
-              Compre ou venda com a BrasUX.
+            <p
+              className="mt-5 text-xl font-black leading-tight sm:text-2xl"
+              style={{
+                background: `linear-gradient(120deg, #ffffff 10%, #86efac 55%, ${accent} 100%)`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: `drop-shadow(0 0 20px ${accent}55)`,
+              }}
+            >
+              O shopping do Brasil está aqui.
             </p>
           ) : (
             <a

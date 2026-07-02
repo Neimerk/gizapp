@@ -29,10 +29,10 @@ function nextDueDateStr(daysFromNow = 1): string {
 
 // Preços e comissões — fonte única (espelha vendor_plans no banco)
 const PLAN_CFG: Record<string, { price: number; commission: number; label: string }> = {
-  free:       { price: 0,      commission: 0.12, label: "Gratuito"    },
-  start:      { price: 49.00,  commission: 0.09, label: "Start"       },
-  pro:        { price: 99.00,  commission: 0.07, label: "Pro"         },
-  whitelabel: { price: 199.90, commission: 0.05, label: "White Label" },
+  free:       { price: 0,      commission: 0.08, label: "Gratuito"    },
+  start:      { price: 49.90,  commission: 0.05, label: "Básico"      },
+  pro:        { price: 99.90,  commission: 0.03, label: "Premium"     },
+  whitelabel: { price: 199.90, commission: 0.00, label: "White Label" },
 };
 
 serve(async (req) => {

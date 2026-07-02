@@ -16,14 +16,14 @@ export const brasuxSolutions: BrasUXSolution[] = [
   {
     id: "brasux-shopping",
     name: "BrasUX Shopping",
-    description: "Marketplace com lojas locais, restaurantes, mercados, farmácias e muito mais — entrega rápida em sua região.",
+    description: "Restaurantes, mercados, farmácias e lojas locais — tudo perto de você, entregue rapidinho na sua cidade.",
     url: "https://shopping.brasux.com.br",
     categorySlug: "shopping",
     icon: "🛍️",
-    badge: "BrasUX Shopping",
+    badge: "Marketplace Brasileiro",
     gradient: "from-[#002776] to-[#16a34a]",
     cardImage: "/home.webp",
-    highlight: "Mais de 30 categorias · Lojistas e entregadores parceiros",
+    highlight: "Mais de 30 categorias · compre, venda ou entregue",
   },
   {
     id: "brasux-caixa",

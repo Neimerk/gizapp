@@ -6,7 +6,7 @@ import {
   TrendingUp, AlertTriangle, Phone, MapPin, CreditCard, RefreshCw,
   Locate, Star, Wallet, Clock3, MessageCircle, Zap,
   ArrowDownCircle, ArrowUpCircle, BadgePercent, Crown, CheckCircle2,
-  CircleDollarSign, TrendingDown, Ban,
+  CircleDollarSign, TrendingDown, Ban, Copy, X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -29,8 +29,9 @@ import ImagePicker from "../components/seller/ImagePicker";
 import { useToastStore } from "../stores/toastStore";
 import { useMyWallet, useMySubscription } from "../hooks/useWallet";
 import { useWithdrawals } from "../hooks/useWithdrawal";
-import { PLAN_CONFIG } from "../types/payment";
-import type { PixKeyType, WalletTransaction } from "../types/payment";
+import { PLAN_CONFIG, PLAN_FEATURES } from "../types/payment";
+import type { PixKeyType, WalletTransaction, SubscriptionPlan } from "../types/payment";
+import { changeSubscription } from "../services/paymentApi";
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -780,8 +781,17 @@ const PIX_KEY_TYPES: { value: PixKeyType; label: string }[] = [
 // FINANCEIRO TAB — Carteira, Extrato, Saque, Assinatura
 // ══════════════════════════════════════════════════════════════
 
+type PendingPixState = {
+  planLabel: string;
+  pixQrCode: string;
+  pixCode: string;
+  expirationDate: string;
+  value: number;
+};
+
 function FinanceiroTab({ orders }: { orders: Order[] }) {
-  const showToast = useToastStore((s) => s.show);
+  const showToast   = useToastStore((s) => s.show);
+  const queryClient = useQueryClient();
 
   const { wallet, statement, isLoading: walletLoading, refetch: refetchWallet } = useMyWallet();
   const { data: subscription } = useMySubscription();
@@ -791,7 +801,9 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
   const [pixKey, setPixKey]         = useState(() => localStorage.getItem("seller-pix-key") ?? "");
   const [pixKeyType, setPixKeyType]  = useState<PixKeyType>(() => (localStorage.getItem("seller-pix-key-type") as PixKeyType) ?? "cpf");
   const [pixKeyError, setPixKeyError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<"overview" | "statement" | "withdraw">("overview");
+  const [activeSection, setActiveSection] = useState<"overview" | "statement" | "withdraw" | "plano">("overview");
+  const [isChangingPlan, setIsChangingPlan] = useState(false);
+  const [pendingPix, setPendingPix]         = useState<PendingPixState | null>(null);
 
   useEffect(() => {
     if (pixKey)     localStorage.setItem("seller-pix-key", pixKey);
@@ -833,6 +845,33 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
       showToast("Saque solicitado com sucesso! Processamos em até 24h úteis.", "success");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Erro ao solicitar saque.", "error");
+    }
+  }
+
+  async function handleChangePlan(planId: SubscriptionPlan) {
+    setIsChangingPlan(true);
+    setPendingPix(null);
+    try {
+      const result = await changeSubscription(planId);
+      await queryClient.invalidateQueries({ queryKey: ["payment", "subscription", "mine"] });
+      if (result.activated) {
+        showToast(`Plano ${PLAN_CONFIG[planId].label} ativado com sucesso!`, "success");
+        setActiveSection("overview");
+      } else if (result.firstPayment?.pixCode) {
+        const fp = result.firstPayment;
+        setPendingPix({
+          planLabel:      PLAN_CONFIG[planId].label,
+          pixQrCode:      fp.pixQrCode ?? "",
+          pixCode:        fp.pixCode ?? "",
+          expirationDate: fp.expirationDate ?? "",
+          value:          fp.value ?? PLAN_CONFIG[planId].monthlyPrice,
+        });
+        showToast(`Pague o PIX para ativar o plano ${PLAN_CONFIG[planId].label}.`, "success");
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Erro ao alterar plano.", "error");
+    } finally {
+      setIsChangingPlan(false);
     }
   }
 
@@ -916,21 +955,149 @@ function FinanceiroTab({ orders }: { orders: Order[] }) {
       </div>
 
       {/* ── Navegação de seções ───────────────────────────────── */}
-      <div className="flex gap-2">
-        {(["overview", "statement", "withdraw"] as const).map((s) => (
+      <div className="grid grid-cols-4 gap-1.5">
+        {(["overview", "statement", "withdraw", "plano"] as const).map((s) => (
           <button
             key={s}
             onClick={() => setActiveSection(s)}
-            className={`flex-1 rounded-xl py-2 text-xs font-black transition-all ${
+            className={`rounded-xl py-2 text-xs font-black transition-all ${
               activeSection === s
                 ? "bg-[#0f172a] text-white shadow-sm"
                 : "bg-subtle-2 text-muted"
             }`}
           >
-            {s === "overview" ? "Resumo" : s === "statement" ? "Extrato" : "Saque"}
+            {s === "overview" ? "Resumo" : s === "statement" ? "Extrato" : s === "withdraw" ? "Saque" : "Plano"}
           </button>
         ))}
       </div>
+
+      {/* ── SEÇÃO: Plano ──────────────────────────────────────── */}
+      {activeSection === "plano" && (
+        <div className="space-y-4">
+
+          {/* PIX pendente após upgrade */}
+          {pendingPix && (
+            <div className="rounded-3xl border border-green-200 bg-green-50 p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-black text-green-800">
+                  Pague para ativar o plano {pendingPix.planLabel}
+                </p>
+                <button onClick={() => setPendingPix(null)} className="text-green-600 hover:text-green-800">
+                  <X size={16} />
+                </button>
+              </div>
+              {pendingPix.pixQrCode && (
+                <img
+                  src={`data:image/png;base64,${pendingPix.pixQrCode}`}
+                  alt="QR Code PIX"
+                  className="mx-auto h-44 w-44 rounded-xl bg-white p-2"
+                />
+              )}
+              {pendingPix.pixCode && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(pendingPix.pixCode);
+                    showToast("Código PIX copiado!", "success");
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-green-300 bg-white py-2.5 text-xs font-black text-green-800 hover:bg-green-50 transition-colors"
+                >
+                  <Copy size={13} /> Copiar código PIX
+                </button>
+              )}
+              <p className="text-center text-[10px] text-green-700">
+                {formatBRL(pendingPix.value)} · Vence{" "}
+                {pendingPix.expirationDate
+                  ? new Date(pendingPix.expirationDate).toLocaleDateString("pt-BR")
+                  : "em breve"}
+              </p>
+              <p className="text-center text-[10px] text-green-600">
+                O plano é ativado automaticamente após a confirmação do pagamento.
+              </p>
+            </div>
+          )}
+
+          {/* Cards de planos */}
+          <div className="space-y-3">
+            {(Object.keys(PLAN_CONFIG) as SubscriptionPlan[]).map((planId) => {
+              const cfg       = PLAN_CONFIG[planId];
+              const features  = PLAN_FEATURES[planId];
+              const isCurrent = subscription?.plan === planId;
+              const currentPrice = subscription ? PLAN_CONFIG[subscription.plan].monthlyPrice : 0;
+              const isUpgrade = !isCurrent && cfg.monthlyPrice > currentPrice;
+
+              return (
+                <div
+                  key={planId}
+                  className={`rounded-2xl border p-4 transition-all ${
+                    isCurrent
+                      ? "border-2 shadow-md"
+                      : "border-line-subtle bg-surface"
+                  }`}
+                  style={isCurrent ? { borderColor: cfg.color, background: `${cfg.color}0d` } : {}}
+                >
+                  <div className="flex items-start justify-between mb-2.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="rounded-full px-2.5 py-0.5 text-[10px] font-black text-white"
+                        style={{ background: cfg.color }}
+                      >
+                        {cfg.label}
+                      </span>
+                      {isCurrent && (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-black text-green-700">
+                          Plano atual
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      <p className="text-sm font-black text-content">
+                        {cfg.monthlyPrice > 0 ? formatBRL(cfg.monthlyPrice) + "/mês" : "Grátis"}
+                      </p>
+                      <p className="text-[10px] text-muted">
+                        {Math.round(cfg.commissionRate * 100)}% comissão
+                      </p>
+                    </div>
+                  </div>
+
+                  <ul className="mb-3 space-y-1.5">
+                    {features.map((f) => (
+                      <li key={f} className="flex items-center gap-1.5 text-xs text-muted">
+                        <CheckCircle2 size={11} className="shrink-0 text-green-500" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {!isCurrent && (
+                    <button
+                      onClick={() => handleChangePlan(planId)}
+                      disabled={isChangingPlan}
+                      className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-black text-white disabled:opacity-50 transition-all ${
+                        isUpgrade
+                          ? "bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] hover:from-[#1d4ed8] hover:to-[#1e40af]"
+                          : "bg-gradient-to-r from-[#64748b] to-[#475569] hover:from-[#475569] hover:to-[#334155]"
+                      }`}
+                    >
+                      {isChangingPlan ? (
+                        <><Loader2 size={12} className="animate-spin" /> Processando…</>
+                      ) : isUpgrade ? (
+                        <><TrendingUp size={12} /> Fazer upgrade</>
+                      ) : (
+                        <><TrendingDown size={12} /> Fazer downgrade</>
+                      )}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-[10px] text-faint">
+            Planos pagos são cobrados via PIX mensalmente pelo Asaas.
+            O downgrade para Gratuito é imediato.
+          </p>
+        </div>
+      )}
 
       {/* ── SEÇÃO: Extrato ─────────────────────────────────────── */}
       {activeSection === "statement" && (

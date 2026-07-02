@@ -9,10 +9,17 @@ export const PLAN_CONFIG: Record<SubscriptionPlan, {
   commissionRate: number;
   color: string;
 }> = {
-  free:       { label: "Gratuito",    monthlyPrice: 0,      commissionRate: 0.12, color: "#64748b" },
-  start:      { label: "Start",       monthlyPrice: 49.00,  commissionRate: 0.09, color: "#2563eb" },
-  pro:        { label: "Pro",         monthlyPrice: 99.00,  commissionRate: 0.07, color: "#7c3aed" },
-  whitelabel: { label: "White Label", monthlyPrice: 199.90, commissionRate: 0.05, color: "#0f172a" },
+  free:       { label: "Gratuito",    monthlyPrice: 0,      commissionRate: 0.08, color: "#64748b" },
+  start:      { label: "Básico",      monthlyPrice: 49.90,  commissionRate: 0.05, color: "#2563eb" },
+  pro:        { label: "Premium",     monthlyPrice: 99.90,  commissionRate: 0.03, color: "#7c3aed" },
+  whitelabel: { label: "White Label", monthlyPrice: 199.90, commissionRate: 0.00, color: "#0f172a" },
+};
+
+export const PLAN_FEATURES: Record<SubscriptionPlan, string[]> = {
+  free:       ["Até 30 produtos", "8% de comissão por venda", "Suporte por e-mail"],
+  start:      ["Até 200 produtos", "5% de comissão por venda", "Suporte prioritário"],
+  pro:        ["Produtos ilimitados", "3% de comissão por venda", "Analytics", "Suporte 24h"],
+  whitelabel: ["Produtos ilimitados", "0% de comissão", "Domínio próprio", "Acesso à API"],
 };
 
 export type Subscription = {
@@ -215,7 +222,7 @@ export type CreatePaymentResponse = {
 };
 
 export type WithdrawalRequest = {
-  walletId: string;
+  walletId?: string;
   amount: number;
   pixKey: string;
   pixKeyType: PixKeyType;

@@ -6,6 +6,7 @@ import {
   LogOut, ArrowLeft, RefreshCw, Clock3, Image as ImageIcon,
   Plus, Pencil, Trash2, Loader2, ExternalLink,
   Tag, Wallet, CheckCircle2, XCircle, AlertTriangle,
+  TrendingUp, TrendingDown, CircleDollarSign,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -21,6 +22,10 @@ import {
   type AdminBanner, type BannerPayload,
   type CouponAdmin, type CouponAdminPayload,
 } from "../services/gizApi";
+import {
+  adminGetFinancialSummary, adminGetAllWithdrawals, adminGetPlatformLedger,
+  adminUpdateWithdrawal as adminUpdateWalletWithdrawal,
+} from "../services/paymentApi";
 import { useToastStore } from "../stores/toastStore";
 import { formatBRL } from "../utils/format";
 
@@ -66,7 +71,7 @@ export default function AdminPage() {
 
 function AdminDashboard({ auth }: { auth: AuthUser }) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores" | "banners" | "coupons" | "withdrawals" | "errors" | "audit">("overview");
+  const [tab, setTab] = useState<"overview" | "orders" | "users" | "stores" | "banners" | "coupons" | "withdrawals" | "financeiro" | "errors" | "audit">("overview");
 
   async function handleLogout() {
     await logout();
@@ -129,6 +134,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
             { key: "banners",      label: "Banners"     },
             { key: "coupons",      label: "Cupons"      },
             { key: "withdrawals",  label: "Saques"      },
+            { key: "financeiro",   label: "Financeiro"  },
             { key: "errors",       label: "Erros"       },
             { key: "audit",        label: "Auditoria"   },
           ] as const).map((t) => (
@@ -155,6 +161,7 @@ function AdminDashboard({ auth }: { auth: AuthUser }) {
         {tab === "banners"     && <BannersTab />}
         {tab === "coupons"     && <CouponsTab />}
         {tab === "withdrawals" && <WithdrawalsTab />}
+        {tab === "financeiro"  && <FinanceiroTab />}
         {tab === "errors"      && <ErrorsTab />}
         {tab === "audit"       && <AuditTab />}
       </main>
@@ -1780,6 +1787,272 @@ const AUDIT_ACTION_COLOR: Record<string, string> = {
   UPDATE:       "bg-yellow-50 text-yellow-700 border-yellow-200",
   INSERT:       "bg-green-50 text-green-700 border-green-200",
 };
+
+/* ── FINANCEIRO ── */
+function FinanceiroTab() {
+  const queryClient = useQueryClient();
+  const show = useToastStore((s) => s.show);
+
+  const today = new Date().toISOString().split("T")[0];
+  const firstOfMonth = today.slice(0, 7) + "-01";
+
+  const [startDate, setStartDate] = useState(firstOfMonth);
+  const [endDate, setEndDate]     = useState(today);
+  const [rejectId, setRejectId]   = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
+
+  const periodKey = `${startDate}_${endDate}`;
+
+  const { data: summary, isLoading: summaryLoading, refetch: refetchSummary } = useQuery({
+    queryKey: ["payment", "admin", "summary", periodKey],
+    queryFn:  () => adminGetFinancialSummary(startDate, endDate),
+  });
+
+  const { data: ledger = [], isLoading: ledgerLoading } = useQuery({
+    queryKey: ["payment", "admin", "ledger"],
+    queryFn:  () => adminGetPlatformLedger(),
+  });
+
+  const { data: walletWithdrawals = [], isLoading: wdLoading, refetch: refetchWd } = useQuery({
+    queryKey: ["payment", "admin", "withdrawals"],
+    queryFn:  adminGetAllWithdrawals,
+  });
+
+  const updateWdMutation = useMutation({
+    mutationFn: ({ id, status, notes }: { id: string; status: "paid" | "failed"; notes?: string }) =>
+      adminUpdateWalletWithdrawal(id, status, notes),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["payment", "admin", "withdrawals"] });
+      show(vars.status === "paid" ? "Saque aprovado!" : "Saque rejeitado.", "success");
+      setRejectId(null); setRejectNote("");
+    },
+    onError: () => show("Erro ao atualizar saque.", "error"),
+  });
+
+  const pendingCount = walletWithdrawals.filter((w) => w.status === "pending").length;
+
+  return (
+    <div className="space-y-6">
+      {/* Seletor de período */}
+      <div className="flex flex-wrap items-end gap-3 rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm">
+        <div>
+          <label className="mb-1 block text-[10px] font-black uppercase tracking-wide text-faint">Período — início</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+            className="rounded-xl border border-line bg-subtle px-3 py-2 text-sm text-content outline-none" />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-black uppercase tracking-wide text-faint">Fim</label>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+            className="rounded-xl border border-line bg-subtle px-3 py-2 text-sm text-content outline-none" />
+        </div>
+        <button onClick={() => refetchSummary()}
+          className="flex items-center gap-1.5 rounded-xl border border-line bg-subtle px-4 py-2 text-sm font-black text-muted hover:text-content">
+          <RefreshCw size={14} /> Atualizar
+        </button>
+      </div>
+
+      {/* Cards de resumo */}
+      {summaryLoading ? (
+        <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-[#002776]" /></div>
+      ) : summary ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "GMV (faturamento)",  value: formatBRL(summary.totalRevenue),    color: "#002776", icon: <TrendingUp size={18} /> },
+            { label: "Receita plataforma", value: formatBRL(summary.platformRevenue),  color: "#16a34a", icon: <CircleDollarSign size={18} /> },
+            { label: "Pedidos pagos",      value: String(summary.paidOrders),          color: "#0369a1", icon: <ShoppingBag size={18} /> },
+            { label: "Estornos",           value: formatBRL(summary.totalRefunds),     color: "#dc2626", icon: <TrendingDown size={18} /> },
+          ].map((s) => (
+            <div key={s.label} className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-2" style={{ color: s.color }}>
+                {s.icon}
+                <span className="text-[10px] font-black uppercase tracking-wide text-faint">{s.label}</span>
+              </div>
+              <p className="text-2xl font-black text-content">{s.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Saques carteira (novo sistema) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-black text-content">
+            Saques da carteira
+            {pendingCount > 0 && (
+              <span className="ml-2 rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-black text-yellow-700">
+                {pendingCount} pendente{pendingCount > 1 ? "s" : ""}
+              </span>
+            )}
+          </h3>
+          <button onClick={() => refetchWd()} className="text-muted hover:text-content transition-colors">
+            <RefreshCw size={14} />
+          </button>
+        </div>
+
+        <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
+          {wdLoading ? (
+            <div className="p-8 text-center"><Loader2 size={20} className="animate-spin text-[#002776] mx-auto" /></div>
+          ) : walletWithdrawals.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 p-12 text-center">
+              <Wallet size={32} className="text-[#cbd5e1]" />
+              <p className="font-black text-content">Nenhum saque registrado</p>
+              <p className="text-sm text-muted">Os saques de lojistas e entregadores aparecem aqui.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-subtle-2">
+                    {["Titular", "Tipo", "Valor", "Chave Pix", "Status", "Data", "Ações"].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-subtle-2">
+                  {walletWithdrawals.map((w) => (
+                    <>
+                      <tr key={w.id} className="hover:bg-subtle transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[10px] font-black text-white ${w.ownerType === "vendor" ? "bg-[#a16207]" : "bg-[#0369a1]"}`}>
+                              {w.ownerType === "vendor" ? "L" : "E"}
+                            </div>
+                            <div>
+                              <p className="text-xs font-black text-content">{w.ownerName}</p>
+                              <p className="text-[10px] text-faint">{w.ownerType === "vendor" ? "Lojista" : "Entregador"}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-[10px] uppercase text-muted">{w.pixKeyType}</td>
+                        <td className="px-4 py-3 font-black text-[#16a34a]">{formatBRL(w.amountGross)}</td>
+                        <td className="px-4 py-3"><span className="font-mono text-xs text-muted">{w.pixKey}</span></td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
+                            w.status === "paid"       ? "bg-green-50 text-green-700" :
+                            w.status === "failed"     ? "bg-red-50 text-red-600"    :
+                            w.status === "processing" ? "bg-blue-50 text-blue-700"  :
+                            "bg-yellow-50 text-yellow-700"
+                          }`}>
+                            {w.status === "paid" ? "✓ Pago" : w.status === "failed" ? "Falhou" : w.status === "processing" ? "Processando" : "Pendente"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted">
+                          <p>{new Date(w.createdAt).toLocaleDateString("pt-BR")}</p>
+                          {w.processedAt && (
+                            <p className="text-[10px] text-faint">Pago: {new Date(w.processedAt).toLocaleDateString("pt-BR")}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {w.status === "pending" && (
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => updateWdMutation.mutate({ id: w.id, status: "paid" })}
+                                disabled={updateWdMutation.isPending}
+                                className="flex items-center gap-1 rounded-xl border border-green-200 bg-green-50 px-3 py-1.5 text-[11px] font-black text-green-700 hover:bg-green-100 disabled:opacity-50"
+                              >
+                                <CheckCircle2 size={11} /> Aprovar
+                              </button>
+                              <button
+                                onClick={() => { setRejectId(w.id); setRejectNote(""); }}
+                                className="flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[11px] font-black text-red-600 hover:bg-red-100"
+                              >
+                                <XCircle size={11} /> Rejeitar
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                      {rejectId === w.id && (
+                        <tr key={`${w.id}-reject`}>
+                          <td colSpan={7} className="bg-red-50 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <input
+                                value={rejectNote}
+                                onChange={(e) => setRejectNote(e.target.value)}
+                                placeholder="Motivo da rejeição…"
+                                className="flex-1 rounded-xl border border-red-200 bg-surface px-3 py-2 text-sm text-content outline-none"
+                              />
+                              <button
+                                onClick={() => {
+                                  if (!rejectNote.trim()) return;
+                                  updateWdMutation.mutate({ id: w.id, status: "failed", notes: rejectNote });
+                                }}
+                                disabled={!rejectNote.trim() || updateWdMutation.isPending}
+                                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-black text-white disabled:opacity-50"
+                              >
+                                Confirmar
+                              </button>
+                              <button
+                                onClick={() => { setRejectId(null); setRejectNote(""); }}
+                                className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-bold text-muted"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Ledger da plataforma */}
+      <div className="space-y-3">
+        <h3 className="font-black text-content">Ledger da plataforma</h3>
+        <div className="rounded-3xl border border-line-subtle bg-surface shadow-sm overflow-hidden">
+          {ledgerLoading ? (
+            <div className="p-8 text-center"><Loader2 size={20} className="animate-spin text-[#002776] mx-auto" /></div>
+          ) : ledger.length === 0 ? (
+            <div className="p-12 text-center text-muted">Nenhuma movimentação na carteira da plataforma.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-subtle-2">
+                    {["Descrição", "Tipo", "Valor", "Status", "Data"].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-subtle-2">
+                  {ledger.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-subtle transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="text-xs font-semibold text-content">{tx.description}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-subtle-2 px-2 py-0.5 text-[10px] font-black uppercase text-muted">{tx.type}</span>
+                      </td>
+                      <td className={`px-4 py-3 font-black ${tx.direction === "in" ? "text-[#16a34a]" : "text-red-500"}`}>
+                        {tx.direction === "in" ? "+" : "−"}{formatBRL(tx.amount)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                          tx.status === "available" ? "bg-green-50 text-green-700"  :
+                          tx.status === "completed" ? "bg-blue-50 text-blue-700"   :
+                          tx.status === "reversed"  ? "bg-red-50 text-red-600"     :
+                          "bg-yellow-50 text-yellow-700"
+                        }`}>{tx.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted">
+                        {new Date(tx.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AuditTab() {
   const [logs, setLogs]         = useState<AuditLog[]>([]);

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { timingSafeCompare, verifyHmacSha256 } from "../_shared/hmac.ts";
 
 /**
  * subscriptions-webhook
@@ -14,8 +15,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   SUBSCRIPTION_DELETED                   → cancela definitivamente
  */
 
-const WEBHOOK_TOKEN  = Deno.env.get("ASAAS_SUBSCRIPTION_WEBHOOK_TOKEN")
+const WEBHOOK_TOKEN       = Deno.env.get("ASAAS_SUBSCRIPTION_WEBHOOK_TOKEN")
   ?? Deno.env.get("ASAAS_WEBHOOK_TOKEN")
+  ?? "";
+const WEBHOOK_HMAC_SECRET = Deno.env.get("ASAAS_SUBSCRIPTION_HMAC_SECRET")
+  ?? Deno.env.get("ASAAS_WEBHOOK_HMAC_SECRET")
   ?? "";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -70,6 +74,13 @@ async function handleSubscriptionRenewed(
 ): Promise<void> {
   const nextBilling = new Date(Date.now() + 30 * 86_400_000).toISOString().split("T")[0];
 
+  // Busca plano atual antes de atualizar
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("plan, monthly_price, asaas_subscription_id")
+    .eq("vendor_id", vendorId)
+    .single();
+
   await admin.from("subscriptions").update({
     status:             "active",
     next_billing_date:  nextBilling,
@@ -77,6 +88,26 @@ async function handleSubscriptionRenewed(
     last_payment_value: payment?.value ?? null,
     delinquent_since:   null,
   }).eq("vendor_id", vendorId);
+
+  // Registra fatura paga na subscription_invoices (idempotente via asaas_payment_id)
+  if (payment?.id && sub) {
+    await admin.rpc("create_subscription_invoice", {
+      p_vendor_id:        vendorId,
+      p_plan:             sub.plan,
+      p_amount:           payment.value ?? sub.monthly_price ?? 0,
+      p_asaas_payment_id: payment.id,
+      p_asaas_sub_id:     sub.asaas_subscription_id ?? payment.subscription ?? null,
+      p_due_date:         null,
+      p_description:      `Renovação plano ${sub.plan} — ${new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`,
+      p_gateway_response: payment as unknown as Record<string, unknown>,
+      p_idempotency_key:  `sub_renewal_${payment.id}`,
+    }).catch((e: unknown) => console.warn("[subscriptions-webhook] create_subscription_invoice:", e));
+
+    await admin.rpc("mark_subscription_invoice_paid", {
+      p_asaas_payment_id: payment.id,
+      p_paid_at:          new Date().toISOString(),
+    }).catch(() => null);
+  }
 
   await admin.rpc("log_financial_event", {
     p_actor_type:  "system",
@@ -188,15 +219,36 @@ serve(async (req) => {
     console.error("[subscriptions-webhook] ASAAS_SUBSCRIPTION_WEBHOOK_TOKEN não configurado");
     return new Response("Service Unavailable", { status: 503 });
   }
-  if (req.headers.get("asaas-access-token") !== WEBHOOK_TOKEN) {
+
+  // Lê corpo bruto antes de qualquer parse (necessário para HMAC)
+  const rawBody = new Uint8Array(await req.arrayBuffer());
+
+  // Verificação timing-safe do access token (evita timing attacks)
+  if (!timingSafeCompare(req.headers.get("asaas-access-token") ?? "", WEBHOOK_TOKEN)) {
+    console.warn("[subscriptions-webhook] token inválido");
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // HMAC-SHA256 do corpo — camada adicional de autenticidade (opcional)
+  // Ativado somente se ASAAS_SUBSCRIPTION_HMAC_SECRET (ou ASAAS_WEBHOOK_HMAC_SECRET) estiver configurado.
+  if (WEBHOOK_HMAC_SECRET) {
+    const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
+    if (!sig) {
+      console.warn("[subscriptions-webhook] HMAC ausente (x-asaas-hmac-sha256)");
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
+    if (!valid) {
+      console.warn("[subscriptions-webhook] HMAC inválido");
+      return new Response("Unauthorized", { status: 401 });
+    }
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   let body: AsaasPayload;
   try {
-    body = await req.json();
+    body = JSON.parse(new TextDecoder().decode(rawBody)) as AsaasPayload;
   } catch {
     return new Response("Bad Request", { status: 400 });
   }

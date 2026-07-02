@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft, Bike, CheckCircle2, Clock3, Loader2, MapPin, Navigation,
+  ArrowLeft, Bike, CheckCircle2, CircleDollarSign, Clock3, Loader2, MapPin, Navigation,
   Phone, Package, TrendingUp, Wallet, RefreshCw, AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -8,17 +8,41 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 
 import {
   getAvailableDeliveries, acceptDelivery, getMyDeliveries, updateDeliveryStatus,
-  getCourierEarningsSummary, getMyWithdrawals, requestCourierWithdrawal,
-  updateCourierLocation, queryKeys,
+  getCourierEarningsSummary, updateCourierLocation, queryKeys,
   type AvailableDelivery, type Delivery,
 } from "../services/gizApi";
+import { useMyWallet } from "../hooks/useWallet";
+import {
+  requestWithdrawal, getMyWithdrawals as getPaymentWithdrawals, paymentQueryKeys,
+} from "../services/paymentApi";
+import type { PixKeyType } from "../types/payment";
 import { supabase } from "../lib/supabase";
 import { useAuthStore } from "../stores/authStore";
 import { useToastStore } from "../stores/toastStore";
 import { usePageMeta } from "../hooks/usePageMeta";
-import { formatBRL } from "../utils/format";
+import { formatBRL, fmtCPF, fmtCNPJ, validateCPF, validateCNPJ } from "../utils/format";
 
 type Tab = "available" | "active" | "earnings";
+
+const PIX_KEY_TYPES: { value: PixKeyType; label: string }[] = [
+  { value: "cpf",    label: "CPF" },
+  { value: "cnpj",   label: "CNPJ" },
+  { value: "email",  label: "E-mail" },
+  { value: "phone",  label: "Celular" },
+  { value: "random", label: "Aleatória" },
+];
+
+function applyPixKeyMask(value: string, type: PixKeyType): string {
+  if (type === "cpf")  return fmtCPF(value);
+  if (type === "cnpj") return fmtCNPJ(value);
+  return value;
+}
+
+function validatePixKey(value: string, type: PixKeyType): string | null {
+  if (type === "cpf"  && value && !validateCPF(value))  return "CPF inválido.";
+  if (type === "cnpj" && value && !validateCNPJ(value)) return "CNPJ inválido.";
+  return null;
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -279,7 +303,9 @@ export default function CourierPage() {
   const [activeTab, setActiveTab] = useState<Tab>("available");
   const [isOnline, setIsOnline]   = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [pixKey, setPixKey]       = useState("");
+  const [pixKey, setPixKey]         = useState("");
+  const [pixKeyType, setPixKeyType] = useState<PixKeyType>("cpf");
+  const [pixKeyError, setPixKeyError] = useState<string | null>(null);
 
   // Redireciona se não é entregador
   useEffect(() => {
@@ -292,6 +318,8 @@ export default function CourierPage() {
   }, []);
 
   // ── Queries ───────────────────────────────────────────────
+
+  const { wallet, isLoading: walletLoading, refetch: refetchWallet } = useMyWallet();
 
   const { data: available = [], isLoading: loadingAvailable, refetch: refetchAvailable } = useQuery({
     queryKey: queryKeys.availableDeliveries(),
@@ -314,8 +342,8 @@ export default function CourierPage() {
   });
 
   const { data: withdrawals = [], refetch: refetchWithdrawals } = useQuery({
-    queryKey: queryKeys.myWithdrawals(),
-    queryFn:  getMyWithdrawals,
+    queryKey: paymentQueryKeys.myWithdrawals(),
+    queryFn:  getPaymentWithdrawals,
     enabled:  !!user,
   });
 
@@ -380,11 +408,15 @@ export default function CourierPage() {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: () => requestCourierWithdrawal(Number(withdrawAmount.replace(",", ".")), pixKey),
+    mutationFn: () => requestWithdrawal({
+      amount:      Number(withdrawAmount.replace(",", ".")),
+      pixKey:      pixKey.trim(),
+      pixKeyType,
+    }),
     onSuccess: () => {
-      setWithdrawAmount(""); setPixKey("");
-      refetchWithdrawals();
-      showToast("Saque solicitado! Processaremos em até 24h.", "success");
+      setWithdrawAmount(""); setPixKey(""); setPixKeyError(null);
+      refetchWithdrawals(); refetchWallet();
+      showToast("Saque solicitado! Processaremos em até 24h úteis.", "success");
     },
     onError: (e) => showToast(e instanceof Error ? e.message : "Erro ao solicitar saque.", "error"),
   });
@@ -582,39 +614,104 @@ export default function CourierPage() {
             </div>
           )}
 
+          {/* Saldo da carteira */}
+          {!walletLoading && wallet && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <CircleDollarSign size={13} className="text-[#16a34a]" />
+                  <p className="text-[10px] font-black uppercase tracking-wide text-faint">Disponível</p>
+                </div>
+                <p className="text-xl font-black text-content">{formatBRL(wallet.balance.available)}</p>
+              </div>
+              <div className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Clock3 size={13} className="text-yellow-500" />
+                  <p className="text-[10px] font-black uppercase tracking-wide text-faint">Retido</p>
+                </div>
+                <p className="text-xl font-black text-yellow-600">{formatBRL(wallet.balance.held)}</p>
+              </div>
+            </div>
+          )}
+
           {/* Solicitar saque */}
           <div className="rounded-3xl border border-line-subtle bg-surface p-5 shadow-sm space-y-4">
             <div className="flex items-center gap-2">
               <TrendingUp size={16} className="text-[#16a34a]" />
               <h2 className="font-black text-content">Solicitar saque Pix</h2>
+              {wallet && (
+                <span className="ml-auto text-xs text-muted">
+                  Disponível: <strong className="text-content">{formatBRL(wallet.balance.available)}</strong>
+                </span>
+              )}
             </div>
 
             <div>
-              <label className={lbl}>Valor (R$)</label>
+              <label className={lbl}>Tipo de chave Pix</label>
+              <select
+                value={pixKeyType}
+                onChange={(e) => {
+                  setPixKeyType(e.target.value as PixKeyType);
+                  setPixKey(""); setPixKeyError(null);
+                }}
+                className={inp}
+              >
+                {PIX_KEY_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className={lbl}>
+                Chave Pix — {PIX_KEY_TYPES.find((t) => t.value === pixKeyType)?.label}
+              </label>
+              <input
+                value={pixKey}
+                onChange={(e) => {
+                  const masked = applyPixKeyMask(e.target.value, pixKeyType);
+                  setPixKey(masked);
+                  setPixKeyError(validatePixKey(masked, pixKeyType));
+                }}
+                onBlur={() => setPixKeyError(validatePixKey(pixKey, pixKeyType))}
+                placeholder={
+                  pixKeyType === "cpf"    ? "000.000.000-00"     :
+                  pixKeyType === "cnpj"   ? "00.000.000/0000-00" :
+                  pixKeyType === "email"  ? "seu@email.com"      :
+                  pixKeyType === "phone"  ? "+55 (00) 00000-0000":
+                  "Chave aleatória (UUID)"
+                }
+                className={`${inp} ${pixKeyError ? "ring-2 ring-red-400/40 border-red-300" : ""}`}
+              />
+              {pixKeyError && <p className="mt-1 text-xs text-red-500">{pixKeyError}</p>}
+            </div>
+
+            <div>
+              <label className={lbl}>Valor (R$) — mínimo R$ 10,00</label>
               <input
                 type="number"
-                min="5"
+                min="10"
                 step="0.01"
                 value={withdrawAmount}
                 onChange={(e) => setWithdrawAmount(e.target.value)}
                 placeholder="Ex: 50,00"
                 className={inp}
               />
-            </div>
-
-            <div>
-              <label className={lbl}>Chave Pix</label>
-              <input
-                value={pixKey}
-                onChange={(e) => setPixKey(e.target.value)}
-                placeholder="CPF, telefone, email ou chave aleatória"
-                className={inp}
-              />
+              {wallet && Number(withdrawAmount) > wallet.balance.available && (
+                <p className="mt-1 text-xs text-red-500">
+                  Valor acima do saldo disponível ({formatBRL(wallet.balance.available)}).
+                </p>
+              )}
             </div>
 
             <button
               onClick={() => withdrawMutation.mutate()}
-              disabled={withdrawMutation.isPending || !withdrawAmount || !pixKey || Number(withdrawAmount) < 5}
+              disabled={
+                withdrawMutation.isPending || walletLoading ||
+                !withdrawAmount || !pixKey.trim() || !!pixKeyError ||
+                Number(withdrawAmount) < 10 ||
+                Number(withdrawAmount) > (wallet?.balance.available ?? 0)
+              }
               className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-sm font-black text-white disabled:opacity-50"
               style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
             >
@@ -635,15 +732,16 @@ export default function CourierPage() {
                 {withdrawals.map((w) => (
                   <div key={w.id} className="flex items-center justify-between rounded-2xl border border-line-subtle bg-surface p-3">
                     <div>
-                      <p className="text-xs font-black text-content">{formatBRL(w.amount)}</p>
+                      <p className="text-xs font-black text-content">{formatBRL(w.amountGross)}</p>
                       <p className="text-[10px] text-faint">{w.pixKey} · {timeAgo(w.createdAt)}</p>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
-                      w.status === "PAID"     ? "bg-green-50 text-green-700" :
-                      w.status === "REJECTED" ? "bg-red-50 text-red-600"    :
+                      w.status === "paid"       ? "bg-green-50 text-green-700" :
+                      w.status === "failed"     ? "bg-red-50 text-red-600"    :
+                      w.status === "processing" ? "bg-blue-50 text-blue-700"  :
                       "bg-yellow-50 text-yellow-700"
                     }`}>
-                      {w.status === "PAID" ? "Pago" : w.status === "REJECTED" ? "Recusado" : "Pendente"}
+                      {w.status === "paid" ? "Pago" : w.status === "failed" ? "Recusado" : w.status === "processing" ? "Processando" : "Pendente"}
                     </span>
                   </div>
                 ))}

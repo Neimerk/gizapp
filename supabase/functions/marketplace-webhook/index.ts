@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { timingSafeCompare, verifyHmacSha256 } from "../_shared/hmac.ts";
 
 /**
  * marketplace-webhook
@@ -16,7 +17,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   SUBSCRIPTION_* → não tratados aqui
  */
 
-const WEBHOOK_TOKEN  = Deno.env.get("ASAAS_WEBHOOK_TOKEN")   ?? "";
+const WEBHOOK_TOKEN       = Deno.env.get("ASAAS_WEBHOOK_TOKEN")        ?? "";
+const WEBHOOK_HMAC_SECRET = Deno.env.get("ASAAS_WEBHOOK_HMAC_SECRET")  ?? "";
 const RESEND_KEY     = Deno.env.get("RESEND_API_KEY")         ?? "";
 const FROM_EMAIL     = Deno.env.get("EMAIL_FROM")             ?? "BrasUX Shopping <noreply@brasux.com.br>";
 const APP_URL        = Deno.env.get("APP_URL")                ?? "https://brasux.com.br";
@@ -259,16 +261,37 @@ serve(async (req) => {
     console.error("[marketplace-webhook] ASAAS_WEBHOOK_TOKEN não configurado");
     return new Response("Service Unavailable", { status: 503 });
   }
-  if (req.headers.get("asaas-access-token") !== WEBHOOK_TOKEN) {
+
+  // Lê corpo bruto antes de qualquer parse (necessário para HMAC)
+  const rawBody = new Uint8Array(await req.arrayBuffer());
+
+  // Verificação timing-safe do access token (evita timing attacks)
+  if (!timingSafeCompare(req.headers.get("asaas-access-token") ?? "", WEBHOOK_TOKEN)) {
     console.warn("[marketplace-webhook] token inválido");
     return new Response("Unauthorized", { status: 401 });
+  }
+
+  // HMAC-SHA256 do corpo — camada adicional de autenticidade (opcional)
+  // Ativado somente se ASAAS_WEBHOOK_HMAC_SECRET estiver configurado.
+  // O header esperado é x-asaas-hmac-sha256 (hex puro ou prefixado com sha256=).
+  if (WEBHOOK_HMAC_SECRET) {
+    const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
+    if (!sig) {
+      console.warn("[marketplace-webhook] HMAC ausente (x-asaas-hmac-sha256)");
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
+    if (!valid) {
+      console.warn("[marketplace-webhook] HMAC inválido");
+      return new Response("Unauthorized", { status: 401 });
+    }
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   let body: { event: string; payment: AsaasPayment };
   try {
-    body = await req.json();
+    body = JSON.parse(new TextDecoder().decode(rawBody)) as { event: string; payment: AsaasPayment };
   } catch {
     return new Response("Bad Request", { status: 400 });
   }
