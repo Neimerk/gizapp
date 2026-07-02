@@ -229,19 +229,21 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // HMAC-SHA256 do corpo — camada adicional de autenticidade (opcional)
-  // Ativado somente se ASAAS_SUBSCRIPTION_HMAC_SECRET (ou ASAAS_WEBHOOK_HMAC_SECRET) estiver configurado.
-  if (WEBHOOK_HMAC_SECRET) {
-    const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
-    if (!sig) {
-      console.warn("[subscriptions-webhook] HMAC ausente (x-asaas-hmac-sha256)");
-      return new Response("Unauthorized", { status: 401 });
-    }
-    const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
-    if (!valid) {
-      console.warn("[subscriptions-webhook] HMAC inválido");
-      return new Response("Unauthorized", { status: 401 });
-    }
+  // HMAC-SHA256 do corpo — obrigatório (fail-secure).
+  // Configurar ASAAS_SUBSCRIPTION_HMAC_SECRET em Supabase Secrets e na Asaas antes de deploy.
+  if (!WEBHOOK_HMAC_SECRET) {
+    console.error("[subscriptions-webhook] ASAAS_SUBSCRIPTION_HMAC_SECRET não configurado — serviço indisponível");
+    return new Response("Service Unavailable", { status: 503 });
+  }
+  const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
+  if (!sig) {
+    console.warn("[subscriptions-webhook] HMAC ausente (x-asaas-hmac-sha256)");
+    return new Response("Unauthorized", { status: 401 });
+  }
+  const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
+  if (!valid) {
+    console.warn("[subscriptions-webhook] HMAC inválido");
+    return new Response("Unauthorized", { status: 401 });
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);

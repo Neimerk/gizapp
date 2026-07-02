@@ -27,12 +27,18 @@ function nextDueDateStr(daysFromNow = 1): string {
   return new Date(Date.now() + daysFromNow * 86_400_000).toISOString().split("T")[0];
 }
 
-// Preços e comissões — fonte única (espelha vendor_plans no banco)
-const PLAN_CFG: Record<string, { price: number; commission: number; label: string }> = {
-  free:       { price: 0,      commission: 0.08, label: "Gratuito"    },
-  start:      { price: 49.90,  commission: 0.05, label: "Básico"      },
-  pro:        { price: 99.90,  commission: 0.03, label: "Premium"     },
-  whitelabel: { price: 199.90, commission: 0.00, label: "White Label" },
+// Preços — fonte única (espelha vendor_plans no banco; commission = 0 por migration 024)
+const PLAN_CFG: Record<string, { price: number; label: string }> = {
+  free:       { price: 0,      label: "Gratuito"    },
+  start:      { price: 49.90,  label: "Básico"      },
+  pro:        { price: 99.90,  label: "Premium"     },
+  whitelabel: { price: 199.90, label: "White Label" },
+};
+
+// Aliases de UI → slug canônico do banco (brasux-loja usa "basico"/"premium")
+const PLAN_ALIASES: Record<string, string> = {
+  basico:   "start",
+  premium:  "pro",
 };
 
 serve(async (req) => {
@@ -53,7 +59,10 @@ serve(async (req) => {
   if (authErr || !user) return json({ error: "Token inválido." }, 401, req);
 
   try {
-    const { planId } = await req.json() as { planId: string };
+    const { planId: rawPlanId } = await req.json() as { planId: string };
+
+    // Normaliza aliases de UI ("basico" → "start", "premium" → "pro")
+    const planId = PLAN_ALIASES[rawPlanId] ?? rawPlanId;
 
     const validPlans = Object.keys(PLAN_CFG);
     if (!planId || !validPlans.includes(planId)) {
@@ -144,8 +153,8 @@ serve(async (req) => {
         vendor_id:              user.id,
         plan:                   planId,
         monthly_price:          cfg.price,
-        commission_rate:        cfg.commission,
-        status:                 "trial",   // ativa em "trial" até webhook confirmar pagamento
+        commission_rate:        0,          // modelo pure-subscription (migration 024)
+        status:                 "trial",    // ativa em "trial" até webhook confirmar pagamento
         next_billing_date:      nextBilling,
         asaas_subscription_id:  asaasSubId,
         asaas_customer_id:      asaasCustomerId,

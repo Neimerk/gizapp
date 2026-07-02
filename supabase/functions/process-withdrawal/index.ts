@@ -1,13 +1,18 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ASAAS_BASE = Deno.env.get("ASAAS_API_URL") ?? "https://sandbox.asaas.com/api/v3";
-const ASAAS_KEY  = Deno.env.get("ASAAS_API_KEY") ?? "";
+const ASAAS_BASE    = Deno.env.get("ASAAS_API_URL") ?? "https://sandbox.asaas.com/api/v3";
+const ASAAS_KEY     = Deno.env.get("ASAAS_API_KEY") ?? "";
+const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY      = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 /**
  * process-withdrawal
  * Admin-only: aprova e processa um saque pendente via Asaas PIX transfer.
- * Chamado pelo admin dashboard ou por cron job diário.
+ * Aceita duas formas de autenticação:
+ *   1. x-internal-key — chamado pelo cron-runner ou funções internas
+ *   2. JWT de admin    — chamado pelo painel admin via supabase.functions.invoke
  */
 async function asaas(path: string, method = "GET", body?: unknown) {
   const res = await fetch(`${ASAAS_BASE}${path}`, {
@@ -32,14 +37,34 @@ serve(async (req) => {
 
   const internalKey = Deno.env.get("INTERNAL_FUNCTION_KEY") ?? "";
   const reqKey      = req.headers.get("x-internal-key") ?? "";
-  if (!internalKey || reqKey !== internalKey) {
-    return new Response("Unauthorized", { status: 401 });
+  const authHeader  = req.headers.get("Authorization") ?? "";
+
+  const isInternalCall = internalKey && reqKey === internalKey;
+
+  if (!isInternalCall) {
+    // Alternativa: JWT de admin via supabase.functions.invoke
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const adminCheck = createClient(SUPABASE_URL, SERVICE_KEY);
+    const { data: profile } = await adminCheck
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    if (profile?.role !== "admin") {
+      return new Response("Forbidden", { status: 403 });
+    }
   }
 
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   try {
     const body = await req.json() as { withdrawalId?: string; processAll?: boolean };

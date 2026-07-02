@@ -268,6 +268,18 @@ export async function adminUpdateWithdrawal(
   status: "paid" | "failed",
   notes?: string,
 ): Promise<void> {
+  if (status === "paid") {
+    // "paid" dispara transferência real via Asaas — nunca atualizar o banco diretamente
+    const res = await supabase.functions.invoke("process-withdrawal", {
+      body: { withdrawalId: id },
+    });
+    if (res.error) throw new Error(res.error.message ?? "Erro ao processar saque.");
+    const data = res.data as { ok?: boolean; error?: string } | null;
+    if (!data?.ok) throw new Error(data?.error ?? "Erro ao processar saque.");
+    return;
+  }
+
+  // "failed" — rejeita sem movimentar dinheiro (sem Asaas)
   const update: Record<string, unknown> = {
     status,
     processed_at: new Date().toISOString(),
