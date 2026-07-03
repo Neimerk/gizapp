@@ -115,6 +115,24 @@ export async function pollPixStatus(orderId: string, guestToken?: string | null)
   return data as PixStatusResult;
 }
 
+// Polling genérico para qualquer método de pagamento.
+// Usa o mesmo endpoint de PIX — ele retorna "paid" para qualquer método
+// assim que o webhook de confirmação processar o pedido.
+export async function pollPaymentStatus(
+  orderId: string,
+  guestToken?: string | null,
+): Promise<"paid" | "pending" | "failed"> {
+  try {
+    const { status } = await pollPixStatus(orderId, guestToken);
+    if (status === "paid") return "paid";
+    if (status === "failed") return "failed";
+    // "not_pix" = boleto/card ainda pendente (mas não falhou)
+    return "pending";
+  } catch {
+    return "pending";
+  }
+}
+
 export function notifyOrderPlaced(orderId: string, guestToken?: string | null): void {
   callEdgeFunction("send-order-emails", { orderId, type: "order_placed" }, guestToken).catch(() => null);
 }

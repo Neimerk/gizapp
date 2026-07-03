@@ -20,6 +20,7 @@ import { timingSafeCompare, verifyHmacSha256 } from "../_shared/hmac.ts";
 
 const WEBHOOK_TOKEN       = Deno.env.get("ASAAS_WEBHOOK_TOKEN")        ?? "";
 const WEBHOOK_HMAC_SECRET = Deno.env.get("ASAAS_WEBHOOK_HMAC_SECRET")  ?? "";
+const IS_SANDBOX          = Deno.env.get("ASAAS_ENV") === "sandbox";
 const RESEND_KEY     = Deno.env.get("RESEND_API_KEY")         ?? "";
 const FROM_EMAIL     = Deno.env.get("EMAIL_FROM")             ?? "BrasUX Shopping <noreply@brasux.com.br>";
 const APP_URL        = Deno.env.get("APP_URL")                ?? "https://brasux.com.br";
@@ -138,19 +139,21 @@ async function handleOrderConfirmed(
     if (!splitRes.ok) throw new Error(`execute-split failed: ${await splitRes.text()}`);
   }
 
-  // Pontos de fidelidade
-  await admin.rpc("earn_points_on_payment", { p_order_id: orderId }).catch(() => null);
+  // Pontos de fidelidade: crédito ao comprador + débito de pontos usados como desconto
+  await admin.rpc("earn_points_on_payment",   { p_order_id: orderId }).catch(() => null);
+  await admin.rpc("spend_points_for_order",   { p_order_id: orderId }).catch(() => null);
 
   // Notificações
   const { data: order } = await admin
     .from("orders")
-    .select("customer_id, customer_name, total, stores(name, owner_id)")
+    .select("customer_id, customer_name, customer_email, total, stores(name, owner_id)")
     .eq("id", orderId)
     .maybeSingle();
 
-  if (!order?.customer_id) return;
+  if (!order) return;
 
-  const store = order.stores as { name: string; owner_id?: string } | null;
+  const store      = order.stores as { name: string; owner_id?: string } | null;
+  const customerId = order.customer_id as string | null;
 
   // Push para o lojista
   if (store?.owner_id) {
@@ -166,11 +169,16 @@ async function handleOrderConfirmed(
     }).catch(() => null);
   }
 
-  // E-mail para o comprador
-  const { data: { user: buyer } } = await admin.auth.admin.getUserById(order.customer_id as string);
-  if (buyer?.email) {
+  // E-mail para o comprador — suporta usuários autenticados E guests
+  let buyerEmail = (order.customer_email as string | null) ?? null;
+  if (!buyerEmail && customerId) {
+    // Usuário autenticado sem customer_email na tabela: busca via Auth Admin
+    const { data: { user: buyer } } = await admin.auth.admin.getUserById(customerId);
+    buyerEmail = buyer?.email ?? null;
+  }
+  if (buyerEmail) {
     await sendEmail(
-      buyer.email,
+      buyerEmail,
       `💰 Pagamento confirmado — Pedido ${shortId(orderId)}`,
       paymentConfirmedHtml(
         order.customer_name as string,
@@ -194,9 +202,57 @@ async function handleOrderConfirmed(
   }).catch(() => null);
 }
 
+function paymentDeclinedHtml(name: string, orderId: string): string {
+  const oid = shortId(orderId);
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#f7f9fc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f9fc;">
+<tr><td align="center" style="padding:32px 16px;">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#fff;border-radius:20px;overflow:hidden;">
+<tr><td style="background:linear-gradient(135deg,#001640,#002776,#7f1d1d);padding:28px 40px;text-align:center;">
+<h1 style="color:#fff;font-size:26px;font-weight:900;margin:0;">BrasUX Shopping</h1>
+</td></tr>
+<tr><td style="padding:36px 40px;">
+<h2 style="color:#0f172a;font-size:22px;font-weight:900;margin:0 0 8px;">Pagamento não aprovado</h2>
+<p style="color:#475569;font-size:14px;margin:0 0 24px;">Olá, <b>${name}</b>. Infelizmente o pagamento do pedido <b>${oid}</b> não foi aprovado.</p>
+<p style="color:#475569;font-size:14px;margin:0 0 24px;">Seu carrinho foi mantido. Você pode tentar novamente com outro método de pagamento.</p>
+<a href="${APP_URL}/pedidos" style="display:inline-block;background:#002776;color:#fff;font-weight:900;font-size:14px;text-decoration:none;padding:14px 28px;border-radius:14px;">
+Ver meus pedidos →</a>
+</td></tr>
+<tr><td style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 40px;text-align:center;">
+<p style="color:#94a3b8;font-size:12px;margin:0;">BrasUX Shopping · Não responda este email</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 async function handleOrderDeclined(admin: AdminClient, orderId: string): Promise<void> {
   await admin.from("orders").update({ payment_status: "DECLINED" }).eq("id", orderId);
   await admin.from("payments").update({ status: "declined" }).eq("order_id", orderId);
+
+  // Libera reserva de cupom para que o comprador possa reutilizá-lo
+  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).catch(() => null);
+
+  // Notifica o comprador sobre o pagamento recusado
+  const { data: order } = await admin
+    .from("orders")
+    .select("customer_id, customer_name, customer_email")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!order) return;
+
+  let buyerEmail = (order.customer_email as string | null) ?? null;
+  const customerId = order.customer_id as string | null;
+  if (!buyerEmail && customerId) {
+    const { data: { user: buyer } } = await admin.auth.admin.getUserById(customerId);
+    buyerEmail = buyer?.email ?? null;
+  }
+  if (buyerEmail) {
+    await sendEmail(
+      buyerEmail,
+      `❌ Pagamento não aprovado — Pedido ${shortId(orderId)}`,
+      paymentDeclinedHtml(order.customer_name as string, orderId),
+    );
+  }
 }
 
 async function handleOrderRefunded(
@@ -244,6 +300,8 @@ async function handleOrderRefunded(
 async function handleOrderOverdue(admin: AdminClient, orderId: string): Promise<void> {
   await admin.from("orders").update({ payment_status: "OVERDUE" }).eq("id", orderId);
   await admin.from("payments").update({ status: "expired" }).eq("order_id", orderId);
+  // Libera cupom quando PIX vence ou boleto expira
+  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).catch(() => null);
   await admin.rpc("log_financial_event", {
     p_actor_type:  "system",
     p_actor_id:    null,
@@ -259,6 +317,7 @@ async function handleOrderOverdue(admin: AdminClient, orderId: string): Promise<
 async function handleOrderDeleted(admin: AdminClient, orderId: string): Promise<void> {
   await admin.from("orders").update({ payment_status: "CANCELLED", status: 5 }).eq("id", orderId);
   await admin.from("payments").update({ status: "cancelled" }).eq("order_id", orderId);
+  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).catch(() => null);
 }
 
 // ── Types ─────────────────────────────────────────────────────
@@ -289,21 +348,32 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // HMAC-SHA256 do corpo — obrigatório (fail-secure).
-  // Configurar ASAAS_WEBHOOK_HMAC_SECRET em Supabase Secrets e na Asaas antes de deploy.
-  if (!WEBHOOK_HMAC_SECRET) {
-    console.error("[marketplace-webhook] ASAAS_WEBHOOK_HMAC_SECRET não configurado — serviço indisponível");
-    return new Response("Service Unavailable", { status: 503 });
-  }
-  const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
-  if (!sig) {
-    console.warn("[marketplace-webhook] HMAC ausente (x-asaas-hmac-sha256)");
-    return new Response("Unauthorized", { status: 401 });
-  }
-  const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
-  if (!valid) {
-    console.warn("[marketplace-webhook] HMAC inválido");
-    return new Response("Unauthorized", { status: 401 });
+  // HMAC-SHA256: obrigatório em produção, opcional em sandbox.
+  if (!IS_SANDBOX) {
+    if (!WEBHOOK_HMAC_SECRET) {
+      console.error("[marketplace-webhook] ASAAS_WEBHOOK_HMAC_SECRET não configurado — serviço indisponível");
+      return new Response("Service Unavailable", { status: 503 });
+    }
+    const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
+    if (!sig) {
+      console.warn("[marketplace-webhook] HMAC ausente (x-asaas-hmac-sha256)");
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
+    if (!valid) {
+      console.warn("[marketplace-webhook] HMAC inválido");
+      return new Response("Unauthorized", { status: 401 });
+    }
+  } else if (WEBHOOK_HMAC_SECRET) {
+    // Sandbox com HMAC configurado: valida se o header vier (mas não bloqueia se ausente)
+    const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
+    if (sig) {
+      const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
+      if (!valid) {
+        console.warn("[marketplace-webhook] sandbox — HMAC inválido");
+        return new Response("Unauthorized", { status: 401 });
+      }
+    }
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);

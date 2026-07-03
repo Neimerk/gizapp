@@ -1987,7 +1987,7 @@ export async function getAvailableCoupons(): Promise<PublicCoupon[]> {
   const now = new Date().toISOString();
   const { data } = await supabase
     .from("coupons")
-    .select("id, code, label, type, value, min_order_value, expires_at")
+    .select("id, code, label, type, value, min_order, expires_at")
     .eq("active", true)
     .or(`expires_at.is.null,expires_at.gt.${now}`)
     .order("value", { ascending: false })
@@ -1998,7 +1998,7 @@ export async function getAvailableCoupons(): Promise<PublicCoupon[]> {
     label: r.label as string,
     type: r.type as PublicCoupon["type"],
     value: Number(r.value),
-    minOrderValue: r.min_order_value != null ? Number(r.min_order_value) : null,
+    minOrderValue: r.min_order != null ? Number(r.min_order) : null,
     expiresAt: r.expires_at as string | null,
   }));
 }

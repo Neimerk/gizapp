@@ -31,6 +31,18 @@ const JOBS: Record<string, { path: string; body: unknown }> = {
     path: "/alert-dead-letter",
     body: {},
   },
+  "expire-stale-orders": {
+    path: "/expire-stale-orders",
+    body: {},
+  },
+  "reconcile-withdrawals": {
+    path: "/reconcile-withdrawals",
+    body: {},
+  },
+  "reconcile-subscriptions": {
+    path: "/reconcile-subscriptions",
+    body: {},
+  },
 };
 
 serve(async (req) => {

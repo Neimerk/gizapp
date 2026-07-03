@@ -29,18 +29,18 @@ function nextDueDateStr(daysFromNow = 1): string {
   return new Date(Date.now() + daysFromNow * 86_400_000).toISOString().split("T")[0];
 }
 
-// Preços — fonte única (espelha vendor_plans no banco; commission = 0 por migration 024)
-const PLAN_CFG: Record<string, { price: number; label: string }> = {
-  free:       { price: 0,      label: "Gratuito"    },
-  start:      { price: 49.90,  label: "Básico"      },
-  pro:        { price: 99.90,  label: "Premium"     },
-  whitelabel: { price: 199.90, label: "White Label" },
-};
-
 // Aliases de UI → slug canônico do banco (brasux-loja usa "basico"/"premium")
 const PLAN_ALIASES: Record<string, string> = {
   basico:   "start",
   premium:  "pro",
+};
+
+// Fallback para quando o banco não retorna vendor_plans (ex: cold start com DB indisponível)
+const FALLBACK_CFG: Record<string, { price: number; label: string }> = {
+  free:       { price: 0,      label: "Gratuito"    },
+  start:      { price: 49.90,  label: "Básico"      },
+  pro:        { price: 99.90,  label: "Premium"     },
+  whitelabel: { price: 199.90, label: "White Label" },
 };
 
 serve(async (req) => {
@@ -64,16 +64,35 @@ serve(async (req) => {
   try {
     const { planId: rawPlanId } = await req.json() as { planId: string };
 
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+
+    // P2-9: preços lidos do banco (fonte única); fallback para hardcoded se DB falhar
+    const planCfg = { ...FALLBACK_CFG };
+    try {
+      const { data: planRows } = await admin
+        .from("vendor_plans")
+        .select("id, label, monthly_price");
+      if (planRows?.length) {
+        for (const row of planRows) {
+          planCfg[row.id as string] = {
+            price: Number(row.monthly_price),
+            label: row.label as string,
+          };
+        }
+      }
+    } catch {
+      console.warn("[create-subscription] vendor_plans inacessível — usando preços hardcoded");
+    }
+
     // Normaliza aliases de UI ("basico" → "start", "premium" → "pro")
     const planId = PLAN_ALIASES[rawPlanId] ?? rawPlanId;
 
-    const validPlans = Object.keys(PLAN_CFG);
+    const validPlans = Object.keys(planCfg);
     if (!planId || !validPlans.includes(planId)) {
       return json({ error: `planId inválido. Use: ${validPlans.join(", ")}` }, 400, req);
     }
 
-    const admin = createClient(supabaseUrl, serviceRoleKey);
-    const cfg   = PLAN_CFG[planId];
+    const cfg = planCfg[planId];
 
     // ── Busca assinatura e perfil atuais ──────────────────────
     const [subRes, profileRes] = await Promise.all([
@@ -149,15 +168,17 @@ serve(async (req) => {
 
     const asaasSubId = subscription.id as string;
 
-    // ── 4. Atualiza DB com pendente de pagamento ──────────────
+    // ── 4. Atualiza DB aguardando confirmação de pagamento ────
+    // Status 'pending_payment': acesso bloqueado até webhook PAYMENT_CONFIRMED.
+    // O webhook chama handleSubscriptionRenewed que avança para 'active'.
     const nextBilling = nextDueDateStr(30);
     await admin.from("subscriptions").upsert(
       {
         vendor_id:              user.id,
         plan:                   planId,
         monthly_price:          cfg.price,
-        commission_rate:        0,          // modelo pure-subscription (migration 024)
-        status:                 "trial",    // ativa em "trial" até webhook confirmar pagamento
+        commission_rate:        0,
+        status:                 "pending_payment",
         next_billing_date:      nextBilling,
         asaas_subscription_id:  asaasSubId,
         asaas_customer_id:      asaasCustomerId,
@@ -173,7 +194,7 @@ serve(async (req) => {
       from_plan:    currentSub?.plan ?? null,
       to_plan:      planId,
       from_status:  currentSub?.status ?? null,
-      to_status:    "trial",
+      to_status:    "pending_payment",
       reason:       "Upgrade via create-subscription",
       triggered_by: "vendor",
       metadata:     { asaas_subscription_id: asaasSubId },

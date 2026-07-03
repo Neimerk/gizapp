@@ -7,7 +7,7 @@
 
 CREATE TABLE IF NOT EXISTS public.guest_order_tracking (
   id               uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-  tracking_code    text        NOT NULL UNIQUE DEFAULT upper(substring(encode(gen_random_bytes(5), 'hex'), 1, 8)),
+  tracking_code    text        NOT NULL UNIQUE DEFAULT upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8)),
   order_id         uuid        NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
   guest_session_id uuid        REFERENCES public.guest_sessions(id) ON DELETE SET NULL,
   customer_email   text,
@@ -101,14 +101,14 @@ COMMENT ON FUNCTION public.get_order_by_tracking IS 'Retorna dados não-sensíve
 
 -- ── 5. Agendar limpeza de sessões expiradas (pg_cron) ────────────────
 
-DO $$
+DO $outer$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     PERFORM cron.schedule(
       'cleanup-guest-sessions',
       '0 3 * * *',
-      $$SELECT public.cleanup_expired_guest_sessions()$$
+      'SELECT public.cleanup_expired_guest_sessions()'
     );
   END IF;
 END;
-$$;
+$outer$;

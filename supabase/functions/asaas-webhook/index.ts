@@ -1,16 +1,17 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 
 /**
- * asaas-webhook — DESATIVADO
+ * asaas-webhook — DESCOMISSIONADO
  *
- * Substituído por:
- *   marketplace-webhook   → pagamentos de pedidos
+ * Este endpoint foi substituído por:
+ *   marketplace-webhook   → pagamentos de pedidos do marketplace
  *   subscriptions-webhook → pagamentos e ciclo de vida de assinaturas SaaS
  *
- * Retorna 200 para que o Asaas não reencaminhe eventos, mas não processa nada.
- * Para remover definitivamente: exclua este diretório e atualize a URL do
- * webhook no painel Asaas para apontar apenas para marketplace-webhook e
- * subscriptions-webhook.
+ * AÇÃO NECESSÁRIA: atualize as URLs de webhook no painel Asaas para apontar
+ * para os endpoints corretos acima e REMOVA este webhook do painel.
+ *
+ * Retorna 410 Gone para sinalizar que o endpoint foi removido permanentemente
+ * e forçar visibilidade no dashboard Asaas (ao invés de silenciar eventos).
  */
 
 serve(async (req) => {
@@ -20,7 +21,23 @@ serve(async (req) => {
     event = body.event ?? "unknown";
   } catch { /* ignora */ }
 
-  console.warn(`[asaas-webhook] DEPRECATED — evento ignorado: ${event}. Use marketplace-webhook ou subscriptions-webhook.`);
+  console.error(
+    `[asaas-webhook] DESCOMISSIONADO — evento "${event}" recebido mas não processado. ` +
+    `Configure o painel Asaas para usar marketplace-webhook ou subscriptions-webhook.`
+  );
 
-  return new Response("OK", { status: 200 });
+  return new Response(
+    JSON.stringify({
+      error:   "Endpoint descomissionado.",
+      action:  "Atualize a URL do webhook no painel Asaas.",
+      targets: {
+        marketplace:   "/functions/v1/marketplace-webhook",
+        subscriptions: "/functions/v1/subscriptions-webhook",
+      },
+    }),
+    {
+      status: 410,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 });

@@ -8,13 +8,13 @@ export function useCoupon(storeId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
 
-  const apply = useCallback(async (code: string, orderValue?: number): Promise<boolean> => {
+  const apply = useCallback(async (code: string): Promise<boolean> => {
     if (!code.trim()) { setError("Informe um código de cupom."); return false; }
     if (!storeId) { setError("Loja não identificada."); return false; }
     setApplying(true);
     setError(null);
     try {
-      const found = await validateCoupon(code, storeId, orderValue);
+      const found = await validateCoupon(code);
       setCoupon(found);
       return true;
     } catch (e) {

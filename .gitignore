@@ -37,6 +37,9 @@ dist-ssr
 supabase/.temp/
 supabase/functions/.env
 
+# Asaas — contém chave de API, nunca commitar
+.env.asaas
+
 # Vercel secrets
 .vercel/
 *.oidc-token

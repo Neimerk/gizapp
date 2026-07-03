@@ -52,11 +52,24 @@ serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   try {
-    // Busca pedidos do vendedor com pagamento pendente e charge Asaas conhecida
+    // Busca as lojas do lojista autenticado
+    const { data: stores, error: storesErr } = await admin
+      .from("stores")
+      .select("id")
+      .eq("owner_id", user.id);
+
+    if (storesErr) throw new Error(storesErr.message);
+    if (!stores || stores.length === 0) {
+      return json({ ok: true, reconciled: 0, checked: 0 }, 200, req);
+    }
+
+    const storeIds = stores.map((s) => s.id as string);
+
+    // Busca pedidos dessas lojas com pagamento pendente e charge Asaas conhecida
     const { data: orders, error: oErr } = await admin
       .from("orders")
       .select("id, total, payment_status, status, asaas_charge_id")
-      .eq("vendor_id", user.id)
+      .in("store_id", storeIds)
       .in("payment_status", ["pending", "PENDING"])
       .not("asaas_charge_id", "is", null)
       .order("created_at", { ascending: true })
@@ -126,8 +139,9 @@ serve(async (req) => {
         }
       }
 
-      // Pontos de fidelidade (idempotente no lado do RPC)
+      // Pontos de fidelidade (idempotentes via RPC)
       await admin.rpc("earn_points_on_payment", { p_order_id: order.id }).catch(() => null);
+      await admin.rpc("spend_points_for_order", { p_order_id: order.id }).catch(() => null);
 
       // Log financeiro
       await admin.rpc("log_financial_event", {

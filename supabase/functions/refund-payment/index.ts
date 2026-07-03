@@ -94,6 +94,24 @@ serve(async (req) => {
       ? Math.min(Number(body.amount), Number(payment.amount))
       : Number(payment.amount);
 
+    // P1-7: verifica acumulado de estornos anteriores para evitar over-refund
+    const { data: existingRefunds } = await admin
+      .from("refunds")
+      .select("amount")
+      .eq("payment_id", payment.id)
+      .neq("status", "failed");
+
+    const alreadyRefunded = (existingRefunds ?? []).reduce(
+      (sum: number, r: { amount: unknown }) => sum + Number(r.amount),
+      0,
+    );
+
+    if (alreadyRefunded + refundAmount > Number(payment.amount) + 0.01) {
+      return json({
+        error: `Valor excede o limite disponível para estorno. Já estornado: R$ ${alreadyRefunded.toFixed(2).replace(".", ",")}. Disponível: R$ ${(Number(payment.amount) - alreadyRefunded).toFixed(2).replace(".", ",")}.`,
+      }, 422, req);
+    }
+
     // Chama estorno no gateway
     let gatewayRefundId = `MANUAL_${Date.now()}`;
     if (payment.external_id && ASAAS_KEY) {

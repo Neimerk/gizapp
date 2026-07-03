@@ -21,6 +21,7 @@ const WEBHOOK_TOKEN       = Deno.env.get("ASAAS_SUBSCRIPTION_WEBHOOK_TOKEN")
 const WEBHOOK_HMAC_SECRET = Deno.env.get("ASAAS_SUBSCRIPTION_HMAC_SECRET")
   ?? Deno.env.get("ASAAS_WEBHOOK_HMAC_SECRET")
   ?? "";
+const IS_SANDBOX          = Deno.env.get("ASAAS_ENV") === "sandbox";
 const SUPABASE_URL   = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_KEY     = Deno.env.get("RESEND_API_KEY") ?? "";
@@ -123,12 +124,12 @@ async function handleSubscriptionRenewed(
   // E-mail de renovação
   const { data: { user } } = await admin.auth.admin.getUserById(vendorId);
   if (user?.email) {
-    const { data: sub } = await admin.from("subscriptions")
+    const { data: subForEmail } = await admin.from("subscriptions")
       .select("plan, monthly_price").eq("vendor_id", vendorId).single();
     await sendEmail(
       user.email,
       "✅ Assinatura BrasUX renovada",
-      `<p>Olá! Sua assinatura plano <b>${sub?.plan ?? ""}</b> foi renovada com sucesso — ${brl(Number(sub?.monthly_price ?? 0))}/mês.</p>`,
+      `<p>Olá! Sua assinatura plano <b>${subForEmail?.plan ?? ""}</b> foi renovada com sucesso — ${brl(Number(subForEmail?.monthly_price ?? 0))}/mês.</p>`,
     );
   }
 }
@@ -229,21 +230,31 @@ serve(async (req) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // HMAC-SHA256 do corpo — obrigatório (fail-secure).
-  // Configurar ASAAS_SUBSCRIPTION_HMAC_SECRET em Supabase Secrets e na Asaas antes de deploy.
-  if (!WEBHOOK_HMAC_SECRET) {
-    console.error("[subscriptions-webhook] ASAAS_SUBSCRIPTION_HMAC_SECRET não configurado — serviço indisponível");
-    return new Response("Service Unavailable", { status: 503 });
-  }
-  const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
-  if (!sig) {
-    console.warn("[subscriptions-webhook] HMAC ausente (x-asaas-hmac-sha256)");
-    return new Response("Unauthorized", { status: 401 });
-  }
-  const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
-  if (!valid) {
-    console.warn("[subscriptions-webhook] HMAC inválido");
-    return new Response("Unauthorized", { status: 401 });
+  // HMAC-SHA256: obrigatório em produção, opcional em sandbox.
+  if (!IS_SANDBOX) {
+    if (!WEBHOOK_HMAC_SECRET) {
+      console.error("[subscriptions-webhook] ASAAS_SUBSCRIPTION_HMAC_SECRET não configurado — serviço indisponível");
+      return new Response("Service Unavailable", { status: 503 });
+    }
+    const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
+    if (!sig) {
+      console.warn("[subscriptions-webhook] HMAC ausente (x-asaas-hmac-sha256)");
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
+    if (!valid) {
+      console.warn("[subscriptions-webhook] HMAC inválido");
+      return new Response("Unauthorized", { status: 401 });
+    }
+  } else if (WEBHOOK_HMAC_SECRET) {
+    const sig = req.headers.get("x-asaas-hmac-sha256") ?? "";
+    if (sig) {
+      const valid = await verifyHmacSha256(WEBHOOK_HMAC_SECRET, rawBody, sig);
+      if (!valid) {
+        console.warn("[subscriptions-webhook] sandbox — HMAC inválido");
+        return new Response("Unauthorized", { status: 401 });
+      }
+    }
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);

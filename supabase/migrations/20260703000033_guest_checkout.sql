@@ -8,7 +8,7 @@
 
 CREATE TABLE IF NOT EXISTS public.guest_sessions (
   id                uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-  guest_token       text        NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  guest_token       text        NOT NULL UNIQUE DEFAULT replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', ''),
   name              text        NOT NULL,
   email             text,
   phone             text,

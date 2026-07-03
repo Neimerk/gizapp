@@ -12,7 +12,8 @@ import {
 } from "../services/gizApi";
 import { useDeliveryFee } from "../hooks/useDeliveryFee";
 import {
-  createPixCharge, createCardCharge, createBoletoCharge, notifyOrderPlaced, pollPixStatus,
+  createPixCharge, createCardCharge, createBoletoCharge, notifyOrderPlaced,
+  pollPixStatus, pollPaymentStatus,
   type PixResult, type CardResult, type BoletoResult,
 } from "../services/asaasApi";
 import { useCartStore } from "../stores/cartStore";
@@ -168,12 +169,11 @@ export default function CheckoutPage() {
   }, [addresses, selectedAddressId]);
 
   // Cupom
-  const { coupon, error: couponError, applying: applyingCoupon, apply: applyCoupon, remove: removeCoupon, discount } = useCoupon();
+  const { coupon, error: couponError, applying: applyingCoupon, apply: applyCoupon, remove: removeCoupon, discount } = useCoupon(storeId);
   const [couponInput, setCouponInput] = useState("");
 
   // Pontos
-  const earnPoints      = usePointsStore((s) => s.earn);
-  const spendPoints     = usePointsStore((s) => s.spend);
+  const loadPointsFromDB = usePointsStore((s) => s.loadFromDB);
   const availablePoints = usePointsStore((s) => s.points);
   const [pointsToUse, setPointsToUse] = useState(0);
 
@@ -188,7 +188,7 @@ export default function CheckoutPage() {
   const [saving, setSaving] = useState(false);
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
   const [pixConfirmed, setPixConfirmed] = useState(false);
-  const [finalTotal, setFinalTotal] = useState(0);
+  const [boletoConfirmed, setBoletoConfirmed] = useState(false);
 
   // Taxa de entrega dinâmica por distância
   const { fee: deliveryFee, distanceKm, loading: loadingFee, source: feeSource } = useDeliveryFee(
@@ -222,7 +222,7 @@ export default function CheckoutPage() {
     localStorage.setItem(CHECKOUT_KEY, JSON.stringify({ paymentMethod }));
   }, [paymentMethod]);
 
-  // Polling de confirmação Pix — verifica a cada 5s se o pagamento foi aprovado
+  // Polling de confirmação Pix — verifica a cada 5s por até 35 minutos (PIX expira em 30)
   useEffect(() => {
     if (!paymentResult || paymentResult.method !== "pix") return;
     const orderId = paymentResult.orderId;
@@ -235,15 +235,43 @@ export default function CheckoutPage() {
         const { status } = await pollPixStatus(orderId, gt);
         if (status === "paid") {
           stopped = true;
-          if (auth) earnPoints(finalTotal, `Pedido #${orderId.slice(0, 8)}`);
+          if (auth) loadPointsFromDB().catch(() => null);
           setPixConfirmed(true);
         }
       } catch { /* silencioso */ }
     };
 
-    const timer = setInterval(poll, 5000);
+    const timer    = setInterval(poll, 5000);
+    const timeout  = setTimeout(() => { stopped = true; clearInterval(timer); }, 35 * 60 * 1000);
     poll();
-    return () => { stopped = true; clearInterval(timer); };
+    return () => { stopped = true; clearInterval(timer); clearTimeout(timeout); };
+  }, [paymentResult?.orderId, paymentResult?.method]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Polling de confirmação Boleto — verifica a cada 30s por até 10 minutos.
+  // Cobre pagamentos imediatos em bancos que processam em tempo real.
+  // Compensações que levam dias serão notificadas via webhook (e-mail + orders).
+  useEffect(() => {
+    if (!paymentResult || paymentResult.method !== "boleto") return;
+    const orderId = paymentResult.orderId;
+    const gt = auth ? undefined : guestToken ?? undefined;
+    let stopped = false;
+
+    const poll = async () => {
+      if (stopped) return;
+      try {
+        const status = await pollPaymentStatus(orderId, gt);
+        if (status === "paid") {
+          stopped = true;
+          if (auth) loadPointsFromDB().catch(() => null);
+          setBoletoConfirmed(true);
+        }
+      } catch { /* silencioso */ }
+    };
+
+    const timer   = setInterval(poll, 30_000);
+    const timeout = setTimeout(() => { stopped = true; clearInterval(timer); }, 10 * 60 * 1000);
+    poll();
+    return () => { stopped = true; clearInterval(timer); clearTimeout(timeout); };
   }, [paymentResult?.orderId, paymentResult?.method]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateCard(k: keyof CardData, v: string) {
@@ -272,7 +300,6 @@ export default function CheckoutPage() {
 
     try {
       setSaving(true);
-      setFinalTotal(total);
 
       const order = await createOrder(
         {
@@ -296,18 +323,16 @@ export default function CheckoutPage() {
       saveOrderId(order.id);
       notifyOrderPlaced(order.id, auth ? undefined : guestToken);
 
-      if (pointsDiscount > 0) {
-        spendPoints(pointsDiscount, `Desconto no pedido #${order.id.slice(0, 8)}`);
-      }
-
-      clearCart();
-      removeCoupon();
+      // Pontos debitados server-side via spend_points_for_order no webhook de confirmação
+      // Não debitar aqui para evitar saldo desatualizado se o pagamento falhar.
 
       const gt = auth ? undefined : guestToken ?? undefined;
       if (!auth && order.trackingCode) setTrackingInfo({ trackingCode: order.trackingCode });
 
       if (paymentMethod === "pix") {
         const result: PixResult = await createPixCharge(order.id, gt);
+        clearCart();
+        removeCoupon();
         setPaymentResult({
           method:         "pix",
           orderId:        order.id,
@@ -322,6 +347,8 @@ export default function CheckoutPage() {
 
       if (paymentMethod === "boleto") {
         const result: BoletoResult = await createBoletoCharge(order.id, gt);
+        clearCart();
+        removeCoupon();
         setPaymentResult({
           method:        "boleto",
           orderId:       order.id,
@@ -356,8 +383,11 @@ export default function CheckoutPage() {
           gt,
         );
 
+        clearCart();
+        removeCoupon();
         if (result.confirmed) {
-          if (auth) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
+          // Pontos creditados server-side pelo webhook. Recarrega saldo local.
+          if (auth) loadPointsFromDB().catch(() => null);
           setPaymentResult({ method: "card", orderId: order.id, confirmed: true });
         } else {
           setPaymentResult({
@@ -384,6 +414,7 @@ export default function CheckoutPage() {
           result={paymentResult}
           onContinue={() => auth ? navigate("/pedidos") : navigate("/")}
           pixConfirmed={pixConfirmed}
+          boletoConfirmed={boletoConfirmed}
           isGuest={!auth}
           trackingCode={trackingInfo.trackingCode}
         />
@@ -1041,12 +1072,14 @@ function PaymentResultScreen({
   result,
   onContinue,
   pixConfirmed,
+  boletoConfirmed,
   isGuest,
   trackingCode,
 }: {
   result: PaymentResult;
   onContinue: () => void;
   pixConfirmed?: boolean;
+  boletoConfirmed?: boolean;
   isGuest?: boolean;
   trackingCode?: string;
 }) {
@@ -1180,6 +1213,27 @@ function PaymentResultScreen({
           className="w-full rounded-2xl border border-line bg-surface py-3.5 text-sm font-black text-muted"
         >
           Já paguei — ver meus pedidos
+        </button>
+      </div>
+    );
+  }
+
+  if (result.method === "boleto" && boletoConfirmed) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-6">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-[#f0fdf4]">
+          <span className="text-4xl">✅</span>
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-content">Boleto compensado!</h2>
+          <p className="mt-2 text-sm text-muted">Pagamento confirmado. Seu pedido está sendo preparado.</p>
+        </div>
+        {isGuest && <GuestOrderBox orderId={result.orderId} trackingCode={trackingCode} />}
+        <button
+          onClick={onContinue}
+          className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
+        >
+          {isGuest ? "Voltar ao início" : "Ver meus pedidos"}
         </button>
       </div>
     );

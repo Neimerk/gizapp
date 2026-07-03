@@ -156,39 +156,53 @@ serve(async (req) => {
 
     const subtotal = enriched.reduce((s, i) => s + i.totalPrice, 0);
 
-    // ── 7. Cupom (atômico) ───────────────────────────────────
+    // ── 7. Pré-validação do cupom (sem consumir ainda) ───────
+    // O consumo atômico ocorre DEPOIS do pedido e itens serem inseridos,
+    // garantindo que cupom seja debitado apenas se o pedido existir.
     let couponDiscount = 0;
+    let pendingCouponCode: string | null = null;
+    let pendingCouponId: string | null = null;
+
     if (payload.couponCode?.trim()) {
-      const { data: couponData, error: couponErr } = await admin.rpc("use_coupon_atomic", {
-        p_code:    payload.couponCode.trim(),
-        p_user_id: userId, // null para guests → pula verificação per-user
-      });
+      const { data: couponCheck, error: checkErr } = await admin
+        .from("coupons")
+        .select("id, type, value, min_order, expires_at, max_uses, uses_count, active")
+        .eq("code", payload.couponCode.trim().toUpperCase())
+        .eq("active", true)
+        .maybeSingle();
 
-      if (couponErr) {
-        const msg = couponErr.message.includes("INVALID_COUPON")   ? "Cupom inválido ou expirado."
-                  : couponErr.message.includes("EXPIRED_COUPON")   ? "Cupom expirado."
-                  : couponErr.message.includes("EXHAUSTED_COUPON") ? "Cupom esgotado."
-                  : couponErr.message.includes("ALREADY_USED")     ? "Você já utilizou este cupom."
-                  : "Cupom inválido.";
-        return json({ error: msg }, 422, req);
-      }
+      if (checkErr || !couponCheck) return json({ error: "Cupom inválido ou expirado." }, 422, req);
+      if (couponCheck.expires_at && new Date(couponCheck.expires_at) < new Date())
+        return json({ error: "Cupom expirado." }, 422, req);
+      if (couponCheck.max_uses !== null && couponCheck.uses_count >= couponCheck.max_uses)
+        return json({ error: "Cupom esgotado." }, 422, req);
 
-      const c = couponData as { type: string; value: number };
-      if (c.type === "percent")           couponDiscount = Math.round(subtotal * c.value / 100 * 100) / 100;
-      else if (c.type === "fixed")        couponDiscount = Math.min(c.value, subtotal);
+      const minOrder = Number(couponCheck.min_order ?? 0);
+      if (minOrder > 0 && subtotal < minOrder)
+        return json({ error: `Cupom válido apenas para pedidos acima de R$ ${minOrder.toFixed(2).replace(".", ",")}.` }, 422, req);
+
+      const c = couponCheck as { type: string; value: number };
+      if (c.type === "percent")            couponDiscount = Math.round(subtotal * c.value / 100 * 100) / 100;
+      else if (c.type === "fixed")         couponDiscount = Math.min(c.value, subtotal);
       else if (c.type === "free_delivery") couponDiscount = deliveryFee;
+
+      pendingCouponCode = payload.couponCode.trim();
+      pendingCouponId   = couponCheck.id as string;
     }
 
-    // ── 8. Pontos (apenas usuários autenticados) ─────────────
+    // ── 8. Pré-validação de pontos (sem debitar ainda) ───────
+    // O débito real ocorre no webhook de confirmação (spend_points_for_order),
+    // evitando que pontos sejam debitados antes do pagamento ser confirmado.
     const pointsDiscount = Math.max(0, Math.floor(payload.pointsDiscount ?? 0));
     if (pointsDiscount > 0 && userId) {
-      const { data: ok, error: pointsErr } = await admin.rpc("spend_points", {
-        p_user_id:     userId,
-        p_amount:      pointsDiscount,
-        p_description: "Desconto em pedido",
-        p_order_id:    null,
-      });
-      if (pointsErr || !ok) return json({ error: "Pontos insuficientes ou erro ao debitar." }, 422, req);
+      const { data: pointsRow } = await admin
+        .from("user_points")        // tabela correta (loyalty_points não existe)
+        .select("balance")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const balance = Number(pointsRow?.balance ?? 0);
+      if (balance < pointsDiscount)
+        return json({ error: "Pontos insuficientes." }, 422, req);
     }
 
     const total = Math.max(0.01, subtotal + deliveryFee - couponDiscount - pointsDiscount);
@@ -213,6 +227,8 @@ serve(async (req) => {
         delivery_fee:           deliveryFee,
         subtotal,
         total,
+        coupon_id:              pendingCouponId,
+        points_discount:        pointsDiscount,
         status:                 0,
         is_guest_checkout:      guestSessionId !== null,
       })
@@ -242,6 +258,30 @@ serve(async (req) => {
       console.error("[create-order] items insert:", itemsErr.message);
       return json({ error: "Erro ao registrar itens do pedido." }, 500, req);
     }
+
+    // ── 10b. Consome cupom atomicamente (pedido já existe) ────
+    // Se o cupom foi esgotado por outra requisição paralela neste momento,
+    // cancela o pedido e retorna erro — evita cupom consumido sem pedido válido.
+    if (pendingCouponCode) {
+      const { error: couponErr } = await admin.rpc("use_coupon_atomic", {
+        p_code:             pendingCouponCode,
+        p_user_id:          userId,
+        p_guest_session_id: guestSessionId,
+      });
+
+      if (couponErr) {
+        await admin.from("orders").delete().eq("id", order.id);
+        const msg = couponErr.message.includes("INVALID_COUPON")   ? "Cupom inválido ou expirado."
+                  : couponErr.message.includes("EXPIRED_COUPON")   ? "Cupom expirado."
+                  : couponErr.message.includes("EXHAUSTED_COUPON") ? "Cupom esgotado. Tente sem o cupom."
+                  : couponErr.message.includes("ALREADY_USED")     ? "Você já utilizou este cupom."
+                  : "Erro ao aplicar cupom.";
+        return json({ error: msg }, 422, req);
+      }
+    }
+
+    // Pontos são debitados pelo marketplace-webhook quando pagamento confirma
+    // (spend_points_for_order — idempotente). Nunca debitamos antes do pagamento.
 
     // ── 11. Busca tracking code (gerado por trigger para guests) ──
     let trackingCode: string | undefined;
