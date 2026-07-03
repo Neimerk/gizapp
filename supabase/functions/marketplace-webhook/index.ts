@@ -10,6 +10,7 @@ import { timingSafeCompare, verifyHmacSha256 } from "../_shared/hmac.ts";
  * Eventos tratados:
  *   PAYMENT_CONFIRMED / PAYMENT_RECEIVED → confirma pedido + executa split
  *   PAYMENT_DECLINED / PAYMENT_REFUSED / PAYMENT_CHARGEBACK_REQUESTED → marca declinado
+ *   PAYMENT_OVERDUE → marca PIX vencido (payment_status=OVERDUE, payments.status=expired)
  *   PAYMENT_REFUNDED / PAYMENT_CHARGEBACK_DONE → estorna + reverte split
  *   PAYMENT_DELETED → cancela pedido
  *
@@ -31,6 +32,7 @@ const MAX_RETRIES = 5;
 const CONFIRMED_EVENTS = new Set(["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"]);
 const DECLINED_EVENTS  = new Set(["PAYMENT_DECLINED", "PAYMENT_REFUSED", "PAYMENT_CHARGEBACK_REQUESTED"]);
 const REFUNDED_EVENTS  = new Set(["PAYMENT_REFUNDED", "PAYMENT_CHARGEBACK_DONE"]);
+const OVERDUE_EVENTS   = new Set(["PAYMENT_OVERDUE"]);
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -124,15 +126,16 @@ async function handleOrderConfirmed(
       metadata:         { raw: payment },
     }).catch(() => null); // UNIQUE gateway_event_id — ignora duplicata
 
-    // Executa split via execute-split
-    if (INTERNAL_KEY) {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/execute-split`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
-        body:    JSON.stringify({ orderId, paymentId: paymentRow.id }),
-      });
-      if (!res.ok) throw new Error(`execute-split failed: ${await res.text()}`);
+    // Executa split — falha explicitamente se INTERNAL_FUNCTION_KEY não configurado
+    if (!INTERNAL_KEY) {
+      throw new Error("[execute-split] INTERNAL_FUNCTION_KEY não configurado — configure em Supabase > Edge Functions > Secrets");
     }
+    const splitRes = await fetch(`${SUPABASE_URL}/functions/v1/execute-split`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
+      body:    JSON.stringify({ orderId, paymentId: paymentRow.id }),
+    });
+    if (!splitRes.ok) throw new Error(`execute-split failed: ${await splitRes.text()}`);
   }
 
   // Pontos de fidelidade
@@ -235,6 +238,21 @@ async function handleOrderRefunded(
     p_amount:      payment.value,
     p_description: `Estorno via webhook — Pedido ${shortId(orderId)}`,
     p_metadata:    { asaas_payment_id: payment.id, event: payment.event },
+  }).catch(() => null);
+}
+
+async function handleOrderOverdue(admin: AdminClient, orderId: string): Promise<void> {
+  await admin.from("orders").update({ payment_status: "OVERDUE" }).eq("id", orderId);
+  await admin.from("payments").update({ status: "expired" }).eq("order_id", orderId);
+  await admin.rpc("log_financial_event", {
+    p_actor_type:  "system",
+    p_actor_id:    null,
+    p_action:      "order_payment_overdue",
+    p_entity_type: "orders",
+    p_entity_id:   orderId,
+    p_amount:      null,
+    p_description: `PIX vencido — Pedido ${shortId(orderId)}`,
+    p_metadata:    {},
   }).catch(() => null);
 }
 
@@ -349,6 +367,8 @@ serve(async (req) => {
       await handleOrderConfirmed(admin, orderId, payment);
     } else if (DECLINED_EVENTS.has(event)) {
       await handleOrderDeclined(admin, orderId);
+    } else if (OVERDUE_EVENTS.has(event)) {
+      await handleOrderOverdue(admin, orderId);
     } else if (REFUNDED_EVENTS.has(event)) {
       await handleOrderRefunded(admin, orderId, payment);
     } else if (event === "PAYMENT_DELETED") {

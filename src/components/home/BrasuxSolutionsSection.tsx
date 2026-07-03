@@ -19,7 +19,7 @@ export default function BrasuxSolutionsSection() {
 
             <section>
               <PromoCard
-                href="https://brasux-caixa-livre.vercel.app"
+                href="https://caixa.brasux.store"
                 background="linear-gradient(135deg, #022c22 0%, #064e3b 40%, #065f46 100%)"
                 blobAColor="#10b981"
                 blobBColor="#34d399"

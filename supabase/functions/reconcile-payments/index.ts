@@ -111,14 +111,18 @@ serve(async (req) => {
       }
 
       // Executa split (cria ledger + credita wallets)
-      if (paymentRow?.id && INTERNAL_KEY) {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/execute-split`, {
-          method:  "POST",
-          headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
-          body:    JSON.stringify({ orderId: order.id, paymentId: paymentRow.id }),
-        });
-        if (!res.ok) {
-          console.warn(`[reconcile-payments] execute-split failed for order=${order.id}:`, await res.text());
+      if (paymentRow?.id) {
+        if (!INTERNAL_KEY) {
+          console.error(`[reconcile-payments] INTERNAL_FUNCTION_KEY não configurado — split não executado para order=${order.id}. Configure em Supabase > Edge Functions > Secrets.`);
+        } else {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/execute-split`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
+            body:    JSON.stringify({ orderId: order.id, paymentId: paymentRow.id }),
+          });
+          if (!res.ok) {
+            console.warn(`[reconcile-payments] execute-split failed for order=${order.id}:`, await res.text());
+          }
         }
       }
 

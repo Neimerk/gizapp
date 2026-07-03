@@ -293,16 +293,33 @@ serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Não autenticado." }, 401, req);
+    // Aceita JWT de usuário logado OU guest token para pedidos sem login
+    const guestTokenHeader = req.headers.get("X-Guest-Token");
+    const authHeader       = req.headers.get("Authorization");
+    if (!authHeader && !guestTokenHeader) return json({ error: "Não autenticado." }, 401, req);
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: { user }, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !user) return json({ error: "Token inválido." }, 401, req);
+    // Valida identidade e ownership: guest token OU JWT
+    let ownershipFilter: { column: string; value: string } | null = null;
+
+    if (guestTokenHeader) {
+      const { data: sess } = await admin
+        .from("guest_sessions")
+        .select("id")
+        .eq("guest_token", guestTokenHeader)
+        .gt("expires_at", new Date().toISOString())
+        .single();
+      if (!sess) return json({ error: "Sessão inválida." }, 401, req);
+      ownershipFilter = { column: "guest_session_id", value: sess.id as string };
+    } else {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader! } },
+      });
+      const { data: { user }, error: authErr } = await userClient.auth.getUser();
+      if (authErr || !user) return json({ error: "Token inválido." }, 401, req);
+      ownershipFilter = { column: "customer_id", value: user.id };
+    }
 
     const { orderId, type } = await req.json() as {
       orderId: string;
@@ -311,18 +328,20 @@ serve(async (req) => {
 
     if (!orderId) return json({ error: "orderId é obrigatório." }, 400, req);
 
-    // Busca o pedido com itens e loja
     const { data: order, error: orderErr } = await admin
       .from("orders")
       .select("*, stores(name, email, owner_id, delivery_time_max), order_items(product_name, quantity, unit_price, total_price)")
       .eq("id", orderId)
+      .eq(ownershipFilter.column, ownershipFilter.value)
       .single();
 
     if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404, req);
 
     const store  = order.stores  as { name: string; email?: string; owner_id: string; delivery_time_max: number } | null;
     const items  = order.order_items as Array<{ product_name: string; quantity: number; unit_price: number; total_price: number }>;
-    const buyerEmail = user.email ?? "";
+    // customer_email é a fonte primária (inclui guests); fallback para auth user email não é necessário
+    // pois order.customer_email é preenchido tanto para guests quanto para usuários autenticados
+    const buyerEmail = (order.customer_email as string | null) ?? "";
 
     if (type === "order_placed") {
       // 1. Email de confirmação ao comprador

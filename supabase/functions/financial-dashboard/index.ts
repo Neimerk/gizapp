@@ -99,12 +99,12 @@ serve(async (req) => {
     const totalMRR        = Object.values(mrrByPlan).reduce((s, v) => s + v, 0);
 
     // ── Carteiras ─────────────────────────────────────────────
-    const { data: wallets } = await admin.from("wallets").select("wallet_type, balance_held, balance_available");
-    const walletSummary = (wallets ?? []).reduce<Record<string, { held: number; available: number }>>(
-      (acc, w) => {
-        if (!acc[w.wallet_type]) acc[w.wallet_type] = { held: 0, available: 0 };
-        acc[w.wallet_type].held      += Number(w.balance_held ?? 0);
-        acc[w.wallet_type].available += Number(w.balance_available ?? 0);
+    // wallets não tem colunas de saldo — calculamos via wallet_transactions
+    const { data: walletRows } = await admin.rpc("get_wallet_type_summary");
+    type WalletRow = { wallet_type: string; available: string; held: string };
+    const walletSummary = (walletRows as WalletRow[] ?? []).reduce<Record<string, { held: number; available: number }>>(
+      (acc, r) => {
+        acc[r.wallet_type] = { held: Number(r.held), available: Number(r.available) };
         return acc;
       },
       {},

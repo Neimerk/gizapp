@@ -29,7 +29,8 @@ const CourierPage  = lazy(() => import("../pages/CourierPage"));
 const SobrePage    = lazy(() => import("../pages/SobrePage"));
 const PrivacyPage  = lazy(() => import("../pages/PrivacyPage"));
 const AjudaPage    = lazy(() => import("../pages/AjudaPage"));
-const ContatoPage  = lazy(() => import("../pages/ContatoPage"));
+const ContatoPage       = lazy(() => import("../pages/ContatoPage"));
+const OrderTrackingPage = lazy(() => import("../pages/OrderTrackingPage"));
 
 function PageSpinner() {
   return (
@@ -115,7 +116,9 @@ export const router = createBrowserRouter([
       { path: "sobre",       element: <SobrePage /> },
       { path: "privacidade", element: <PrivacyPage /> },
       { path: "ajuda",       element: <AjudaPage /> },
-      { path: "contato",     element: <ContatoPage /> },
+      { path: "contato",       element: <ContatoPage /> },
+      { path: "acompanhar",   element: <OrderTrackingPage /> },
+      { path: "acompanhar/:code", element: <OrderTrackingPage /> },
       {
         path: "lojista",
         element: (

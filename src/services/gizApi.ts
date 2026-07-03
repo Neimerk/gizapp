@@ -1,7 +1,6 @@
 import { supabase } from "../lib/supabase";
 import { shoppingDb } from "./shoppingSupabase";
 import { useAuthStore } from "../stores/authStore";
-import { BRASUX_API, authHeaders } from "./auth";
 
 const IMAGE_BASE_URL =
   import.meta.env.VITE_IMAGE_BASE_URL ||
@@ -12,16 +11,6 @@ export const GIZ_API_URL = (import.meta.env.VITE_API_URL as string) || "";
 
 // ID da loja no Supabase (usado em todas as queries Supabase)
 export const DEFAULT_STORE_ID = "21f2f9d1-de5f-40b5-a3fc-765aba6d70a0";
-
-async function brasuxFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BRASUX_API}${path}`, {
-    ...init,
-    headers: { ...authHeaders(), ...(init?.headers ?? {}) },
-  });
-  const data = await res.json().catch(() => ({})) as Record<string, unknown>;
-  if (!res.ok) throw new Error((data.message as string) ?? `Erro ${res.status}`);
-  return data as T;
-}
 
 /* ── AUTH TYPES ─────────────────────────────────────────── */
 
@@ -44,18 +33,63 @@ export type RegisterPayload = {
   storeId?: null;
 };
 
-export async function loginCustomer(payload: LoginPayload): Promise<AuthResponse> {
-  return brasuxFetch<AuthResponse>("/api/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ email: payload.email.trim().toLowerCase(), password: payload.password }),
+export async function loginCustomer(_payload: LoginPayload): Promise<AuthResponse> {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: _payload.email,
+    password: _payload.password,
   });
+  if (error || !data.user) throw new Error("Email ou senha inválidos.");
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, role, store_id")
+    .eq("id", data.user.id)
+    .single();
+
+  const roleMap: Record<string, AuthResponse["role"]> = {
+    admin: "Admin", customer: "Customer", seller: "Seller", courier: "Courier",
+  };
+
+  const role = roleMap[profile?.role ?? "customer"] ?? "Customer";
+
+  // Auditoria: login de admin registrado no banco
+  if (role === "Admin") {
+    supabase.from("audit_logs").insert({
+      user_id:    data.user.id,
+      action:     "ADMIN_LOGIN",
+      table_name: "auth",
+      extra:      { email: data.user.email, ua: navigator.userAgent.slice(0, 200) },
+    }).then(() => null);
+  }
+
+  return {
+    id: data.user.id,
+    name: profile?.name ?? "",
+    email: data.user.email ?? "",
+    role,
+    storeId: profile?.store_id ?? null,
+    token: data.session?.access_token ?? "",
+  };
 }
 
 export async function registerCustomer(payload: RegisterPayload): Promise<AuthResponse> {
-  return brasuxFetch<AuthResponse>("/api/auth/register", {
-    method: "POST",
-    body: JSON.stringify({ name: payload.name.trim(), email: payload.email.trim().toLowerCase(), password: payload.password, role: "Customer" }),
+  const { data, error } = await supabase.auth.signUp({
+    email: payload.email,
+    password: payload.password,
+    // Não passar 'role' no metadata — o trigger handle_new_user ignora qualquer role
+    // e sempre define 'customer'. Passar nome apenas.
+    options: { data: { name: payload.name } },
   });
+  if (error || !data.user) throw new Error(error?.message || "Erro ao cadastrar cliente.");
+
+  return {
+    id: data.user.id,
+    name: payload.name,
+    email: payload.email,
+    role: "Customer",
+    storeId: null,
+    token: data.session?.access_token ?? "",
+  };
 }
 
 /* ── STORE TYPES ─────────────────────────────────────────── */
@@ -279,24 +313,16 @@ export type CreateOrderPayload = {
   storeId: string;
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   deliveryAddress: string;
   deliveryNumber: string;
   deliveryComplement: string;
   deliveryNeighborhood: string;
-  deliveryZipCode?: string;
   paymentMethod: string;
   items: CreateOrderItem[];
   deliveryFeeOverride?: number;
   couponCode?: string;
   pointsDiscount?: number;
-  customerCpfCnpj?: string;
-  customerEmail?: string;
-  // Dados do cartão (apenas para paymentMethod === 'card')
-  cardNumber?: string;
-  cardHolderName?: string;
-  cardExpiryMonth?: string;
-  cardExpiryYear?: string;
-  cardCcv?: string;
 };
 
 export type OrderItem = {
@@ -315,6 +341,8 @@ export type Order = {
   storeId: string;
   storeName?: string;
   customerId?: string;
+  guestSessionId?: string;
+  trackingCode?: string;
   customerName: string;
   customerPhone: string;
   deliveryAddress: string;
@@ -330,17 +358,6 @@ export type Order = {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
-  // Campos de pagamento Asaas (presentes apenas quando cobrança foi criada)
-  paymentLink?: string;
-  pixPayload?: string;
-  pixQrCodeImage?: string;
-  boletoUrl?: string | null;
-  boletoBarCode?: string | null;
-  dueDate?: string;
-  // Campos específicos do cartão
-  cardConfirmed?: boolean;
-  cardDeclined?: boolean;
-  cardDeclineReason?: string | null;
 };
 
 type OrderRow = {
@@ -578,41 +595,46 @@ export async function getProductBySlug(slug: string): Promise<Product> {
 
 /* ── ORDERS API ──────────────────────────────────────────── */
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ALLOWED_PAYMENT_METHODS = new Set(["pix", "card", "boleto", "cash", "dinheiro"]);
+const UUID_RE            = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_PAYMENT_METHODS = new Set(["pix", "card", "boleto"]);
+const SUPABASE_URL_ORDERS = (import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SHOPPING_SUPABASE_URL) as string;
 
-export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
+// createOrder — delega para a Edge Function create-order.
+// Aceita identidade via JWT (usuário logado) ou guest token (convidado).
+export async function createOrder(
+  payload: CreateOrderPayload,
+  options?: { guestToken?: string },
+): Promise<Order> {
+  // Validação client-side (primeira linha de defesa; servidor também valida)
   if (!UUID_RE.test(payload.storeId)) throw new Error("Loja inválida.");
   if (!payload.items?.length || payload.items.length > 50) throw new Error("Itens inválidos.");
   if (!ALLOWED_PAYMENT_METHODS.has(payload.paymentMethod)) throw new Error("Método de pagamento inválido.");
   if (!payload.deliveryAddress?.trim() || !payload.deliveryNeighborhood?.trim()) throw new Error("Endereço incompleto.");
-
-  const body: Record<string, unknown> = {
-    storeId:               payload.storeId,
-    customerName:          payload.customerName,
-    customerPhone:         payload.customerPhone,
-    deliveryAddress:       payload.deliveryAddress,
-    deliveryNumber:        payload.deliveryNumber,
-    deliveryComplement:    payload.deliveryComplement,
-    deliveryNeighborhood:  payload.deliveryNeighborhood,
-    paymentMethod:         payload.paymentMethod,
-    items:                 payload.items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
-  };
-  if (payload.couponCode?.trim())           body.couponCode = payload.couponCode.trim();
-  if (payload.deliveryFeeOverride !== undefined) body.deliveryFeeOverride = payload.deliveryFeeOverride;
-  if (payload.deliveryZipCode)              body.deliveryZipCode = payload.deliveryZipCode.replace(/\D/g, '');
-  if (payload.customerCpfCnpj)             body.customerCpfCnpj = payload.customerCpfCnpj;
-  if (payload.customerEmail)               body.customerEmail = payload.customerEmail;
-  // Cartão: só envia se todos os campos obrigatórios estiverem presentes
-  if (payload.paymentMethod === 'card' && payload.cardNumber && payload.cardHolderName && payload.cardExpiryMonth && payload.cardExpiryYear && payload.cardCcv) {
-    body.cardNumber      = payload.cardNumber.replace(/\D/g, '');
-    body.cardHolderName  = payload.cardHolderName;
-    body.cardExpiryMonth = payload.cardExpiryMonth;
-    body.cardExpiryYear  = payload.cardExpiryYear;
-    body.cardCcv         = payload.cardCcv;
+  for (const item of payload.items) {
+    if (!UUID_RE.test(item.storeProductId)) throw new Error("Produto inválido.");
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) throw new Error("Quantidade inválida.");
   }
 
-  return brasuxFetch<Order>("/api/orders", { method: "POST", body: JSON.stringify(body) });
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+  if (options?.guestToken) {
+    headers["X-Guest-Token"] = options.guestToken;
+  } else {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Identidade não encontrada. Recarregue a página.");
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${SUPABASE_URL_ORDERS}/functions/v1/create-order`, {
+    method:  "POST",
+    headers,
+    body:    JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error ?? "Erro ao criar pedido.");
+  return data as Order;
 }
 
 export async function getMyOrders(): Promise<Order[]> {
@@ -1253,19 +1275,36 @@ export type CouponDB = {
   minOrder: number;
 };
 
-export async function validateCoupon(code: string, storeId: string, orderValue?: number): Promise<CouponDB> {
-  type ValidateResp = { valid: boolean; discountType: string; discountValue: number; description?: string; minOrderValue?: number };
-  const resp = await brasuxFetch<ValidateResp>("/api/coupons/validate", {
-    method: "POST",
-    body: JSON.stringify({ code: code.toUpperCase().trim(), storeId, orderValue: orderValue ?? 0 }),
-  });
+export async function validateCoupon(code: string): Promise<CouponDB> {
+  const { data, error } = await supabase
+    .from("coupons")
+    .select("*")
+    .eq("code", code.toUpperCase().trim())
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error || !data) throw new Error("Cupom inválido ou expirado.");
+  if (data.expires_at && new Date(data.expires_at) < new Date()) throw new Error("Cupom expirado.");
+  if (data.max_uses !== null && data.uses_count >= data.max_uses) throw new Error("Cupom esgotado.");
+
+  const user = useAuthStore.getState().user;
+  if (user && data.max_uses === 1) {
+    const { data: used } = await supabase
+      .from("user_coupons")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("coupon_id", data.id)
+      .maybeSingle();
+    if (used) throw new Error("Você já utilizou este cupom.");
+  }
+
   return {
-    id: code,
-    code: code.toUpperCase().trim(),
-    type: (resp.discountType === "percent" ? "percent" : "fixed") as CouponDB["type"],
-    value: Number(resp.discountValue),
-    label: resp.description ?? (resp.discountType === "percent" ? `${resp.discountValue}% off` : `R$ ${resp.discountValue} off`),
-    minOrder: Number(resp.minOrderValue ?? 0),
+    id: data.id,
+    code: data.code,
+    type: data.type as CouponDB["type"],
+    value: Number(data.value),
+    label: data.label,
+    minOrder: Number(data.min_order ?? 0),
   };
 }
 
@@ -1924,12 +1963,12 @@ export async function getActiveBanners(): Promise<Banner[]> {
 /* ── PIX STATUS POLLING ──────────────────────────────────── */
 
 export async function getOrderPaymentStatus(orderId: string): Promise<string> {
-  try {
-    const data = await brasuxFetch<{ paymentStatus?: string }>(`/api/orders/${orderId}`)
-    return data.paymentStatus ?? "pending";
-  } catch {
-    return "pending";
-  }
+  const { data } = await supabase
+    .from("orders")
+    .select("payment_status")
+    .eq("id", orderId)
+    .single();
+  return (data?.payment_status as string | null) ?? "PENDING";
 }
 
 /* ── CUPONS DISPONÍVEIS (públicos, ativos) ───────────────── */
@@ -1938,28 +1977,30 @@ export type PublicCoupon = {
   id: string;
   code: string;
   label: string;
-  type: "percent" | "fixed";
+  type: "percentage" | "fixed" | "free_shipping";
   value: number;
   minOrderValue: number | null;
   expiresAt: string | null;
 };
 
-export async function getAvailableCoupons(storeId?: string): Promise<PublicCoupon[]> {
-  if (!storeId) return [];
-  type ApiCoupon = { id: string; code: string; discount_type: string; discount_value: number; description?: string; min_order_value?: number; valid_until?: string };
-  const list = await brasuxFetch<ApiCoupon[]>(`/api/coupons?storeId=${storeId}`);
-  return list
-    .filter((c) => !c.valid_until || new Date(c.valid_until) > new Date())
-    .slice(0, 6)
-    .map((c) => ({
-      id: c.id,
-      code: c.code,
-      label: c.description ?? (c.discount_type === "percent" ? `${c.discount_value}% off` : `R$ ${c.discount_value} off`),
-      type: (c.discount_type === "percent" ? "percent" : "fixed") as PublicCoupon["type"],
-      value: Number(c.discount_value),
-      minOrderValue: c.min_order_value != null ? Number(c.min_order_value) : null,
-      expiresAt: c.valid_until ?? null,
-    }));
+export async function getAvailableCoupons(): Promise<PublicCoupon[]> {
+  const now = new Date().toISOString();
+  const { data } = await supabase
+    .from("coupons")
+    .select("id, code, label, type, value, min_order_value, expires_at")
+    .eq("active", true)
+    .or(`expires_at.is.null,expires_at.gt.${now}`)
+    .order("value", { ascending: false })
+    .limit(6);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    code: r.code as string,
+    label: r.label as string,
+    type: r.type as PublicCoupon["type"],
+    value: Number(r.value),
+    minOrderValue: r.min_order_value != null ? Number(r.min_order_value) : null,
+    expiresAt: r.expires_at as string | null,
+  }));
 }
 
 /* ── SELLER WITHDRAWALS ──────────────────────────────────── */

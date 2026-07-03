@@ -125,9 +125,10 @@ serve(async (req) => {
         // Busca conta Asaas do dono (precisa ter asaas_account_id)
         // Por ora, usa transferência via chave Pix
         const transfer = await asaas("/transfers", "POST", {
-          value:        Number(wd.amount_net),
-          pixAddressKey: wd.pix_key,
-          description:  `Saque BrasUX — ${wdId.slice(0, 8).toUpperCase()}`,
+          value:             Number(wd.amount_net),
+          pixAddressKey:     wd.pix_key,
+          pixAddressKeyType: (wd.pix_key_type as string ?? "cpf").toUpperCase(),
+          description:       `Saque BrasUX — ${wdId.slice(0, 8).toUpperCase()}`,
         });
 
         await admin.from("withdrawals").update({

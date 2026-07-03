@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, json, optionsResponse } from "../_shared/cors.ts";
+import { json, optionsResponse } from "../_shared/cors.ts";
 import { requireAsaasBase } from "../_shared/asaas.ts";
 
 // ── Config ────────────────────────────────────────────────────
@@ -36,6 +36,94 @@ const METHOD_MAP: Record<string, string> = {
   BOLETO:      "boleto",
 };
 
+// ── Resolução de identidade (JWT ou guest token) ────────────────
+
+type Identity =
+  | { type: "user";  userId: string;         guestSessionId: null;   customerName: string; customerEmail: string; customerPhone: string; asaasCustomerId: string | null; cpf: string | null }
+  | { type: "guest"; userId: null;            guestSessionId: string; customerName: string; customerEmail: string; customerPhone: string; asaasCustomerId: string | null; cpf: string | null };
+
+async function resolveIdentity(
+  req: Request,
+  admin: ReturnType<typeof createClient>,
+  anonKey: string,
+  supabaseUrl: string,
+  orderId: string,
+): Promise<Identity | Response> {
+  const guestTokenHeader = req.headers.get("X-Guest-Token");
+  const authHeader       = req.headers.get("Authorization");
+
+  if (guestTokenHeader) {
+    // Valida guest session
+    const { data: sess, error: sessErr } = await admin
+      .from("guest_sessions")
+      .select("id, name, email, phone, asaas_customer_id, expires_at")
+      .eq("guest_token", guestTokenHeader)
+      .gt("expires_at", new Date().toISOString())
+      .single();
+
+    if (sessErr || !sess) return json({ error: "Sessão de convidado inválida ou expirada." }, 401, req);
+
+    // Verifica que o pedido pertence a esta guest session
+    const { data: order } = await admin
+      .from("orders")
+      .select("id, customer_name, customer_phone, customer_email, total")
+      .eq("id", orderId)
+      .eq("guest_session_id", sess.id)
+      .single();
+
+    if (!order) return json({ error: "Pedido não encontrado." }, 404, req);
+
+    return {
+      type:           "guest",
+      userId:         null,
+      guestSessionId: sess.id as string,
+      customerName:   (sess.name as string) || (order.customer_name as string),
+      customerEmail:  (sess.email as string | null) ?? (order.customer_email as string | null) ?? "",
+      customerPhone:  (sess.phone as string | null) ?? (order.customer_phone as string) ?? "",
+      asaasCustomerId: (sess.asaas_customer_id as string | null) ?? null,
+      cpf:            null, // guests não fornecem CPF por padrão
+    };
+
+  } else if (authHeader) {
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !user) return json({ error: "Token inválido." }, 401, req);
+
+    // Verifica ownership pelo customer_id
+    const { data: order } = await admin
+      .from("orders")
+      .select("id, total, delivery_number, customer_name, customer_phone")
+      .eq("id", orderId)
+      .eq("customer_id", user.id)
+      .single();
+
+    if (!order) return json({ error: "Pedido não encontrado." }, 404, req);
+
+    // Busca perfil para Asaas customer ID e CPF
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("name, phone, cpf, asaas_customer_id")
+      .eq("id", user.id)
+      .single();
+
+    return {
+      type:           "user",
+      userId:         user.id,
+      guestSessionId: null,
+      customerName:   (profile?.name as string | null) ?? (order.customer_name as string),
+      customerEmail:  user.email ?? "",
+      customerPhone:  (profile?.phone as string | null) ?? (order.customer_phone as string) ?? "",
+      asaasCustomerId: (profile?.asaas_customer_id as string | null) ?? null,
+      cpf:            (profile?.cpf as string | null) ?? null,
+    };
+
+  } else {
+    return json({ error: "Não autenticado." }, 401, req);
+  }
+}
+
 // ── Serve ─────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return optionsResponse(req);
@@ -44,27 +132,9 @@ serve(async (req) => {
   const supabaseUrl    = Deno.env.get("SUPABASE_URL")!;
   const anonKey        = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin          = createClient(supabaseUrl, serviceRoleKey);
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "Não autenticado." }, 401, req);
-
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const admin = createClient(supabaseUrl, serviceRoleKey);
-
-    const { data: { user }, error: authErr } = await userClient.auth.getUser();
-    if (authErr || !user) return json({ error: "Token inválido." }, 401, req);
-
-    // Rate limit: 5 cobranças por minuto por usuário
-    const { data: allowed } = await admin.rpc("check_rate_limit", {
-      p_key:            `charge:${user.id}`,
-      p_max_requests:   5,
-      p_window_seconds: 60,
-    });
-    if (!allowed) return json({ error: "Muitas tentativas. Aguarde um momento." }, 429, req);
-
     const body = await req.json();
     const { orderId, paymentMethod, creditCard, creditCardHolderInfo } = body as {
       orderId: string;
@@ -81,17 +151,32 @@ serve(async (req) => {
 
     if (!orderId || !paymentMethod) return json({ error: "Parâmetros inválidos." }, 400, req);
 
-    // ── 1. Busca pedido (verifica ownership) ──────────────────
-    const { data: order, error: orderErr } = await admin
+    // ── 1. Resolve identidade ────────────────────────────────
+    const identity = await resolveIdentity(req, admin, anonKey, supabaseUrl, orderId);
+    if (identity instanceof Response) return identity;
+
+    // ── 2. Busca dados do pedido ─────────────────────────────
+    const { data: order } = await admin
       .from("orders")
-      .select("id, total, delivery_number, customer_name, customer_phone")
+      .select("id, total, delivery_number, customer_name, customer_phone, customer_email")
       .eq("id", orderId)
-      .eq("customer_id", user.id)
       .single();
 
-    if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404, req);
+    if (!order) return json({ error: "Pedido não encontrado." }, 404, req);
 
-    // ── 2. Idempotência: verifica se já existe pagamento ──────
+    // ── 3. Rate limit por identidade ─────────────────────────
+    const rateLimitKey = identity.type === "user"
+      ? `charge:${identity.userId}`
+      : `charge:guest:${identity.guestSessionId}`;
+
+    const { data: allowed } = await admin.rpc("check_rate_limit", {
+      p_key:            rateLimitKey,
+      p_max_requests:   5,
+      p_window_seconds: 60,
+    });
+    if (!allowed) return json({ error: "Muitas tentativas. Aguarde um momento." }, 429, req);
+
+    // ── 4. Idempotência: verifica se já existe pagamento ──────
     const { data: existingPayment } = await admin
       .from("payments")
       .select("id, external_id, status, pix_code, pix_qr_image, pix_expires_at, boleto_url, boleto_bar_code")
@@ -101,15 +186,10 @@ serve(async (req) => {
     if (existingPayment) {
       const st = existingPayment.status as string;
 
-      if (st === "approved") {
-        return json({ error: "Este pedido já foi pago." }, 409, req);
-      }
+      if (st === "approved") return json({ error: "Este pedido já foi pago." }, 409, req);
 
-      // Para PIX com QR ainda válido, retorna dados cacheados
       if (st === "pending" && existingPayment.external_id && paymentMethod === "PIX") {
-        const expiresAt = existingPayment.pix_expires_at
-          ? new Date(existingPayment.pix_expires_at as string)
-          : null;
+        const expiresAt  = existingPayment.pix_expires_at ? new Date(existingPayment.pix_expires_at as string) : null;
         const stillValid = expiresAt ? expiresAt.getTime() > Date.now() + 5 * 60 * 1000 : false;
 
         if (stillValid && existingPayment.pix_code) {
@@ -121,7 +201,6 @@ serve(async (req) => {
             expirationDate: existingPayment.pix_expires_at,
           }, 200, req);
         }
-        // QR expirado: re-busca no Asaas
         if (existingPayment.external_id) {
           try {
             const pix = await asaas(`/payments/${existingPayment.external_id}/pixQrCode`);
@@ -136,7 +215,6 @@ serve(async (req) => {
         }
       }
 
-      // Para boleto com external_id: retorna cacheado
       if (st === "pending" && existingPayment.external_id && paymentMethod === "BOLETO") {
         return json({
           chargeId:      existingPayment.external_id,
@@ -147,30 +225,29 @@ serve(async (req) => {
       }
     }
 
-    // ── 3. Busca perfil do usuário ────────────────────────────
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("name, phone, cpf, asaas_customer_id")
-      .eq("id", user.id)
-      .single();
-
-    // ── 4. Busca ou cria cliente no Asaas ────────────────────
-    let asaasCustomerId: string = profile?.asaas_customer_id ?? "";
+    // ── 5. Busca ou cria cliente no Asaas ────────────────────
+    let asaasCustomerId = identity.asaasCustomerId ?? "";
 
     if (!asaasCustomerId) {
-      const rawCpf = (profile?.cpf ?? creditCardHolderInfo?.cpfCnpj ?? "").replace(/\D/g, "");
+      const rawCpf = (identity.cpf ?? creditCardHolderInfo?.cpfCnpj ?? "").replace(/\D/g, "");
       const customer = await asaas("/customers", "POST", {
-        name:              profile?.name ?? order.customer_name,
-        email:             user.email,
+        name:              identity.customerName || order.customer_name,
+        email:             identity.customerEmail || order.customer_email || undefined,
         cpfCnpj:           rawCpf || undefined,
-        phone:             (profile?.phone ?? "").replace(/\D/g, "") || undefined,
-        externalReference: user.id,
+        phone:             identity.customerPhone.replace(/\D/g, "") || undefined,
+        externalReference: identity.type === "user" ? identity.userId : `guest:${identity.guestSessionId}`,
       });
       asaasCustomerId = customer.id;
-      await admin.from("profiles").update({ asaas_customer_id: customer.id }).eq("id", user.id);
+
+      // Persiste na tabela correta para reutilização futura
+      if (identity.type === "user") {
+        await admin.from("profiles").update({ asaas_customer_id: customer.id }).eq("id", identity.userId);
+      } else {
+        await admin.from("guest_sessions").update({ asaas_customer_id: customer.id }).eq("id", identity.guestSessionId);
+      }
     }
 
-    // ── 5. Cria registro em payments ANTES de chamar Asaas ───
+    // ── 6. Cria registro em payments ──────────────────────────
     const paymentMethod_db = METHOD_MAP[paymentMethod] ?? "pix";
     let paymentRowId: string;
 
@@ -190,13 +267,13 @@ serve(async (req) => {
         .single();
 
       if (pmErr || !newPayment) {
-        console.error("[asaas-create-charge] payments insert error:", pmErr?.message);
+        console.error("[asaas-create-charge] payments insert:", pmErr?.message);
         return json({ error: "Erro ao registrar pagamento." }, 500, req);
       }
       paymentRowId = newPayment.id as string;
     }
 
-    // ── 6. Monta payload da cobrança ──────────────────────────
+    // ── 7. Monta payload da cobrança ──────────────────────────
     const baseCharge: Record<string, unknown> = {
       customer:          asaasCustomerId,
       billingType:       paymentMethod,
@@ -206,9 +283,9 @@ serve(async (req) => {
     };
 
     if (paymentMethod === "PIX") {
-      baseCharge.dueDate = dueDate(30 * 60 * 1000);      // 30 min
+      baseCharge.dueDate = dueDate(30 * 60 * 1000);
     } else if (paymentMethod === "BOLETO") {
-      baseCharge.dueDate = dueDate(3 * 24 * 60 * 60 * 1000); // 3 dias
+      baseCharge.dueDate = dueDate(3 * 24 * 60 * 60 * 1000);
     } else if (paymentMethod === "CREDIT_CARD") {
       baseCharge.dueDate = dueDate(0);
       baseCharge.creditCard = {
@@ -219,50 +296,44 @@ serve(async (req) => {
         ccv:         creditCard!.ccv,
       };
       baseCharge.creditCardHolderInfo = {
-        name:          creditCardHolderInfo?.name ?? profile?.name ?? order.customer_name,
-        email:         creditCardHolderInfo?.email ?? user.email ?? "",
-        cpfCnpj:       (creditCardHolderInfo?.cpfCnpj ?? profile?.cpf ?? "").replace(/\D/g, ""),
+        name:          creditCardHolderInfo?.name ?? identity.customerName,
+        email:         creditCardHolderInfo?.email ?? identity.customerEmail ?? "",
+        cpfCnpj:       (creditCardHolderInfo?.cpfCnpj ?? identity.cpf ?? "").replace(/\D/g, ""),
         postalCode:    (creditCardHolderInfo?.postalCode ?? "").replace(/\D/g, ""),
-        addressNumber: creditCardHolderInfo?.addressNumber ?? order.delivery_number ?? "S/N",
-        phone:         (creditCardHolderInfo?.phone ?? profile?.phone ?? order.customer_phone ?? "").replace(/\D/g, ""),
+        addressNumber: creditCardHolderInfo?.addressNumber ?? (order.delivery_number as string | null) ?? "S/N",
+        phone:         (creditCardHolderInfo?.phone ?? identity.customerPhone ?? "").replace(/\D/g, ""),
       };
     }
 
-    // ── 7. Cria cobrança no Asaas ─────────────────────────────
+    // ── 8. Cria cobrança no Asaas ─────────────────────────────
     let charge: Record<string, unknown>;
     try {
       charge = await asaas("/payments", "POST", baseCharge);
     } catch (e) {
-      // Reverte status do payment record
       await admin.from("payments").update({ status: "cancelled" }).eq("id", paymentRowId);
       return json({ error: e instanceof Error ? e.message : "Erro ao criar cobrança." }, 422, req);
     }
 
-    const isDeclined = charge.status === "DECLINED" || charge.status === "REFUSED";
+    const isDeclined    = charge.status === "DECLINED" || charge.status === "REFUSED";
     const gatewayStatus = isDeclined ? "declined"
       : charge.status === "CONFIRMED" ? "approved"
       : "pending";
 
-    // ── 8. Atualiza payment record com dados do gateway ───────
     await admin.from("payments").update({
-      external_id:     charge.id,
-      status:          gatewayStatus,
+      external_id:      charge.id,
+      status:           gatewayStatus,
       gateway_response: charge,
     }).eq("id", paymentRowId);
 
-    // ── 9. Atualiza orders ────────────────────────────────────
     await admin.from("orders").update({
       asaas_charge_id: charge.id,
-      payment_status:  isDeclined ? "DECLINED"
-        : charge.status === "CONFIRMED" ? "CONFIRMED"
-        : "PENDING",
+      payment_status:  isDeclined ? "DECLINED" : charge.status === "CONFIRMED" ? "CONFIRMED" : "PENDING",
       ...(charge.status === "CONFIRMED" && { status: 1 }),
     }).eq("id", orderId);
 
-    // ── 10. Monta resposta por método ─────────────────────────
+    // ── 9. Monta resposta por método ──────────────────────────
     if (paymentMethod === "PIX") {
       const pix = await asaas(`/payments/${charge.id}/pixQrCode`);
-
       await admin.from("payments").update({
         pix_code:       pix.payload,
         pix_qr_image:   pix.encodedImage,
@@ -293,7 +364,6 @@ serve(async (req) => {
       }, 200, req);
     }
 
-    // CREDIT_CARD
     return json({
       chargeId:  charge.id,
       paymentId: paymentRowId,

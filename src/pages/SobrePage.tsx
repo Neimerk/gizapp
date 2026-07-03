@@ -27,7 +27,7 @@ const EXTENDED_FAQS = [
   {
     question: "Como funciona o BrasUX Caixa?",
     answer:
-      "O BrasUX Caixa é um sistema de PDV (Ponto de Venda) completo para pequenos e médios negócios. Inclui gestão de vendas, estoque, fluxo de caixa e dashboard. Acesse em brasux-caixa-livre.vercel.app.",
+      "O BrasUX Caixa é um sistema de PDV (Ponto de Venda) completo para pequenos e médios negócios. Inclui gestão de vendas, estoque, fluxo de caixa e dashboard. Acesse em caixa.brasux.store.",
   },
   {
     question: "O que é o SimulENEM?",

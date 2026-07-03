@@ -7,22 +7,30 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 
 import {
-  createOrder, getStoreById, getOrderPaymentStatus, getAvailableCoupons,
+  createOrder, getStoreById, getAvailableCoupons,
   queryKeys, type PublicCoupon,
 } from "../services/gizApi";
 import { useDeliveryFee } from "../hooks/useDeliveryFee";
+import {
+  createPixCharge, createCardCharge, createBoletoCharge, notifyOrderPlaced, pollPixStatus,
+  type PixResult, type CardResult, type BoletoResult,
+} from "../services/asaasApi";
 import { useCartStore } from "../stores/cartStore";
 import { usePointsStore } from "../stores/pointsStore";
 import { useToastStore } from "../stores/toastStore";
 import { getAuth } from "../services/auth";
+import { createGuestSession, getGuestToken } from "../services/guestSession";
 import { useCepLookup } from "../hooks/useCepLookup";
 import { useSavedAddresses, type SavedAddress } from "../hooks/useSavedAddresses";
 import { useCoupon } from "../hooks/useCoupon";
 import { formatBRL } from "../utils/format";
+import { PostPurchaseModal } from "../components/checkout/PostPurchaseModal";
 
 // ── Tipos ──────────────────────────────────────────────────────
 
-type PaymentMethod = "pix" | "card" | "boleto" | "cash";
+type TrackingInfo = { trackingCode?: string };
+
+type PaymentMethod = "pix" | "card" | "boleto";
 
 type CardData = {
   number: string;
@@ -33,10 +41,9 @@ type CardData = {
 };
 
 type PaymentResult =
-  | { method: "pix";    orderId: string; pixQrCodeImage: string; pixCode: string; expirationDate: string }
-  | { method: "boleto"; orderId: string; boletoUrl: string; boletoBarCode: string; dueDate: string }
-  | { method: "card";   orderId: string; confirmed: boolean; error?: string; paymentLink?: string }
-  | { method: "cash";   orderId: string };
+  | ({ method: "pix";    orderId: string } & Omit<PixResult, "chargeId">)
+  | ({ method: "boleto"; orderId: string } & Omit<BoletoResult, "chargeId">)
+  | ({ method: "card";   orderId: string; confirmed: boolean; error?: string });
 
 type WizardStep = 1 | 2 | 3;
 
@@ -123,6 +130,9 @@ export default function CheckoutPage() {
   const auth         = getAuth();
 
   const [guestInfo, setGuestInfo] = useState({ name: "", phone: "", email: "" });
+  const [guestToken, setGuestToken] = useState<string | null>(() => getGuestToken());
+  const [showPostPurchaseModal, setShowPostPurchaseModal] = useState(false);
+  const [trackingInfo, setTrackingInfo] = useState<TrackingInfo>({});
   const guestReady = !!auth || guestInfo.name.trim().length >= 2;
 
   const storeId = items[0]?.storeId ?? "";
@@ -132,9 +142,9 @@ export default function CheckoutPage() {
     enabled:  !!storeId,
   });
 
-  const { data: availableCoupons = [] } = useQuery<PublicCoupon[]>({
+  const { data: availableCoupons = [] } = useQuery({
     queryKey: queryKeys.availableCoupons(),
-    queryFn: () => getAvailableCoupons(storeId),
+    queryFn: getAvailableCoupons,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -170,10 +180,9 @@ export default function CheckoutPage() {
   // Pagamento
   const saved = loadCheckout();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    (["card", "boleto", "cash"].includes(saved.paymentMethod) ? saved.paymentMethod : "pix") as PaymentMethod,
+    (["card", "boleto"].includes(saved.paymentMethod) ? saved.paymentMethod : "pix") as PaymentMethod,
   );
   const [card, setCard] = useState<CardData>(EMPTY_CARD);
-  const [pixCpf, setPixCpf] = useState("");
 
   // Estado pós-confirmação
   const [saving, setSaving] = useState(false);
@@ -217,18 +226,17 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!paymentResult || paymentResult.method !== "pix") return;
     const orderId = paymentResult.orderId;
+    const gt = auth ? undefined : guestToken ?? undefined;
     let stopped = false;
 
     const poll = async () => {
       if (stopped) return;
       try {
-        const status = await getOrderPaymentStatus(orderId);
+        const { status } = await pollPixStatus(orderId, gt);
         if (status === "paid") {
           stopped = true;
           if (auth) earnPoints(finalTotal, `Pedido #${orderId.slice(0, 8)}`);
           setPixConfirmed(true);
-        } else if (status === "refunded" || status === "chargeback" || status === "overdue" || status === "cancelled") {
-          stopped = true;
         }
       } catch { /* silencioso */ }
     };
@@ -264,46 +272,30 @@ export default function CheckoutPage() {
 
     try {
       setSaving(true);
-      setFinalTotal(total); // captura antes de limpar carrinho/cupom
+      setFinalTotal(total);
 
-      const effectiveCpf = paymentMethod === "card" ? card.cpf : pixCpf;
-
-      // Expiry: "MMYY" → mês e ano separados
-      const [cardExpMonth, cardExpYear] = (() => {
-        const raw = card.expiration.replace(/\D/g, "");
-        return raw.length >= 4
-          ? [raw.slice(0, 2), `20${raw.slice(2, 4)}`]
-          : ["", ""];
-      })();
-
-      const order = await createOrder({
-        storeId,
-        customerName:         auth?.name ?? guestInfo.name.trim(),
-        customerPhone:        selectedAddress.phone || guestInfo.phone || "—",
-        deliveryAddress:      selectedAddress.address,
-        deliveryNumber:       selectedAddress.number,
-        deliveryComplement:   selectedAddress.complement,
-        deliveryNeighborhood: selectedAddress.neighborhood,
-        deliveryZipCode:      selectedAddress.cep,
-        paymentMethod,
-        items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
-        deliveryFeeOverride:  feeSource === "distance" ? deliveryFee : undefined,
-        couponCode:     coupon?.code,
-        pointsDiscount: pointsDiscount > 0 ? pointsDiscount : undefined,
-        ...(effectiveCpf.replace(/\D/g, "").length === 11 && { customerCpfCnpj: effectiveCpf }),
-        // Dados do cartão
-        ...(paymentMethod === "card" && {
-          cardNumber:      card.number,
-          cardHolderName:  card.name,
-          cardExpiryMonth: cardExpMonth,
-          cardExpiryYear:  cardExpYear,
-          cardCcv:         card.cvv,
-        }),
-      });
+      const order = await createOrder(
+        {
+          storeId,
+          customerName:         auth?.name ?? guestInfo.name.trim(),
+          customerPhone:        selectedAddress.phone || guestInfo.phone || "—",
+          customerEmail:        (auth?.email ?? guestInfo.email.trim()) || undefined,
+          deliveryAddress:      selectedAddress.address,
+          deliveryNumber:       selectedAddress.number,
+          deliveryComplement:   selectedAddress.complement,
+          deliveryNeighborhood: selectedAddress.neighborhood,
+          paymentMethod,
+          items: items.map((i) => ({ storeProductId: i.storeProductId, quantity: i.quantity })),
+          deliveryFeeOverride:  feeSource === "distance" ? deliveryFee : undefined,
+          couponCode:     coupon?.code,
+          pointsDiscount: pointsDiscount > 0 ? pointsDiscount : undefined,
+        },
+        { guestToken: auth ? undefined : guestToken ?? undefined },
+      );
 
       saveOrderId(order.id);
+      notifyOrderPlaced(order.id, auth ? undefined : guestToken);
 
-      // Sincroniza estado local de pontos com o que o servidor debitou
       if (pointsDiscount > 0) {
         spendPoints(pointsDiscount, `Desconto no pedido #${order.id.slice(0, 8)}`);
       }
@@ -311,15 +303,11 @@ export default function CheckoutPage() {
       clearCart();
       removeCoupon();
 
-      // A cobrança Asaas é criada pelo brasux-api junto com o pedido.
-      // Os dados de pagamento chegam na resposta do createOrder.
+      const gt = auth ? undefined : guestToken ?? undefined;
+      if (!auth && order.trackingCode) setTrackingInfo({ trackingCode: order.trackingCode });
+
       if (paymentMethod === "pix") {
-        if (!order.pixQrCodeImage && !order.pixPayload) {
-          // Pedido criado mas sem QR (CPF ausente ou falha Asaas)
-          useToastStore.getState().show("Pedido criado! " + (order.paymentLink ? "Acesse o link para pagar: " + order.paymentLink : "Entre em contato para instruções de pagamento."));
-          setSaving(false);
-          return;
-        }
+        const result: PixResult = await createPixCharge(order.id, gt);
         setPaymentResult({
           method:         "pix",
           orderId:        order.id,
@@ -328,15 +316,12 @@ export default function CheckoutPage() {
           pixCode:        result.pixCode,
           expirationDate: result.expirationDate,
         });
+        if (!auth) setShowPostPurchaseModal(true);
         return;
       }
 
       if (paymentMethod === "boleto") {
-        if (!order.boletoUrl && !order.paymentLink) {
-          useToastStore.getState().show("Boleto gerado! Acesse o link no histórico de pedidos para pagar.");
-          setSaving(false);
-          return;
-        }
+        const result: BoletoResult = await createBoletoCharge(order.id, gt);
         setPaymentResult({
           method:        "boleto",
           orderId:       order.id,
@@ -345,28 +330,44 @@ export default function CheckoutPage() {
           boletoBarCode: result.boletoBarCode,
           dueDate:       result.dueDate,
         });
+        if (!auth) setShowPostPurchaseModal(true);
         return;
       }
 
       if (paymentMethod === "card") {
-        if (order.cardDeclined) {
-          // Cartão recusado: não limpa carrinho, mostra motivo
-          const reason = order.cardDeclineReason ?? "Cartão recusado pela operadora.";
-          useToastStore.getState().show(`Pagamento recusado: ${reason}`);
-          setSaving(false);
-          return;
-        }
-        if (auth && order.cardConfirmed) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
-        setPaymentResult({
-          method:      "card",
-          orderId:     order.id,
-          confirmed:   !!order.cardConfirmed,
-          paymentLink: order.paymentLink,
-        });
-      }
+        const expParts = num(card.expiration);
+        const result: CardResult = await createCardCharge(
+          order.id,
+          {
+            holderName:  card.name,
+            number:      num(card.number),
+            expiryMonth: expParts.slice(0, 2),
+            expiryYear:  `20${expParts.slice(2, 4)}`,
+            ccv:         card.cvv,
+          },
+          {
+            name:          auth?.name ?? guestInfo.name.trim(),
+            email:         auth?.email ?? guestInfo.email.trim(),
+            cpfCnpj:       num(card.cpf),
+            postalCode:    num(selectedAddress.cep),
+            addressNumber: selectedAddress.number,
+            phone:         num(selectedAddress.phone || guestInfo.phone),
+          },
+          gt,
+        );
 
-      if (paymentMethod === "cash") {
-        setPaymentResult({ method: "cash", orderId: order.id });
+        if (result.confirmed) {
+          if (auth) earnPoints(total, `Pedido #${order.id.slice(0, 8)}`);
+          setPaymentResult({ method: "card", orderId: order.id, confirmed: true });
+        } else {
+          setPaymentResult({
+            method:    "card",
+            orderId:   order.id,
+            confirmed: false,
+            error:     result.error ?? "Cartão recusado.",
+          });
+        }
+        if (!auth) setShowPostPurchaseModal(true);
       }
     } catch (e) {
       useToastStore.getState().show(e instanceof Error ? e.message : "Erro ao finalizar pedido.");
@@ -378,12 +379,24 @@ export default function CheckoutPage() {
   // ── Tela de resultado ──────────────────────────────────────
   if (paymentResult) {
     return (
-      <PaymentResultScreen
-        result={paymentResult}
-        onContinue={() => auth ? navigate("/pedidos") : navigate("/")}
-        pixConfirmed={pixConfirmed}
-        isGuest={!auth}
-      />
+      <>
+        <PaymentResultScreen
+          result={paymentResult}
+          onContinue={() => auth ? navigate("/pedidos") : navigate("/")}
+          pixConfirmed={pixConfirmed}
+          isGuest={!auth}
+          trackingCode={trackingInfo.trackingCode}
+        />
+        {showPostPurchaseModal && !auth && (
+          <PostPurchaseModal
+            orderId={paymentResult.orderId}
+            trackingCode={trackingInfo.trackingCode}
+            defaultEmail={guestInfo.email.trim() || undefined}
+            guestToken={guestToken ?? undefined}
+            onClose={() => setShowPostPurchaseModal(false)}
+          />
+        )}
+      </>
     );
   }
 
@@ -565,7 +578,7 @@ export default function CheckoutPage() {
             <p className="text-lg font-black text-content">{formatBRL(subtotal)}</p>
           </div>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!auth && !guestInfo.name.trim()) {
                 useToastStore.getState().show("Informe seu nome para continuar.");
                 return;
@@ -573,6 +586,19 @@ export default function CheckoutPage() {
               if (!hasFullAddress) {
                 useToastStore.getState().show("Selecione ou preencha um endereço de entrega.");
                 return;
+              }
+              if (!auth && !guestToken) {
+                try {
+                  const sess = await createGuestSession({
+                    name:  guestInfo.name.trim(),
+                    email: guestInfo.email.trim() || undefined,
+                    phone: guestInfo.phone.trim() || undefined,
+                  });
+                  setGuestToken(sess.guestToken);
+                } catch (e) {
+                  useToastStore.getState().show(e instanceof Error ? e.message : "Erro ao iniciar sessão.");
+                  return;
+                }
               }
               setStep(2);
             }}
@@ -602,8 +628,8 @@ export default function CheckoutPage() {
             <h2 className="text-sm font-black text-content">Forma de pagamento</h2>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            {(["pix", "card", "boleto", "cash"] as const).map((m) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(["pix", "card", "boleto"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setPaymentMethod(m)}
@@ -613,29 +639,20 @@ export default function CheckoutPage() {
                     : "border border-line bg-subtle text-muted"
                 }`}
               >
-                {m === "pix" ? "Pix" : m === "card" ? "Cartão" : m === "boleto" ? "Boleto" : "Dinheiro"}
+                {m === "pix" ? "Pix" : m === "card" ? "Cartão" : "Boleto"}
               </button>
             ))}
           </div>
 
           {paymentMethod === "pix" && (
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center gap-3 rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f172a]">
-                  <span className="text-lg">🔑</span>
-                </div>
-                <div>
-                  <p className="text-sm font-black text-[#0f172a]">Pix — pagamento instantâneo</p>
-                  <p className="text-xs text-[#64748b]">QR Code gerado ao confirmar. Expira em 30 minutos.</p>
-                </div>
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-subtle p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f172a]">
+                <span className="text-lg">🔑</span>
               </div>
-              <input
-                value={pixCpf}
-                onChange={(e) => setPixCpf(fmtCPF(e.target.value))}
-                placeholder="CPF (opcional — necessário para PIX)"
-                inputMode="numeric"
-                className="w-full rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] px-4 py-3 text-sm font-semibold text-[#0f172a] outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1] placeholder:font-normal"
-              />
+              <div>
+                <p className="text-sm font-black text-content">Pix — pagamento instantâneo</p>
+                <p className="text-xs text-muted">QR Code gerado ao confirmar. Expira em 30 minutos.</p>
+              </div>
             </div>
           )}
 
@@ -647,18 +664,6 @@ export default function CheckoutPage() {
               <div>
                 <p className="text-sm font-black text-content">Boleto bancário</p>
                 <p className="text-xs text-muted">Vencimento em 3 dias úteis. Pedido confirmado após compensação.</p>
-              </div>
-            </div>
-          )}
-
-          {paymentMethod === "cash" && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[#d97706]/30 bg-[#fffbeb] p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d97706]">
-                <span className="text-lg">💵</span>
-              </div>
-              <div>
-                <p className="text-sm font-black text-[#92400e]">Pagamento na entrega</p>
-                <p className="text-xs text-[#b45309]">Tenha o valor exato em mãos. O entregador não troca.</p>
               </div>
             </div>
           )}
@@ -957,7 +962,7 @@ export default function CheckoutPage() {
           )}
           <div className="flex items-center gap-2 text-xs text-muted">
             <CreditCard size={12} className="shrink-0 text-[#2563eb]" />
-            <span className="font-bold capitalize">{paymentMethod === "pix" ? "Pix" : paymentMethod === "card" ? "Cartão de crédito" : paymentMethod === "boleto" ? "Boleto bancário" : "Dinheiro / Entrega"}</span>
+            <span className="font-bold capitalize">{paymentMethod === "pix" ? "Pix" : paymentMethod === "card" ? "Cartão de crédito" : "Boleto bancário"}</span>
           </div>
         </div>
       </div>
@@ -990,7 +995,13 @@ export default function CheckoutPage() {
 
 // ── Tela de resultado de pagamento ──────────────────────────────
 
-function GuestOrderBox({ orderId }: { orderId: string }) {
+function GuestOrderBox({
+  orderId,
+  trackingCode,
+}: {
+  orderId: string;
+  trackingCode?: string;
+}) {
   return (
     <div className="w-full rounded-2xl border border-line bg-subtle p-4 text-center">
       <p className="text-[10px] font-black uppercase tracking-widest text-faint">
@@ -999,15 +1010,29 @@ function GuestOrderBox({ orderId }: { orderId: string }) {
       <p className="mt-1 font-mono text-xl font-black text-content">
         #{orderId.slice(0, 8).toUpperCase()}
       </p>
+      {trackingCode && (
+        <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-faint">
+          Código de rastreamento: <span className="text-content">{trackingCode}</span>
+        </p>
+      )}
       <p className="mt-1 text-xs text-muted">
-        Você precisará dele para acompanhar a entrega.
+        Você pode rastrear seu pedido a qualquer momento com este código.
       </p>
-      <Link
-        to="/login"
-        className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[#6366f1] px-4 py-2 text-xs font-black text-white"
-      >
-        Criar conta para rastrear facilmente →
-      </Link>
+      {trackingCode ? (
+        <Link
+          to={`/acompanhar/${trackingCode}`}
+          className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[#0f172a] px-4 py-2 text-xs font-black text-white"
+        >
+          Rastrear pedido →
+        </Link>
+      ) : (
+        <Link
+          to="/login"
+          className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[#6366f1] px-4 py-2 text-xs font-black text-white"
+        >
+          Criar conta para rastrear →
+        </Link>
+      )}
     </div>
   );
 }
@@ -1017,11 +1042,13 @@ function PaymentResultScreen({
   onContinue,
   pixConfirmed,
   isGuest,
+  trackingCode,
 }: {
   result: PaymentResult;
   onContinue: () => void;
   pixConfirmed?: boolean;
   isGuest?: boolean;
+  trackingCode?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -1043,7 +1070,7 @@ function PaymentResultScreen({
             Pagamento recebido. Seu pedido está sendo preparado!
           </p>
         </div>
-        {isGuest && <GuestOrderBox orderId={result.orderId} />}
+        {isGuest && <GuestOrderBox orderId={result.orderId} trackingCode={trackingCode} />}
         <button
           onClick={onContinue}
           className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
@@ -1089,7 +1116,7 @@ function PaymentResultScreen({
           <h2 className="text-xl font-black text-content">Pagamento aprovado!</h2>
           <p className="mt-2 text-sm text-muted">Seu pedido foi confirmado e o lojista já foi notificado.</p>
         </div>
-        {isGuest && <GuestOrderBox orderId={result.orderId} />}
+        {isGuest && <GuestOrderBox orderId={result.orderId} trackingCode={trackingCode} />}
         <button
           onClick={onContinue}
           className="w-full rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] py-4 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30"
@@ -1218,40 +1245,6 @@ function PaymentResultScreen({
           className="w-full rounded-2xl border border-line bg-surface py-3.5 text-sm font-black text-muted"
         >
           Ver meus pedidos
-        </button>
-      </div>
-    );
-  }
-
-  if (result.method === "cash") {
-    return (
-      <div className="space-y-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#d97706]">BrasUX</p>
-          <h1 className="text-xl font-black text-content">Pedido confirmado!</h1>
-        </div>
-
-        <div className="rounded-3xl border border-line-subtle bg-surface p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-3 rounded-2xl bg-[#fffbeb] border border-[#fde68a] p-4">
-            <span className="text-2xl">💵</span>
-            <div>
-              <p className="font-black text-[#92400e] text-sm">Pagamento na entrega</p>
-              <p className="text-[#b45309] text-xs">Tenha o valor exato em mãos ao receber.</p>
-            </div>
-          </div>
-
-          <p className="text-sm text-muted">
-            Seu pedido foi enviado para a loja. O entregador levará até você — pague em dinheiro no momento da entrega.
-          </p>
-
-          <p className="text-xs text-faint font-mono">Pedido #{result.orderId.slice(0, 8).toUpperCase()}</p>
-        </div>
-
-        <button
-          onClick={onContinue}
-          className="w-full rounded-2xl bg-gradient-to-r from-[#d97706] to-[#f59e0b] py-3.5 text-sm font-black text-white shadow-lg shadow-[#d97706]/30"
-        >
-          Acompanhar pedido
         </button>
       </div>
     );

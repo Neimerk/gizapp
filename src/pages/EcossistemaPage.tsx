@@ -140,8 +140,8 @@ const CLUSTERS: Cluster[] = [
         desc: "PDV e gestão comercial completos — vendas, estoque, fluxo de caixa e dashboard.",
         icon: "🧾",
         badge: "PDV",
-        href: "https://brasux-caixa-livre.vercel.app",
-        domain: "caixa.brasux.com.br",
+        href: "https://caixa.brasux.store",
+        domain: "caixa.brasux.store",
       },
       {
         name: "Fábrica de Landing Pages",

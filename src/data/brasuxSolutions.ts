@@ -29,7 +29,7 @@ export const brasuxSolutions: BrasUXSolution[] = [
     id: "brasux-caixa",
     name: "BrasUX Caixa",
     description: "PDV e gestão comercial completos — vendas, estoque, fluxo de caixa e dashboard. Simples, poderoso e acessível.",
-    url: "https://brasux-caixa-livre.vercel.app",
+    url: "https://caixa.brasux.store",
     categorySlug: "servicos",
     icon: "🧾",
     badge: "BrasUX Comercial",

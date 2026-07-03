@@ -19,7 +19,7 @@ const ECOSYSTEM = [
   { name: "SimulENEM",            href: "https://simulenem.com",                    badge: "Edu" },
   { name: "SimulaiOAB",           href: "https://simulaioab.com",                   badge: "Edu" },
   { name: "Curso NotaOn",         href: "https://cursonotaon.com.br",               badge: "Edu" },
-  { name: "BrasUX Caixa",         href: "https://brasux-caixa-livre.vercel.app",   badge: "PDV" },
+  { name: "BrasUX Caixa",         href: "https://caixa.brasux.store",              badge: "PDV" },
   { name: "Landing Pages",        href: "https://produtos.brasux.com.br",           badge: "Dev" },
 ];
 
