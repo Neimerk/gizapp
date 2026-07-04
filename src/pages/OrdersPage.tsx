@@ -11,6 +11,7 @@ import type { CourierPosition } from "../components/ui/MapTrack";
 import { ordersConnection, startOrdersConnection } from "../services/signalr";
 import { formatBRL } from "../utils/format";
 import { useAuthStore } from "../stores/authStore";
+import { supabase } from "../lib/supabase";
 
 const STATUS_STEPS = [
   { status: 0, label: "Recebido" },
@@ -102,13 +103,29 @@ export default function OrdersPage() {
     queryKey: queryKeys.myOrders(),
     queryFn: getMyOrders,
     enabled: !!auth,
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   useEffect(() => {
     if (!auth) return;
 
     requestNotificationPermission();
+
+    // Supabase Realtime: escuta INSERT e UPDATE na tabela orders filtrado pelo usuário
+    const channel = supabase
+      .channel(`orders:customer:${auth.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "orders", filter: `customer_id=eq.${auth.id}` },
+        () => { queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() }); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `customer_id=eq.${auth.id}` },
+        () => { queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() }); }
+      )
+      .subscribe();
 
     async function setupSignalR() {
       try {
@@ -141,6 +158,7 @@ export default function OrdersPage() {
     setupSignalR();
 
     return () => {
+      supabase.removeChannel(channel);
       ordersConnection.off("OrderCreated");
       ordersConnection.off("OrderStatusUpdated");
     };
