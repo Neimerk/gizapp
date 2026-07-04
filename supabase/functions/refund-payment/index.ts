@@ -86,8 +86,8 @@ serve(async (req) => {
 
     if (!payment) return json({ error: "Pagamento não encontrado." }, 404, req);
     if (payment.status === "refunded") return json({ error: "Pagamento já estornado." }, 409, req);
-    if (!["approved"].includes(payment.status as string)) {
-      return json({ error: "Só é possível estornar pagamentos aprovados." }, 409, req);
+    if (!["approved", "partially_refunded"].includes(payment.status as string)) {
+      return json({ error: "Só é possível estornar pagamentos aprovados ou parcialmente estornados." }, 409, req);
     }
 
     const refundAmount = refundType === "partial" && body.amount
@@ -147,22 +147,29 @@ serve(async (req) => {
       return json({ error: "Erro ao registrar estorno." }, 500, req);
     }
 
-    // Reverte split financeiro
+    // Atualiza payment e order — estorno parcial não fecha o pagamento nem o pedido
+    const isFullRefund = refundAmount >= Number(payment.amount) - 0.01;
+
+    // Reverte split financeiro e pontos de fidelidade
     await admin.rpc("reverse_split_on_refund", {
       p_order_id:    orderId,
       p_refund_id:   refund.id,
       p_absorbed_by: absorbedBy,
     });
-
-    // Atualiza payment e order
-    await admin.from("payments").update({ status: "refunded" }).eq("id", payment.id);
+    if (isFullRefund) {
+      await admin.rpc("revert_points_on_refund", { p_order_id: orderId })
+        .catch((e: unknown) => console.error("[refund-payment] revert_points_on_refund:", e));
+    }
+    await admin.from("payments").update({
+      status: isFullRefund ? "refunded" : "partially_refunded",
+    }).eq("id", payment.id);
     await admin.from("orders").update({
-      payment_status: "REFUNDED",
-      status: 5,
+      payment_status: isFullRefund ? "REFUNDED" : "PARTIALLY_REFUNDED",
+      ...(isFullRefund ? { status: 5 } : {}),
     }).eq("id", orderId);
 
     // Registra evento de auditoria
-    await admin.from("audit_logs").insert({
+    await admin.from("audit_log").insert({
       user_id:    user.id,
       action:     "PAYMENT_REFUNDED",
       table_name: "payments",
@@ -175,7 +182,7 @@ serve(async (req) => {
         absorbed_by:     absorbedBy,
         gateway_refund:  gatewayRefundId,
       },
-    }).then(() => null);
+    }).catch((e: unknown) => console.error("[refund-payment] audit_log insert failed:", e));
 
     console.log(`[refund-payment] order=${orderId} refund=${refund.id} amount=${refundAmount}`);
 

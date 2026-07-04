@@ -66,6 +66,16 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
+    // Rate limit: 1 tentativa de criar/alterar assinatura por 30 segundos
+    const { data: subAllowed } = await admin.rpc("check_rate_limit", {
+      p_key:            `subscription:${user.id}`,
+      p_max_requests:   1,
+      p_window_seconds: 30,
+    });
+    if (!subAllowed) {
+      return json({ error: "Aguarde alguns segundos antes de tentar novamente." }, 429, req);
+    }
+
     // P2-9: preços lidos do banco (fonte única); fallback para hardcoded se DB falhar
     const planCfg = { ...FALLBACK_CFG };
     try {
@@ -101,6 +111,19 @@ serve(async (req) => {
     ]);
 
     const currentSub = subRes.data;
+
+    // Idempotência: se já há pending_payment para o MESMO plano, retorna sem criar nova assinatura.
+    // Evita duplicidade no Asaas em caso de double-click ou retry rápido.
+    if (currentSub?.status === "pending_payment" && currentSub?.plan === planId) {
+      console.log(`[create-subscription] vendor=${user.id} plan=${planId} já em pending_payment — retornando sem criar nova assinatura`);
+      return json({
+        ok:           true,
+        plan:         planId,
+        monthlyPrice: cfg.price,
+        activated:    false,
+        message:      "Aguardando confirmação do pagamento. Verifique o PIX gerado anteriormente.",
+      }, 200, req);
+    }
 
     // ── Plano free: ativa imediatamente sem Asaas ─────────────
     if (planId === "free") {

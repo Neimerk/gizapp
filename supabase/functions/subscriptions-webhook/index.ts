@@ -27,6 +27,7 @@ const SERVICE_KEY    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_KEY     = Deno.env.get("RESEND_API_KEY") ?? "";
 const FROM_EMAIL     = Deno.env.get("EMAIL_FROM") ?? "BrasUX <noreply@brasux.com.br>";
 
+const INTERNAL_KEY = Deno.env.get("INTERNAL_FUNCTION_KEY") ?? "";
 const MAX_RETRIES = 5;
 
 type AdminClient = ReturnType<typeof createClient>;
@@ -346,6 +347,14 @@ serve(async (req) => {
     await admin.from("webhook_events")
       .update({ status: nextStatus, last_error: errMsg })
       .eq("id", eventRowId);
+
+    if (nextStatus === "dead_letter" && INTERNAL_KEY) {
+      fetch(`${SUPABASE_URL}/functions/v1/alert-dead-letter`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
+        body:    "{}",
+      }).catch(() => null);
+    }
 
     return new Response("Error", { status: 500 });
   }

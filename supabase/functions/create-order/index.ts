@@ -122,7 +122,8 @@ serve(async (req) => {
     const { data: products, error: prodErr } = await admin
       .from("store_products")
       .select("id, name, price, promotional_price, image_url, available")
-      .in("id", productIds);
+      .in("id", productIds)
+      .eq("store_id", payload.storeId); // garante que produtos pertencem à loja do pedido
 
     if (prodErr || !products) return json({ error: "Erro ao buscar produtos." }, 500, req);
 

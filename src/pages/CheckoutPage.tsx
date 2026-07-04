@@ -189,6 +189,8 @@ export default function CheckoutPage() {
   const [paymentResult, setPaymentResult] = useState<PaymentResult | null>(null);
   const [pixConfirmed, setPixConfirmed] = useState(false);
   const [boletoConfirmed, setBoletoConfirmed] = useState(false);
+  const [pixExpired, setPixExpired] = useState(false);
+  const [boletoExpired, setBoletoExpired] = useState(false);
 
   // Taxa de entrega dinâmica por distância
   const { fee: deliveryFee, distanceKm, loading: loadingFee, source: feeSource } = useDeliveryFee(
@@ -242,7 +244,7 @@ export default function CheckoutPage() {
     };
 
     const timer    = setInterval(poll, 5000);
-    const timeout  = setTimeout(() => { stopped = true; clearInterval(timer); }, 35 * 60 * 1000);
+    const timeout  = setTimeout(() => { stopped = true; clearInterval(timer); setPixExpired(true); }, 35 * 60 * 1000);
     poll();
     return () => { stopped = true; clearInterval(timer); clearTimeout(timeout); };
   }, [paymentResult?.orderId, paymentResult?.method]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -269,7 +271,7 @@ export default function CheckoutPage() {
     };
 
     const timer   = setInterval(poll, 30_000);
-    const timeout = setTimeout(() => { stopped = true; clearInterval(timer); }, 10 * 60 * 1000);
+    const timeout = setTimeout(() => { stopped = true; clearInterval(timer); setBoletoExpired(true); }, 10 * 60 * 1000);
     poll();
     return () => { stopped = true; clearInterval(timer); clearTimeout(timeout); };
   }, [paymentResult?.orderId, paymentResult?.method]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -415,6 +417,8 @@ export default function CheckoutPage() {
           onContinue={() => auth ? navigate("/pedidos") : navigate("/")}
           pixConfirmed={pixConfirmed}
           boletoConfirmed={boletoConfirmed}
+          pixExpired={pixExpired}
+          boletoExpired={boletoExpired}
           isGuest={!auth}
           trackingCode={trackingInfo.trackingCode}
         />
@@ -1073,6 +1077,8 @@ function PaymentResultScreen({
   onContinue,
   pixConfirmed,
   boletoConfirmed,
+  pixExpired,
+  boletoExpired,
   isGuest,
   trackingCode,
 }: {
@@ -1080,6 +1086,8 @@ function PaymentResultScreen({
   onContinue: () => void;
   pixConfirmed?: boolean;
   boletoConfirmed?: boolean;
+  pixExpired?: boolean;
+  boletoExpired?: boolean;
   isGuest?: boolean;
   trackingCode?: string;
 }) {
@@ -1189,10 +1197,19 @@ function PaymentResultScreen({
             </p>
           </div>
 
-          <div className="flex items-center justify-center gap-2 rounded-xl bg-[#f0fdf4] px-4 py-2.5 text-xs text-[#16a34a]">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#16a34a] animate-pulse" />
-            Aguardando confirmação automática…
-          </div>
+          {pixExpired ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center">
+              <p className="text-sm font-bold text-amber-800">QR Code expirado</p>
+              <p className="mt-1 text-xs text-amber-700">
+                Seu pedido foi criado e aguarda pagamento. Acesse <strong>Meus Pedidos</strong> para gerar um novo Pix ou escolher outra forma de pagamento.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 rounded-xl bg-[#f0fdf4] px-4 py-2.5 text-xs text-[#16a34a]">
+              <span className="inline-block h-2 w-2 rounded-full bg-[#16a34a] animate-pulse" />
+              Aguardando confirmação automática…
+            </div>
+          )}
 
           <button
             onClick={() => copy(result.pixCode)}
@@ -1293,6 +1310,12 @@ function PaymentResultScreen({
             </a>
           )}
         </div>
+
+        {boletoExpired && (
+          <p className="text-center text-xs text-faint">
+            Confirmação automática encerrada. Após compensação bancária (até 3 dias úteis) você será notificado por e-mail.
+          </p>
+        )}
 
         <button
           onClick={onContinue}

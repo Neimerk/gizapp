@@ -131,11 +131,24 @@ serve(async (req) => {
           description:       `Saque BrasUX — ${wdId.slice(0, 8).toUpperCase()}`,
         });
 
+        const gatewayRef = transfer.id ?? transfer.transferId ?? `ASAAS_${Date.now()}`;
+
         await admin.from("withdrawals").update({
           status:            "paid",
-          gateway_reference: transfer.id ?? transfer.transferId ?? `ASAAS_${Date.now()}`,
+          gateway_reference: gatewayRef,
           processed_at:      new Date().toISOString(),
         }).eq("id", wdId);
+
+        await admin.rpc("log_financial_event", {
+          p_actor_type:  "system",
+          p_actor_id:    wd.vendor_id ?? null,
+          p_action:      "withdrawal_paid",
+          p_entity_type: "withdrawals",
+          p_entity_id:   wdId,
+          p_amount:      Number(wd.amount_net),
+          p_description: `Saque processado — ${wdId.slice(0, 8).toUpperCase()}`,
+          p_metadata:    { gateway_reference: gatewayRef, pix_key: wd.pix_key },
+        }).catch(() => null);
 
         console.log(`[process-withdrawal] OK wdId=${wdId} asaasId=${transfer.id}`);
         results.push({ id: wdId, status: "ok" });

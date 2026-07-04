@@ -282,6 +282,7 @@ async function handleOrderRefunded(
 
   if (refundRow?.id) {
     await admin.rpc("reverse_split_on_refund", { p_order_id: orderId, p_refund_id: refundRow.id });
+    await admin.rpc("revert_points_on_refund", { p_order_id: orderId }).catch(() => null);
     await admin.from("refunds").update({ status: "completed" }).eq("id", refundRow.id);
   }
 
@@ -462,6 +463,14 @@ serve(async (req) => {
     await admin.from("webhook_events")
       .update({ status: nextStatus, last_error: errMsg })
       .eq("id", eventRowId);
+
+    if (nextStatus === "dead_letter" && INTERNAL_KEY) {
+      fetch(`${SUPABASE_URL}/functions/v1/alert-dead-letter`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
+        body:    "{}",
+      }).catch(() => null);
+    }
 
     return new Response("Error", { status: 500 });
   }
