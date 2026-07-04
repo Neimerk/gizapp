@@ -141,7 +141,7 @@ serve(async (req) => {
 
         await admin.rpc("log_financial_event", {
           p_actor_type:  "system",
-          p_actor_id:    wd.vendor_id ?? null,
+          p_actor_id:    wd.owner_id ?? null,
           p_action:      "withdrawal_paid",
           p_entity_type: "withdrawals",
           p_entity_id:   wdId,

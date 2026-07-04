@@ -55,7 +55,7 @@ async function resolveVendorId(
 ): Promise<string | null> {
   // externalReference contém o user.id no fluxo de create-subscription
   if (externalRef && externalRef.length === 36) {
-    const { data } = await admin.from("profiles").select("id").eq("id", externalRef).maybeSingle();
+    const { data } = await admin.from("profiles").select("id, role").eq("id", externalRef).eq("role", "seller").maybeSingle();
     if (data?.id) return data.id as string;
   }
   // Fallback: busca pelo asaas_subscription_id

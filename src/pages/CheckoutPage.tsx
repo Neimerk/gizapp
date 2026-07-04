@@ -205,7 +205,7 @@ export default function CheckoutPage() {
   const afterCoupon     = subtotal + deliveryFee - discountAmount;
   const maxPoints       = Math.min(availablePoints, Math.floor(afterCoupon));
   const pointsDiscount  = Math.min(pointsToUse, maxPoints);
-  const total           = Math.max(0, afterCoupon - pointsDiscount);
+  const total           = Math.max(0.01, afterCoupon - pointsDiscount);
 
   const hasFullAddress = !!(
     selectedAddress?.address && selectedAddress?.number && selectedAddress?.neighborhood

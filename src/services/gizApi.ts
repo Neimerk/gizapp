@@ -1623,18 +1623,21 @@ export async function updateDeliveryStatus(
 
   // Credita ganho ao entregador e libera saldo HELD quando entrega é concluída
   if (newStatus === "DELIVERED") {
-    await supabase.from("courier_earnings").insert({
+    await supabase.from("courier_earnings").upsert({
       courier_id: user.id,
       delivery_id: deliveryId,
       order_id:   delivery.order_id,
       amount: Number(delivery.earnings),
       description: `Entrega #${(delivery.order_id as string).slice(0, 8).toUpperCase()}`,
-    });
+    }, { onConflict: "delivery_id", ignoreDuplicates: true });
 
-    // Libera saldo HELD → AVAILABLE para vendedor e entregador via Edge Function
-    supabase.functions.invoke("release-balance", {
-      body: { orderId: delivery.order_id },
-    }).catch(() => null); // fire-and-forget: o split já está registrado; falha não bloqueia o fluxo
+    // Libera saldo HELD → AVAILABLE para vendedor e entregador via RPC direto.
+    // release_balance_after_delivery é SECURITY DEFINER e verifica auth.uid().
+    void supabase.rpc("release_balance_after_delivery", { p_order_id: delivery.order_id })
+      .then(
+        () => null,
+        (e: unknown) => console.error("[release-balance]", e),
+      );
   }
 }
 
@@ -1672,33 +1675,6 @@ export async function getCourierEarningsSummary(): Promise<CourierEarningSummary
   return { todayTotal, weekTotal, allTimeTotal, deliveriesCount: earnings.length };
 }
 
-export async function getMyWithdrawals(): Promise<WithdrawalRequest[]> {
-  const user = useAuthStore.getState().user;
-  if (!user) return [];
-  const { data } = await supabase
-    .from("courier_withdrawals")
-    .select("*")
-    .eq("courier_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
-  return (data ?? []).map((w) => ({
-    id: w.id,
-    amount: Number(w.amount),
-    pixKey: w.pix_key,
-    status: w.status as WithdrawalRequest["status"],
-    note: (w.note as string | null) ?? undefined,
-    createdAt: w.created_at,
-  }));
-}
-
-export async function requestCourierWithdrawal(amount: number, pixKey: string): Promise<void> {
-  const user = useAuthStore.getState().user;
-  if (!user) throw new Error("Não autenticado.");
-  const { error } = await supabase
-    .from("courier_withdrawals")
-    .insert({ courier_id: user.id, amount, pix_key: pixKey });
-  if (error) throw new Error("Erro ao solicitar saque.");
-}
 
 /* ── ADMIN: COUPONS ──────────────────────────────────────── */
 
@@ -1786,50 +1762,6 @@ export async function adminDeleteCoupon(id: string): Promise<void> {
   if (error) throw new Error("Erro ao excluir cupom.");
 }
 
-/* ── ADMIN: WITHDRAWALS ──────────────────────────────────── */
-
-export type WithdrawalAdmin = {
-  id: string;
-  courierId: string;
-  courierName: string;
-  amount: number;
-  pixKey: string;
-  status: "PENDING" | "PAID" | "REJECTED";
-  note?: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export async function adminGetWithdrawals(): Promise<WithdrawalAdmin[]> {
-  const { data, error } = await supabase
-    .from("courier_withdrawals")
-    .select("*, profiles(name)")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error("Erro ao buscar saques.");
-  return (data ?? []).map((r) => ({
-    id:          r.id,
-    courierId:   r.courier_id,
-    courierName: (r.profiles as { name?: string } | null)?.name ?? "Entregador",
-    amount:      Number(r.amount),
-    pixKey:      r.pix_key,
-    status:      r.status as WithdrawalAdmin["status"],
-    note:        (r.note as string | null) ?? undefined,
-    createdAt:   r.created_at,
-    updatedAt:   r.updated_at,
-  }));
-}
-
-export async function adminUpdateWithdrawal(
-  id: string,
-  status: "PAID" | "REJECTED",
-  note?: string,
-): Promise<void> {
-  const { error } = await supabase
-    .from("courier_withdrawals")
-    .update({ status, ...(note ? { note } : {}) })
-    .eq("id", id);
-  if (error) throw new Error("Erro ao atualizar saque.");
-}
 
 /* ── BANNERS API ─────────────────────────────────────────── */
 
@@ -1948,6 +1880,7 @@ export async function getActiveBanners(): Promise<Banner[]> {
   const { data } = await shoppingDb
     .from("banners")
     .select("*")
+    .eq("active", true)
     .order("sort_order", { ascending: true });
   return (data ?? []).map((b) => ({
     id: b.id,
@@ -2003,43 +1936,6 @@ export async function getAvailableCoupons(): Promise<PublicCoupon[]> {
   }));
 }
 
-/* ── SELLER WITHDRAWALS ──────────────────────────────────── */
-
-export type SellerWithdrawal = {
-  id: string;
-  amount: number;
-  pixKey: string;
-  status: "PENDING" | "PAID" | "REJECTED";
-  createdAt: string;
-};
-
-export async function requestSellerWithdrawal(amount: number, pixKey: string): Promise<void> {
-  const user = useAuthStore.getState().user;
-  if (!user) throw new Error("Usuário não autenticado.");
-  const { error } = await supabase.from("seller_withdrawals").insert({
-    seller_id: user.id,
-    amount,
-    pix_key: pixKey,
-    status: "PENDING",
-  });
-  if (error) throw new Error(error.message);
-}
-
-export async function getSellerWithdrawals(): Promise<SellerWithdrawal[]> {
-  const { data, error } = await supabase
-    .from("seller_withdrawals")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(20);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((w) => ({
-    id: w.id as string,
-    amount: Number(w.amount),
-    pixKey: w.pix_key as string,
-    status: w.status as SellerWithdrawal["status"],
-    createdAt: w.created_at as string,
-  }));
-}
 
 /* ── STORE OPENING HOURS ─────────────────────────────────── */
 

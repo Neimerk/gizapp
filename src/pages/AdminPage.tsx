@@ -16,7 +16,6 @@ import {
   adminGetUsers, adminToggleUserActive, adminGetAllOrders, adminUpdateOrderStatus, getStores,
   adminGetBanners, adminCreateBanner, adminUpdateBanner, adminDeleteBanner,
   adminGetCoupons, adminCreateCoupon, adminUpdateCoupon, adminDeleteCoupon,
-  adminGetWithdrawals, adminUpdateWithdrawal,
   adminUpdateStore, adminUpdateUserRole,
   queryKeys,
   type AdminBanner, type BannerPayload,
@@ -26,6 +25,7 @@ import {
   adminGetFinancialSummary, adminGetAllWithdrawals, adminGetPlatformLedger,
   adminUpdateWithdrawal as adminUpdateWalletWithdrawal,
 } from "../services/paymentApi";
+import type { AdminWithdrawal } from "../types/payment";
 import { useToastStore } from "../stores/toastStore";
 import { formatBRL } from "../utils/format";
 
@@ -1295,38 +1295,38 @@ function CouponsTab() {
 function WithdrawalsTab() {
   const queryClient = useQueryClient();
   const show = useToastStore((s) => s.show);
-  const [filter, setFilter] = useState<"PENDING" | "ALL">("PENDING");
+  const [filter, setFilter] = useState<"pending" | "all">("pending");
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
 
-  const { data: withdrawals = [], isLoading, refetch } = useQuery({
-    queryKey: queryKeys.adminWithdrawals(),
-    queryFn:  adminGetWithdrawals,
+  const { data: withdrawals = [], isLoading, refetch } = useQuery<AdminWithdrawal[]>({
+    queryKey: ["payment", "admin", "withdrawals"],
+    queryFn:  adminGetAllWithdrawals,
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, status, note }: { id: string; status: "PAID" | "REJECTED"; note?: string }) =>
-      adminUpdateWithdrawal(id, status, note),
+    mutationFn: ({ id, status, note }: { id: string; status: "paid" | "failed"; note?: string }) =>
+      adminUpdateWalletWithdrawal(id, status, note),
     onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.adminWithdrawals() });
-      show(vars.status === "PAID" ? "Saque aprovado! ✅" : "Saque rejeitado.", "success");
+      queryClient.invalidateQueries({ queryKey: ["payment", "admin", "withdrawals"] });
+      show(vars.status === "paid" ? "Saque aprovado! ✅" : "Saque rejeitado.", "success");
       setRejectId(null);
       setRejectNote("");
     },
     onError: () => show("Erro ao atualizar saque.", "error"),
   });
 
-  const filtered = filter === "PENDING" ? withdrawals.filter((w) => w.status === "PENDING") : withdrawals;
-  const pendingTotal = withdrawals.filter((w) => w.status === "PENDING").reduce((s, w) => s + w.amount, 0);
+  const filtered = filter === "pending" ? withdrawals.filter((w) => w.status === "pending") : withdrawals;
+  const pendingTotal = withdrawals.filter((w) => w.status === "pending").reduce((s, w) => s + w.amountNet, 0);
 
   return (
     <div className="space-y-4">
       {/* Resumo */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Pendentes",   value: withdrawals.filter((w) => w.status === "PENDING").length,  color: "#f59e0b" },
+          { label: "Pendentes",   value: withdrawals.filter((w) => w.status === "pending").length,  color: "#f59e0b" },
           { label: "Valor pendente", value: formatBRL(pendingTotal), color: "#002776" },
-          { label: "Total pago",  value: formatBRL(withdrawals.filter((w) => w.status === "PAID").reduce((s, w) => s + w.amount, 0)), color: "#16a34a" },
+          { label: "Total pago",  value: formatBRL(withdrawals.filter((w) => w.status === "paid").reduce((s, w) => s + w.amountNet, 0)), color: "#16a34a" },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-line-subtle bg-surface p-4 shadow-sm">
             <p className="text-xl font-black" style={{ color: s.color }}>{s.value}</p>
@@ -1337,7 +1337,7 @@ function WithdrawalsTab() {
 
       {/* Filtros */}
       <div className="flex items-center gap-3">
-        {(["PENDING", "ALL"] as const).map((f) => (
+        {(["pending", "all"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -1345,7 +1345,7 @@ function WithdrawalsTab() {
               filter === f ? "bg-[#0f172a] text-white" : "border border-line bg-surface text-muted"
             }`}
           >
-            {f === "PENDING" ? `Pendentes (${withdrawals.filter((w) => w.status === "PENDING").length})` : "Todos"}
+            {f === "pending" ? `Pendentes (${withdrawals.filter((w) => w.status === "pending").length})` : "Todos"}
           </button>
         ))}
         <button onClick={() => refetch()} className="ml-auto text-muted hover:text-content">
@@ -1361,7 +1361,7 @@ function WithdrawalsTab() {
           <div className="flex flex-col items-center gap-3 p-16 text-center">
             <Wallet size={36} className="text-[#cbd5e1]" />
             <p className="font-black text-content">
-              {filter === "PENDING" ? "Nenhum saque pendente 🎉" : "Nenhum saque registrado"}
+              {filter === "pending" ? "Nenhum saque pendente 🎉" : "Nenhum saque registrado"}
             </p>
           </div>
         ) : (
@@ -1369,7 +1369,7 @@ function WithdrawalsTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-subtle-2">
-                  {["Entregador", "Valor", "Chave Pix", "Status", "Data", "Ações"].map((h) => (
+                  {["Usuário", "Tipo", "Valor líquido", "Chave Pix", "Status", "Data", "Ações"].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-wide text-faint">{h}</th>
                   ))}
                 </tr>
@@ -1381,35 +1381,40 @@ function WithdrawalsTab() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#f0f9ff] text-xs font-black text-[#0369a1]">
-                            {w.courierName.charAt(0).toUpperCase()}
+                            {w.ownerName.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-black text-content">{w.courierName}</span>
+                          <span className="font-black text-content">{w.ownerName}</span>
                         </div>
                       </td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full bg-subtle px-2 py-0.5 text-[10px] font-black text-muted uppercase">
+                          {w.ownerType === "vendor" ? "Lojista" : "Entregador"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-base font-black text-[#16a34a]">
-                        {formatBRL(w.amount)}
+                        {formatBRL(w.amountNet)}
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs text-muted">{w.pixKey}</span>
                       </td>
                       <td className="px-4 py-3">
                         <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
-                          w.status === "PAID"     ? "bg-green-50 text-green-700" :
-                          w.status === "REJECTED" ? "bg-red-50 text-red-600"    :
+                          w.status === "paid"   ? "bg-green-50 text-green-700" :
+                          w.status === "failed" ? "bg-red-50 text-red-600"    :
                           "bg-yellow-50 text-yellow-700"
                         }`}>
-                          {w.status === "PAID" ? "✓ Pago" : w.status === "REJECTED" ? "Rejeitado" : "Pendente"}
+                          {w.status === "paid" ? "✓ Pago" : w.status === "failed" ? "Rejeitado" : "Pendente"}
                         </span>
-                        {w.note && <p className="mt-0.5 text-[10px] text-faint italic">{w.note}</p>}
+                        {w.notes && <p className="mt-0.5 text-[10px] text-faint italic">{w.notes}</p>}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted">
                         {new Date(w.createdAt).toLocaleDateString("pt-BR")}
                       </td>
                       <td className="px-4 py-3">
-                        {w.status === "PENDING" && (
+                        {w.status === "pending" && (
                           <div className="flex gap-1.5">
                             <button
-                              onClick={() => updateMutation.mutate({ id: w.id, status: "PAID" })}
+                              onClick={() => updateMutation.mutate({ id: w.id, status: "paid" })}
                               disabled={updateMutation.isPending}
                               className="flex items-center gap-1 rounded-xl border border-green-200 bg-green-50 px-3 py-1.5 text-[11px] font-black text-green-700 hover:bg-green-100 disabled:opacity-50"
                             >
@@ -1429,7 +1434,7 @@ function WithdrawalsTab() {
                     {/* Inline reject form */}
                     {rejectId === w.id && (
                       <tr key={`${w.id}-reject`}>
-                        <td colSpan={6} className="bg-red-50 px-4 py-3">
+                        <td colSpan={7} className="bg-red-50 px-4 py-3">
                           <div className="flex items-center gap-3">
                             <input
                               value={rejectNote}
@@ -1440,7 +1445,7 @@ function WithdrawalsTab() {
                             <button
                               onClick={() => {
                                 if (!rejectNote.trim()) return;
-                                updateMutation.mutate({ id: w.id, status: "REJECTED", note: rejectNote });
+                                updateMutation.mutate({ id: w.id, status: "failed", note: rejectNote });
                               }}
                               disabled={!rejectNote.trim() || updateMutation.isPending}
                               className="rounded-xl bg-red-600 px-4 py-2 text-xs font-black text-white disabled:opacity-50"
