@@ -133,15 +133,19 @@ async function handleOrderConfirmed(
     }
     const splitRes = await fetch(`${SUPABASE_URL}/functions/v1/execute-split`, {
       method:  "POST",
-      headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": `Bearer ${SERVICE_KEY}`,
+        "x-internal-key": INTERNAL_KEY,
+      },
       body:    JSON.stringify({ orderId, paymentId: paymentRow.id }),
     });
     if (!splitRes.ok) throw new Error(`execute-split failed: ${await splitRes.text()}`);
   }
 
   // Pontos de fidelidade: crédito ao comprador + débito de pontos usados como desconto
-  await admin.rpc("earn_points_on_payment",   { p_order_id: orderId }).catch(() => null);
-  await admin.rpc("spend_points_for_order",   { p_order_id: orderId }).catch(() => null);
+  await admin.rpc("earn_points_on_payment",   { p_order_id: orderId }).then(() => null).catch(() => null);
+  await admin.rpc("spend_points_for_order",   { p_order_id: orderId }).then(() => null).catch(() => null);
 
   // Notificações
   const { data: order } = await admin
@@ -199,7 +203,7 @@ async function handleOrderConfirmed(
     p_amount:      payment.value,
     p_description: `Pagamento confirmado — Pedido ${shortId(orderId)}`,
     p_metadata:    { asaas_payment_id: payment.id, event: payment.event },
-  }).catch(() => null);
+  }).then(() => null).catch(() => null);
 }
 
 function paymentDeclinedHtml(name: string, orderId: string): string {
@@ -230,7 +234,7 @@ async function handleOrderDeclined(admin: AdminClient, orderId: string): Promise
   await admin.from("payments").update({ status: "declined" }).eq("order_id", orderId);
 
   // Libera reserva de cupom para que o comprador possa reutilizá-lo
-  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).catch(() => null);
+  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).then(() => null).catch(() => null);
 
   // Notifica o comprador sobre o pagamento recusado
   const { data: order } = await admin
@@ -282,7 +286,7 @@ async function handleOrderRefunded(
 
   if (refundRow?.id) {
     await admin.rpc("reverse_split_on_refund", { p_order_id: orderId, p_refund_id: refundRow.id });
-    await admin.rpc("revert_points_on_refund", { p_order_id: orderId }).catch(() => null);
+    await admin.rpc("revert_points_on_refund", { p_order_id: orderId }).then(() => null).catch(() => null);
     await admin.from("refunds").update({ status: "completed" }).eq("id", refundRow.id);
   }
 
@@ -295,14 +299,14 @@ async function handleOrderRefunded(
     p_amount:      payment.value,
     p_description: `Estorno via webhook — Pedido ${shortId(orderId)}`,
     p_metadata:    { asaas_payment_id: payment.id, event: payment.event },
-  }).catch(() => null);
+  }).then(() => null).catch(() => null);
 }
 
 async function handleOrderOverdue(admin: AdminClient, orderId: string): Promise<void> {
   await admin.from("orders").update({ payment_status: "OVERDUE" }).eq("id", orderId);
   await admin.from("payments").update({ status: "expired" }).eq("order_id", orderId);
   // Libera cupom quando PIX vence ou boleto expira
-  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).catch(() => null);
+  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).then(() => null).catch(() => null);
   await admin.rpc("log_financial_event", {
     p_actor_type:  "system",
     p_actor_id:    null,
@@ -312,13 +316,13 @@ async function handleOrderOverdue(admin: AdminClient, orderId: string): Promise<
     p_amount:      null,
     p_description: `PIX vencido — Pedido ${shortId(orderId)}`,
     p_metadata:    {},
-  }).catch(() => null);
+  }).then(() => null).catch(() => null);
 }
 
 async function handleOrderDeleted(admin: AdminClient, orderId: string): Promise<void> {
   await admin.from("orders").update({ payment_status: "CANCELLED", status: 5 }).eq("id", orderId);
   await admin.from("payments").update({ status: "cancelled" }).eq("order_id", orderId);
-  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).catch(() => null);
+  await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).then(() => null).catch(() => null);
 }
 
 // ── Types ─────────────────────────────────────────────────────
