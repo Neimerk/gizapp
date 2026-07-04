@@ -643,7 +643,7 @@ export async function getMyOrders(): Promise<Order[]> {
 
   const { data, error } = await supabase
     .from("orders")
-    .select("*, stores(name), order_items(*)")
+    .select("*, stores!orders_store_id_fkey(name), order_items(*)")
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -654,7 +654,7 @@ export async function getMyOrders(): Promise<Order[]> {
 export async function getOrderById(id: string): Promise<Order> {
   const { data, error } = await supabase
     .from("orders")
-    .select("*, stores(name), order_items(*)")
+    .select("*, stores!orders_store_id_fkey(name), order_items(*)")
     .eq("id", id)
     .single();
   if (error || !data) throw new Error("Pedido não encontrado.");
@@ -799,7 +799,7 @@ export async function adminToggleUserActive(id: string, active: boolean): Promis
 export async function getStoreOrders(storeId: string): Promise<Order[]> {
   const { data, error } = await supabase
     .from("orders")
-    .select("*, stores(name), order_items(*)")
+    .select("*, stores!orders_store_id_fkey(name), order_items(*)")
     .eq("store_id", storeId)
     .order("created_at", { ascending: false });
   if (error) throw new Error("Erro ao buscar pedidos da loja.");
@@ -830,7 +830,7 @@ export async function sellerUpdateOrderStatus(
 export async function adminGetAllOrders(): Promise<Order[]> {
   const { data, error } = await supabase
     .from("orders")
-    .select("*, stores(name), order_items(*)")
+    .select("*, stores!orders_store_id_fkey(name), order_items(*)")
     .order("created_at", { ascending: false });
 
   if (error) throw new Error("Erro ao buscar pedidos.");

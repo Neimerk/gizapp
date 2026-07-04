@@ -125,7 +125,7 @@ async function handleOrderConfirmed(
       amount:           payment.value,
       status:           "approved",
       metadata:         { raw: payment },
-    }).catch(() => null); // UNIQUE gateway_event_id — ignora duplicata
+    }).then(() => null).catch(() => null); // UNIQUE gateway_event_id — ignora duplicata
 
     // Executa split — falha explicitamente se INTERNAL_FUNCTION_KEY não configurado
     if (!INTERNAL_KEY) {

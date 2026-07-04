@@ -10,7 +10,7 @@ import { logger } from "../utils/logger";
 import type { CourierPosition } from "../components/ui/MapTrack";
 import { ordersConnection, startOrdersConnection } from "../services/signalr";
 import { formatBRL } from "../utils/format";
-import { getAuth } from "../services/auth";
+import { useAuthStore } from "../stores/authStore";
 
 const STATUS_STEPS = [
   { status: 0, label: "Recebido" },
@@ -94,7 +94,7 @@ function showOrderNotification(order: Order) {
 
 export default function OrdersPage() {
   const navigate = useNavigate();
-  const auth = getAuth();
+  const auth = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [autoReviewOrder, setAutoReviewOrder] = useState<Order | null>(null);
 
