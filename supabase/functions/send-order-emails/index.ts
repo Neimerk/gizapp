@@ -6,7 +6,6 @@ const FROM_EMAIL = Deno.env.get("EMAIL_FROM") ?? "BrasUX Shopping <noreply@brasu
 const APP_URL    = Deno.env.get("APP_URL") ?? "https://brasux.com.br";
 
 const ALLOWED_ORIGINS = [
-  "https://shopping.brasux.com.br",
   "https://brasux.com.br",
   "https://brasux.vercel.app",
 ];

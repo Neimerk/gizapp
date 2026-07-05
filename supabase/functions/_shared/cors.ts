@@ -1,9 +1,9 @@
 export const ALLOWED_ORIGINS = [
   // Shopping (comprador)
-  "https://shopping.brasux.com.br",
   "https://brasux.com.br",
   "https://brasux.vercel.app",
   // Loja (vendedor)
+  "https://brasux.store",
   "https://loja.brasux.com.br",
   "https://brasux-loja.vercel.app",
   // Entregas (entregador)
