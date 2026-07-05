@@ -354,9 +354,10 @@ serve(async (req) => {
     try {
       charge = await asaas("/payments", "POST", baseCharge);
     } catch (e) {
-      // Customer inválido → ID armazenado stale (ex: sandbox resetado, key trocada).
-      // Limpa o ID, recria o customer no Asaas e tenta a cobrança uma vez.
-      if (e instanceof Error && e.message.includes("Customer inválido")) {
+      // Se havia um customer ID salvo e a cobrança falhou, pode ser stale
+      // (sandbox → prod, key trocada, conta resetada). Recria o customer e tenta uma vez.
+      // Não restringe por mensagem — qualquer falha com customer ID existente pode ser stale.
+      if (e instanceof Error && asaasCustomerId) {
         const rawCpf = (identity.cpf ?? creditCardHolderInfo?.cpfCnpj ?? "").replace(/\D/g, "");
         let freshCustomer: Record<string, unknown> | null = null;
         try {
