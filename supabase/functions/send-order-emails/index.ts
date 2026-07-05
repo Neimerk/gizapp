@@ -334,7 +334,10 @@ serve(async (req) => {
       .eq(ownershipFilter.column, ownershipFilter.value)
       .single();
 
-    if (orderErr || !order) return json({ error: "Pedido não encontrado." }, 404, req);
+    if (orderErr || !order) {
+      console.error("[send-order-emails] order lookup failed", { orderId, filter: ownershipFilter, err: orderErr?.message ?? orderErr?.code });
+      return json({ error: "Pedido não encontrado." }, 404, req);
+    }
 
     const store  = order.stores  as { name: string; email?: string; owner_id: string; delivery_time_max: number } | null;
     const items  = order.order_items as Array<{ product_name: string; quantity: number; unit_price: number; total_price: number }>;
