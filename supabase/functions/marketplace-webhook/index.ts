@@ -233,8 +233,9 @@ async function handleOrderDeclined(admin: AdminClient, orderId: string): Promise
   await admin.from("orders").update({ payment_status: "DECLINED" }).eq("id", orderId);
   await admin.from("payments").update({ status: "declined" }).eq("order_id", orderId);
 
-  // Libera reserva de cupom para que o comprador possa reutilizá-lo
+  // Libera reserva de cupom e estoque (pagamento recusado → pedido não confirmado)
   await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).then(() => null).catch(() => null);
+  await admin.rpc("release_stock_for_order",  { p_order_id: orderId }).then(() => null).catch(() => null);
 
   // Notifica o comprador sobre o pagamento recusado
   const { data: order } = await admin
@@ -287,6 +288,7 @@ async function handleOrderRefunded(
   if (refundRow?.id) {
     await admin.rpc("reverse_split_on_refund", { p_order_id: orderId, p_refund_id: refundRow.id });
     await admin.rpc("revert_points_on_refund", { p_order_id: orderId }).then(() => null).catch(() => null);
+    await admin.rpc("release_stock_for_order",  { p_order_id: orderId }).then(() => null).catch(() => null);
     await admin.from("refunds").update({ status: "completed" }).eq("id", refundRow.id);
   }
 
@@ -305,8 +307,9 @@ async function handleOrderRefunded(
 async function handleOrderOverdue(admin: AdminClient, orderId: string): Promise<void> {
   await admin.from("orders").update({ payment_status: "OVERDUE" }).eq("id", orderId);
   await admin.from("payments").update({ status: "expired" }).eq("order_id", orderId);
-  // Libera cupom quando PIX vence ou boleto expira
+  // Libera cupom e estoque quando PIX vence ou boleto expira
   await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).then(() => null).catch(() => null);
+  await admin.rpc("release_stock_for_order",  { p_order_id: orderId }).then(() => null).catch(() => null);
   await admin.rpc("log_financial_event", {
     p_actor_type:  "system",
     p_actor_id:    null,
@@ -323,6 +326,7 @@ async function handleOrderDeleted(admin: AdminClient, orderId: string): Promise<
   await admin.from("orders").update({ payment_status: "CANCELLED", status: 5 }).eq("id", orderId);
   await admin.from("payments").update({ status: "cancelled" }).eq("order_id", orderId);
   await admin.rpc("release_coupon_for_order", { p_order_id: orderId }).then(() => null).catch(() => null);
+  await admin.rpc("release_stock_for_order",  { p_order_id: orderId }).then(() => null).catch(() => null);
 }
 
 // ── Types ─────────────────────────────────────────────────────

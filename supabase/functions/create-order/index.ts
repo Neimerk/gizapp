@@ -260,6 +260,26 @@ serve(async (req) => {
       return json({ error: "Erro ao registrar itens do pedido." }, 500, req);
     }
 
+    // ── 10a. Reserva de estoque ────────────────────────────────
+    // Bloqueia cada produto com FOR UPDATE, decrementa stock (se > 0)
+    // e registra em order_items.stock_reserved para restauração futura.
+    // Retorna null em sucesso ou string de erro em estoque insuficiente.
+    const { data: stockErrMsg, error: stockRpcErr } = await admin.rpc(
+      "reserve_stock_for_order",
+      { p_order_id: order.id },
+    );
+
+    if (stockRpcErr || stockErrMsg) {
+      await admin.from("order_items").delete().eq("order_id", order.id);
+      await admin.from("orders").delete().eq("id", order.id);
+      console.error("[create-order] stock reserve:", stockRpcErr?.message ?? stockErrMsg);
+      return json(
+        { error: (stockErrMsg as string | null) ?? "Erro ao verificar estoque." },
+        422,
+        req,
+      );
+    }
+
     // ── 10b. Consome cupom atomicamente (pedido já existe) ────
     // Se o cupom foi esgotado por outra requisição paralela neste momento,
     // cancela o pedido e retorna erro — evita cupom consumido sem pedido válido.
