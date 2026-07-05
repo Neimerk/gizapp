@@ -1641,12 +1641,33 @@ export async function updateDeliveryStatus(
   }
 }
 
-export async function updateCourierLocation(lat: number, lng: number, heading?: number): Promise<void> {
+export async function updateCourierLocation(
+  lat: number,
+  lng: number,
+  heading?: number,
+  speedKmh?: number,
+  accuracyM?: number,
+): Promise<void> {
   const user = useAuthStore.getState().user;
   if (!user) return;
+
+  const now = new Date().toISOString();
+
+  // Tabela legada — mantida para compatibilidade com outros consumidores
   await supabase
     .from("courier_locations")
-    .upsert({ courier_id: user.id, lat, lng, heading: heading ?? null, updated_at: new Date().toISOString() });
+    .upsert({ courier_id: user.id, lat, lng, heading: heading ?? null, updated_at: now });
+
+  // Tabela do domínio de delivery — alimenta o rastreamento ao vivo
+  supabase.rpc("upsert_driver_location", {
+    p_courier_id: user.id,
+    p_lat:        lat,
+    p_lng:        lng,
+    p_heading:    heading   ?? null,
+    p_speed:      speedKmh  ?? null,
+    p_accuracy:   accuracyM ?? null,
+    p_battery:    null,
+  }).then(() => null, () => null);
 }
 
 export async function getCourierEarningsSummary(): Promise<CourierEarningSummary> {

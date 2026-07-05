@@ -1,11 +1,13 @@
 import {
   CheckCircle2, Clock, Loader2, Package, PackageCheck,
-  Search, ShoppingBag, Truck, XCircle,
+  Radio, Search, ShoppingBag, Truck, XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchOrderTracking, type TrackingResult } from "../services/guestSession";
 import { formatBRL } from "../utils/format";
+
+const LiveTrackingMap = lazy(() => import("../components/ui/LiveTrackingMap"));
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pix:    "Pix",
@@ -54,10 +56,14 @@ function StatusTimeline({ timeline }: { timeline: TrackingResult["timeline"] }) 
   );
 }
 
+// Status em que faz sentido mostrar o mapa ao vivo
+const LIVE_STATUSES = new Set([1, 2, 3]); // pago, em preparo, em rota
+
 function TrackingResult({ data }: { data: TrackingResult }) {
   const isCancelled    = data.status === 5;
   const isDelivered    = data.status === 4;
   const paymentPending = data.paymentStatus === "PENDING";
+  const showLiveMap    = LIVE_STATUSES.has(data.status) && !!data.orderId;
 
   return (
     <div className="space-y-4">
@@ -75,9 +81,17 @@ function TrackingResult({ data }: { data: TrackingResult }) {
           : <ShoppingBag size={32} className="text-[#0f172a]" />}
         </div>
         <p className="text-[10px] font-black uppercase tracking-widest text-faint">
-          Pedido #{data.orderId}
+          Pedido #{data.trackingCode}
         </p>
-        <h2 className="mt-1 text-xl font-black text-content">{data.statusLabel}</h2>
+        <div className="mt-1 flex items-center justify-center gap-2">
+          <h2 className="text-xl font-black text-content">{data.statusLabel}</h2>
+          {showLiveMap && (
+            <span className="flex items-center gap-1 rounded-full bg-[#16a34a] px-2 py-0.5 text-[9px] font-black text-white">
+              <Radio size={8} className="animate-pulse" />
+              AO VIVO
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-sm text-muted">{data.storeName}</p>
         <p className="mt-2 text-2xl font-black text-[#16a34a]">
           {formatBRL(data.total)}
@@ -86,6 +100,13 @@ function TrackingResult({ data }: { data: TrackingResult }) {
           {PAYMENT_METHOD_LABELS[data.paymentMethod] ?? data.paymentMethod} · {data.paymentLabel}
         </p>
       </div>
+
+      {/* Mapa ao vivo — mostra quando pedido está ativo */}
+      {showLiveMap && (
+        <Suspense fallback={<div className="h-52 animate-pulse rounded-2xl bg-subtle-2" />}>
+          <LiveTrackingMap orderId={data.orderId} />
+        </Suspense>
+      )}
 
       {/* Timeline */}
       {!isCancelled && (
