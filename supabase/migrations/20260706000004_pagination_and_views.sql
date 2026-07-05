@@ -148,6 +148,9 @@ GRANT EXECUTE ON FUNCTION public.search_products_cursor(text, uuid, text, text, 
 
 -- ── 2. get_search_suggestions (atualizada) ────────────────────────────────────
 -- Versão melhorada: usa FTS + trigram, retorna count de produtos.
+-- DROP + CREATE porque a assinatura de retorno mudou (adicionado match_count).
+
+DROP FUNCTION IF EXISTS public.get_search_suggestions(text, int);
 
 CREATE OR REPLACE FUNCTION public.get_search_suggestions(
   p_query text,
@@ -185,17 +188,16 @@ SELECT
   s.description,
   s.category,
   s.logo_url,
-  s.cover_url,
+  s.banner_url,
   s.lat,
   s.lng,
   s.delivery_fee,
-  s.min_order,
   s.delivery_time_min,
   s.delivery_time_max,
   s.featured,
   s.active,
-  COUNT(DISTINCT sp.id)   AS product_count,
-  COUNT(DISTINCT o.id)    AS order_count_30d,
+  COUNT(DISTINCT sp.id)     AS product_count,
+  COUNT(DISTINCT o.id)      AS order_count_30d,
   COALESCE(AVG(o.total), 0) AS avg_ticket
 FROM  public.stores s
 LEFT  JOIN public.store_products sp ON sp.store_id = s.id AND sp.available = true
@@ -248,12 +250,19 @@ CREATE INDEX IF NOT EXISTS mv_top_products_category_idx ON public.mv_top_product
 
 -- ── 4. refresh_materialized_views ─────────────────────────────────────────────
 -- Função chamada pelo cron a cada 15 minutos (CONCURRENTLY = sem lock de leitura).
+-- Preserva as 4 views financeiras já existentes e acrescenta as 3 novas.
 
 CREATE OR REPLACE FUNCTION public.refresh_materialized_views()
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public AS $$
 BEGIN
+  -- Views financeiras pré-existentes
+  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_store_daily_metrics;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_platform_daily_summary;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_subscription_metrics;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_delivery_vendor_stats;
+  -- Views de catálogo/lojas (novas)
   REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_featured_stores;
   REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_category_product_counts;
   REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_top_products;
