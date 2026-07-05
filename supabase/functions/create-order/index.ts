@@ -291,11 +291,15 @@ serve(async (req) => {
       });
 
       if (couponErr) {
+        await admin.from("order_items").delete().eq("order_id", order.id);
         await admin.from("orders").delete().eq("id", order.id);
-        const msg = couponErr.message.includes("INVALID_COUPON")   ? "Cupom inválido ou expirado."
-                  : couponErr.message.includes("EXPIRED_COUPON")   ? "Cupom expirado."
-                  : couponErr.message.includes("EXHAUSTED_COUPON") ? "Cupom esgotado. Tente sem o cupom."
-                  : couponErr.message.includes("ALREADY_USED")     ? "Você já utilizou este cupom."
+        console.error("[create-order] coupon error message:", couponErr.message, "| code:", couponErr.code, "| details:", couponErr.details, "| hint:", couponErr.hint);
+        const m = couponErr.message ?? "";
+        const msg = (m.includes("INVALID_COUPON")   || m.includes("invalid_coupon"))   ? "Cupom inválido ou expirado."
+                  : (m.includes("EXPIRED_COUPON")   || m.includes("expired_coupon"))   ? "Cupom expirado."
+                  : (m.includes("EXHAUSTED_COUPON") || m.includes("exhausted_coupon")) ? "Cupom esgotado. Tente sem o cupom."
+                  : (m.includes("ALREADY_USED")     || m.includes("already_used"))     ? "Você já utilizou este cupom."
+                  : couponErr.code === "P0001" ? "Você já utilizou este cupom."
                   : "Erro ao aplicar cupom.";
         return json({ error: msg }, 422, req);
       }

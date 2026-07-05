@@ -43,6 +43,10 @@ const JOBS: Record<string, { path: string; body: unknown }> = {
     path: "/reconcile-subscriptions",
     body: {},
   },
+  "refresh-materialized-views": {
+    path: "/refresh-materialized-views",
+    body: {},
+  },
 };
 
 serve(async (req) => {

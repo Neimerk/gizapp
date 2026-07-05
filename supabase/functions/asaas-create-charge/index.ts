@@ -354,8 +354,43 @@ serve(async (req) => {
     try {
       charge = await asaas("/payments", "POST", baseCharge);
     } catch (e) {
-      await admin.from("payments").update({ status: "cancelled" }).eq("id", paymentRowId);
-      return json({ error: e instanceof Error ? e.message : "Erro ao criar cobrança." }, 422, req);
+      // Customer inválido → ID armazenado stale (ex: sandbox resetado, key trocada).
+      // Limpa o ID, recria o customer no Asaas e tenta a cobrança uma vez.
+      if (e instanceof Error && e.message.includes("Customer inválido")) {
+        const rawCpf = (identity.cpf ?? creditCardHolderInfo?.cpfCnpj ?? "").replace(/\D/g, "");
+        let freshCustomer: Record<string, unknown> | null = null;
+        try {
+          freshCustomer = await asaas("/customers", "POST", {
+            name:              identity.customerName || order.customer_name,
+            email:             identity.customerEmail || order.customer_email || undefined,
+            cpfCnpj:           rawCpf || undefined,
+            phone:             identity.customerPhone.replace(/\D/g, "") || undefined,
+            externalReference: identity.type === "user" ? identity.userId : `guest:${identity.guestSessionId}`,
+          });
+        } catch { /* ignora — vai retornar erro original */ }
+
+        if (freshCustomer?.id) {
+          asaasCustomerId = freshCustomer.id as string;
+          baseCharge.customer = asaasCustomerId;
+          if (identity.type === "user") {
+            await admin.from("profiles").update({ asaas_customer_id: asaasCustomerId }).eq("id", identity.userId!);
+          } else {
+            await admin.from("guest_sessions").update({ asaas_customer_id: asaasCustomerId }).eq("id", identity.guestSessionId!);
+          }
+          try {
+            charge = await asaas("/payments", "POST", baseCharge);
+          } catch (retryErr) {
+            await admin.from("payments").update({ status: "cancelled" }).eq("id", paymentRowId);
+            return json({ error: retryErr instanceof Error ? retryErr.message : "Erro ao criar cobrança." }, 422, req);
+          }
+        } else {
+          await admin.from("payments").update({ status: "cancelled" }).eq("id", paymentRowId);
+          return json({ error: e instanceof Error ? e.message : "Erro ao criar cobrança." }, 422, req);
+        }
+      } else {
+        await admin.from("payments").update({ status: "cancelled" }).eq("id", paymentRowId);
+        return json({ error: e instanceof Error ? e.message : "Erro ao criar cobrança." }, 422, req);
+      }
     }
 
     const isDeclined    = charge.status === "DECLINED" || charge.status === "REFUSED";
