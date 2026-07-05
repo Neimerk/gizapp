@@ -7,16 +7,9 @@ export type DeliveryFeeResult = {
   distanceKm: number | null;
   loading: boolean;
   source: "distance" | "store_default" | "pending";
+  outOfRange: boolean;
 };
 
-/**
- * Calcula a taxa de entrega dinamicamente com base na distância
- * entre a loja e o endereço de entrega do cliente.
- *
- * - Se a loja tiver lat/lng e o endereço tiver dados suficientes:
- *   geocodifica o endereço via Nominatim e aplica a fórmula.
- * - Caso contrário, usa a taxa padrão da loja.
- */
 export function useDeliveryFee(
   store: Store | undefined | null,
   address: {
@@ -31,6 +24,7 @@ export function useDeliveryFee(
     distanceKm: null,
     loading:    false,
     source:     "store_default",
+    outOfRange: false,
   });
 
   useEffect(() => {
@@ -38,20 +32,20 @@ export function useDeliveryFee(
 
     const defaultFee = Number(store.deliveryFee);
 
-    // Sem coordenadas na loja → usa taxa padrão
+    // Sem coordenadas na loja → usa taxa padrão, sem restrição de raio
     if (store.lat == null || store.lng == null) {
-      setResult({ fee: defaultFee, distanceKm: null, loading: false, source: "store_default" });
+      setResult({ fee: defaultFee, distanceKm: null, loading: false, source: "store_default", outOfRange: false });
       return;
     }
 
     // Sem dados de endereço suficientes
     const hasAddress = address.neighborhood || address.city || address.cep;
     if (!hasAddress) {
-      setResult({ fee: defaultFee, distanceKm: null, loading: false, source: "store_default" });
+      setResult({ fee: defaultFee, distanceKm: null, loading: false, source: "store_default", outOfRange: false });
       return;
     }
 
-    setResult((prev) => ({ ...prev, loading: true, source: "pending" }));
+    setResult((prev) => ({ ...prev, loading: true, source: "pending", outOfRange: false }));
 
     const timer = setTimeout(async () => {
       const pos = await geocodeAddress({
@@ -61,16 +55,18 @@ export function useDeliveryFee(
       });
 
       if (pos) {
-        const km  = haversineKm(store.lat!, store.lng!, pos.lat, pos.lng);
-        const fee = calculateDeliveryFee(km);
-        setResult({ fee, distanceKm: km, loading: false, source: "distance" });
+        const km        = haversineKm(store.lat!, store.lng!, pos.lat, pos.lng);
+        const maxRadius = store.maxDeliveryRadiusKm;
+        const outOfRange = maxRadius != null && km > maxRadius;
+        const fee       = outOfRange ? 0 : calculateDeliveryFee(km);
+        setResult({ fee, distanceKm: km, loading: false, source: "distance", outOfRange });
       } else {
-        setResult({ fee: defaultFee, distanceKm: null, loading: false, source: "store_default" });
+        setResult({ fee: defaultFee, distanceKm: null, loading: false, source: "store_default", outOfRange: false });
       }
     }, 800); // debounce para não geocodificar a cada tecla
 
     return () => clearTimeout(timer);
-  }, [store?.id, store?.lat, store?.lng, address.neighborhood, address.city, address.state, address.cep]);
+  }, [store?.id, store?.lat, store?.lng, store?.maxDeliveryRadiusKm, address.neighborhood, address.city, address.state, address.cep]);
 
   return result;
 }

@@ -1,8 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
-import * as signalR from "@microsoft/signalr";
-import { getAuth } from "../services/auth";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5003";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "../lib/supabase";
+import { useAuthStore } from "../stores/authStore";
 
 export type ChatMessage = {
   id: string;
@@ -13,113 +11,96 @@ export type ChatMessage = {
   at: string;
 };
 
-function storageKey(storeId: string) {
-  return `brasux-chat-${storeId}`;
-}
+type DbRow = {
+  id: string;
+  store_id: string;
+  content: string;
+  sender_role: string;
+  sender_name: string;
+  created_at: string;
+};
 
-function loadMessages(storeId: string): ChatMessage[] {
-  try {
-    const d = JSON.parse(localStorage.getItem(storageKey(storeId)) ?? "[]");
-    return Array.isArray(d) ? d : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistMessages(storeId: string, msgs: ChatMessage[]) {
-  localStorage.setItem(storageKey(storeId), JSON.stringify(msgs.slice(-200)));
-}
-
-let chatConnection: signalR.HubConnection | null = null;
-
-function getChatConnection() {
-  if (!chatConnection) {
-    chatConnection = new signalR.HubConnectionBuilder()
-      .withUrl(`${API_URL}/hubs/chat`, {
-        accessTokenFactory: () => {
-          try { return JSON.parse(localStorage.getItem("brasux-auth") ?? "{}")?.token ?? ""; }
-          catch { return ""; }
-        },
-      })
-      .withAutomaticReconnect()
-      .configureLogging(signalR.LogLevel.None)
-      .build();
-  }
-  return chatConnection;
+function mapRow(r: DbRow): ChatMessage {
+  return {
+    id:         r.id,
+    storeId:    r.store_id,
+    text:       r.content,
+    from:       r.sender_role === "store" ? "store" : "customer",
+    senderName: r.sender_name,
+    at:         r.created_at,
+  };
 }
 
 export function useChat(storeId: string) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadMessages(storeId));
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(false);
-  const auth = getAuth();
+  const auth = useAuthStore((s) => s.user);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
-    const conn = getChatConnection();
+    if (!storeId) return;
 
-    async function connect() {
-      try {
-        if (conn.state === signalR.HubConnectionState.Disconnected) {
-          await conn.start();
-        }
-        setConnected(true);
+    // Load last 100 messages
+    supabase
+      .from("chat_messages")
+      .select("id, store_id, content, sender_role, sender_name, created_at")
+      .eq("store_id", storeId)
+      .eq("conversation_type", "store_customer")
+      .order("created_at", { ascending: true })
+      .limit(100)
+      .then(({ data }) => {
+        if (data) setMessages((data as DbRow[]).map(mapRow));
+      });
 
-        conn.on("MessageReceived", (msg: ChatMessage) => {
-          if (msg.storeId !== storeId) return;
+    // Realtime: new messages from any participant
+    const channel = supabase
+      .channel(`chat:store:${storeId}`)
+      .on(
+        "postgres_changes",
+        {
+          event:  "INSERT",
+          schema: "public",
+          table:  "chat_messages",
+          filter: `store_id=eq.${storeId}`,
+        },
+        (payload) => {
           setMessages((prev) => {
-            const next = [...prev, msg];
-            persistMessages(storeId, next);
-            return next;
+            const row = payload.new as DbRow;
+            // deduplicate by id (optimistic inserts from own client)
+            if (prev.some((m) => m.id === row.id)) return prev;
+            return [...prev, mapRow(row)];
           });
-        });
-      } catch {
-        // Hub not available — chat works offline (localStorage only)
-        setConnected(false);
-      }
-    }
+        }
+      )
+      .subscribe((status) => setConnected(status === "SUBSCRIBED"));
 
-    connect();
-
+    channelRef.current = channel;
     return () => {
-      conn.off("MessageReceived");
+      void supabase.removeChannel(channel);
+      channelRef.current = null;
+      setConnected(false);
     };
   }, [storeId]);
 
   const send = useCallback(
     async (text: string) => {
-      if (!text.trim()) return;
+      const trimmed = text.trim();
+      if (!trimmed || !auth) return;
 
-      const msg: ChatMessage = {
-        id: crypto.randomUUID(),
-        storeId,
-        text: text.trim(),
-        from: "customer",
-        senderName: auth?.name ?? "Você",
-        at: new Date().toISOString(),
-      };
-
-      setMessages((prev) => {
-        const next = [...prev, msg];
-        persistMessages(storeId, next);
-        return next;
+      await supabase.from("chat_messages").insert({
+        store_id:          storeId,
+        conversation_type: "store_customer",
+        sender_id:         auth.id,
+        sender_role:       "customer",
+        sender_name:       auth.name ?? "Cliente",
+        content:           trimmed,
       });
-
-      // Try to send via SignalR hub
-      try {
-        const conn = getChatConnection();
-        if (conn.state === signalR.HubConnectionState.Connected) {
-          await conn.invoke("SendMessage", { storeId, text: text.trim() });
-        }
-      } catch {
-        // Offline mode — message saved locally
-      }
     },
     [storeId, auth]
   );
 
-  const clear = useCallback(() => {
-    localStorage.removeItem(storageKey(storeId));
-    setMessages([]);
-  }, [storeId]);
+  // kept for API compatibility — no longer persists to localStorage
+  const clear = useCallback(() => setMessages([]), []);
 
   return { messages, send, clear, connected };
 }

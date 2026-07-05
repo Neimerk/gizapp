@@ -121,6 +121,7 @@ export type Store = {
   featured: boolean;
   lat?: number;
   lng?: number;
+  maxDeliveryRadiusKm?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -153,6 +154,8 @@ function mapStore(row: Record<string, unknown>): Store {
     featured: row.featured as boolean,
     lat: row.lat != null ? Number(row.lat) : undefined,
     lng: row.lng != null ? Number(row.lng) : undefined,
+    maxDeliveryRadiusKm: row.max_delivery_radius_km != null
+      ? Number(row.max_delivery_radius_km) : undefined,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   };
@@ -766,10 +769,8 @@ export type AdminUser = {
 };
 
 export async function adminGetUsers(): Promise<AdminUser[]> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, name, role, active, store_id, created_at")
-    .order("created_at", { ascending: false });
+  // RPC SECURITY DEFINER — join com auth.users para expor emails ao admin
+  const { data, error } = await supabase.rpc("admin_get_users");
 
   if (error) throw new Error("Erro ao buscar usuários.");
 
@@ -777,10 +778,12 @@ export async function adminGetUsers(): Promise<AdminUser[]> {
     admin: "Admin", customer: "Customer", seller: "Seller", courier: "Courier",
   };
 
-  return (data ?? []).map((row) => ({
+  type RpcRow = { id: string; name: string; email: string; role: string; active: boolean; store_id: string | null; created_at: string };
+
+  return (data as RpcRow[] ?? []).map((row) => ({
     id: row.id,
     name: row.name,
-    email: "",
+    email: row.email,
     role: roleMap[row.role] ?? "Customer",
     active: row.active,
     storeId: row.store_id ?? null,
@@ -1288,10 +1291,10 @@ export async function validateCoupon(code: string): Promise<CouponDB> {
   if (data.max_uses !== null && data.uses_count >= data.max_uses) throw new Error("Cupom esgotado.");
 
   const user = useAuthStore.getState().user;
-  if (user && data.max_uses === 1) {
+  if (user) {
     const { data: used } = await supabase
       .from("user_coupons")
-      .select("id")
+      .select("coupon_id")
       .eq("user_id", user.id)
       .eq("coupon_id", data.id)
       .maybeSingle();
@@ -1528,25 +1531,28 @@ function mapDelivery(row: Record<string, unknown>): Delivery {
 }
 
 export async function getAvailableDeliveries(): Promise<AvailableDelivery[]> {
-  // Busca pedidos em status=2 que ainda não foram aceitos por nenhum entregador
-  const [ordersRes, takenRes] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id, store_id, total, delivery_fee, delivery_address, delivery_number, delivery_neighborhood, created_at, stores(name, address, neighborhood)")
-      .eq("status", 2)
-      .order("created_at", { ascending: false })
-      .limit(30),
-    supabase
-      .from("deliveries")
-      .select("order_id")
-      .neq("status", "CANCELLED"),
-  ]);
+  // 1. Busca os pedidos em status=2 (limite de 30)
+  const { data: orders, error } = await supabase
+    .from("orders")
+    .select("id, store_id, total, delivery_fee, delivery_address, delivery_number, delivery_neighborhood, created_at, stores(name, address, neighborhood)")
+    .eq("status", 2)
+    .order("created_at", { ascending: false })
+    .limit(30);
 
-  if (ordersRes.error) throw new Error("Erro ao buscar entregas disponíveis.");
+  if (error) throw new Error("Erro ao buscar entregas disponíveis.");
+  if (!orders?.length) return [];
 
-  const takenIds = new Set((takenRes.data ?? []).map((d) => d.order_id as string));
+  // 2. Verifica quais já foram aceitos — filtrando só pelos IDs relevantes
+  const orderIds = orders.map((o) => o.id as string);
+  const { data: taken } = await supabase
+    .from("deliveries")
+    .select("order_id")
+    .in("order_id", orderIds)
+    .neq("status", "CANCELLED");
 
-  return (ordersRes.data ?? [])
+  const takenIds = new Set((taken ?? []).map((d) => d.order_id as string));
+
+  return orders
     .filter((o) => !takenIds.has(o.id as string))
     .map((o) => {
       const store = o.stores as { name?: string; address?: string; neighborhood?: string } | null;

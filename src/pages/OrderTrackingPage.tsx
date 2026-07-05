@@ -6,6 +6,17 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { fetchOrderTracking, type TrackingResult } from "../services/guestSession";
 import { formatBRL } from "../utils/format";
+import { useOrderTracking, LIVE_LIFECYCLE_STATES } from "../hooks/useOrderTracking";
+
+const LIFECYCLE_LABEL: Record<string, string> = {
+  waiting_courier:  "Aguardando entregador",
+  courier_assigned: "Entregador a caminho da loja",
+  courier_arriving: "Entregador chegando na loja",
+  picked_up:        "Pedido coletado — saindo para entrega",
+  in_transit:       "Em rota de entrega",
+  arrived:          "Entregador chegou no endereço",
+  delivered:        "Entregue com sucesso",
+};
 
 const LiveTrackingMap = lazy(() => import("../components/ui/LiveTrackingMap"));
 
@@ -56,14 +67,19 @@ function StatusTimeline({ timeline }: { timeline: TrackingResult["timeline"] }) 
   );
 }
 
-// Status em que faz sentido mostrar o mapa ao vivo
-const LIVE_STATUSES = new Set([1, 2, 3]); // pago, em preparo, em rota
-
 function TrackingResult({ data }: { data: TrackingResult }) {
   const isCancelled    = data.status === 5;
   const isDelivered    = data.status === 4;
   const paymentPending = data.paymentStatus === "PENDING";
-  const showLiveMap    = LIVE_STATUSES.has(data.status) && !!data.orderId;
+
+  // Real-time delivery lifecycle (17 states)
+  const tracking    = useOrderTracking(data.orderId || null);
+  const lifecycle   = tracking.lifecycle;
+  const lifecycleEta = tracking.eta;
+  const showLiveMap = !!data.orderId && (
+    LIVE_LIFECYCLE_STATES.has(lifecycle ?? "") ||
+    (lifecycle == null && data.status >= 1 && data.status <= 3)
+  );
 
   return (
     <div className="space-y-4">
@@ -92,10 +108,16 @@ function TrackingResult({ data }: { data: TrackingResult }) {
             </span>
           )}
         </div>
+        {lifecycle && LIVE_LIFECYCLE_STATES.has(lifecycle) && (
+          <p className="mt-1 text-xs font-bold text-[#3b82f6]">{LIFECYCLE_LABEL[lifecycle] ?? lifecycle}</p>
+        )}
         <p className="mt-1 text-sm text-muted">{data.storeName}</p>
         <p className="mt-2 text-2xl font-black text-[#16a34a]">
           {formatBRL(data.total)}
         </p>
+        {lifecycleEta && showLiveMap && (
+          <p className="mt-1 text-xs font-bold text-[#16a34a]">~{lifecycleEta} min para entrega</p>
+        )}
         <p className="mt-1 text-xs text-faint">
           {PAYMENT_METHOD_LABELS[data.paymentMethod] ?? data.paymentMethod} · {data.paymentLabel}
         </p>

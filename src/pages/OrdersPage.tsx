@@ -9,6 +9,7 @@ import { getMyOrders, getProductImageUrl, queryKeys, upsertReview, type Order } 
 import { formatBRL } from "../utils/format";
 import { useAuthStore } from "../stores/authStore";
 import { supabase } from "../lib/supabase";
+import { useOrderTracking } from "../hooks/useOrderTracking";
 
 const STATUS_STEPS = [
   { status: 0, label: "Recebido" },
@@ -232,10 +233,12 @@ export default function OrdersPage() {
 /* ── STATUS TIMELINE ── */
 
 const DELIVERY_STEPS = [
-  { key: "waiting_courier",  label: "Despachando" },
-  { key: "courier_assigned", label: "Entregador a caminho" },
+  { key: "waiting_courier",  label: "Despacho" },
+  { key: "courier_assigned", label: "A caminho" },
+  { key: "courier_arriving", label: "Na loja" },
   { key: "picked_up",        label: "Coletado" },
   { key: "in_transit",       label: "Em rota" },
+  { key: "arrived",          label: "Chegou" },
   { key: "delivered",        label: "Entregue" },
 ];
 
@@ -472,38 +475,12 @@ function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void
 
 function OrderCard({ order }: { order: Order }) {
   const [open, setOpen] = useState(false);
-  const [deliveryLifecycle, setDeliveryLifecycle] = useState<string | null>(null);
   const isCancelled = order.status === 5;
   const isDelivered = order.status === 4;
   const isInTransit = order.status === 3;
 
-  // Busca e mantém atualizado o lifecycle granular do delivery_order (F1.7)
-  useEffect(() => {
-    if (order.status < 2) return; // ainda não chegou ao despacho
-
-    let cancelled = false;
-    supabase
-      .from("delivery_orders")
-      .select("id, lifecycle")
-      .eq("order_id", order.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled && data) setDeliveryLifecycle(data.lifecycle);
-      });
-
-    const ch = supabase
-      .channel(`order-lifecycle:${order.id}`)
-      .on("postgres_changes", {
-        event: "UPDATE", schema: "public", table: "delivery_orders",
-        filter: `order_id=eq.${order.id}`,
-      }, (p) => {
-        const row = p.new as { lifecycle: string };
-        setDeliveryLifecycle(row.lifecycle);
-      })
-      .subscribe();
-
-    return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [order.id, order.status]);
+  const tracking = useOrderTracking(order.status >= 2 ? order.id : null);
+  const deliveryLifecycle = tracking.lifecycle;
 
   return (
     <div className="overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm">
