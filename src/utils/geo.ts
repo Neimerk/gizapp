@@ -30,10 +30,15 @@ export function courierEarnings(deliveryFee: number): number {
   return Math.round(deliveryFee * 0.9 * 100) / 100;
 }
 
+// Cache em memória de geocoding — evita chamadas repetidas ao Nominatim na sessão.
+// Chave: string de consulta normalizada. Escopo: lifetime do módulo (tab/sessão).
+const _geocodeMemCache = new Map<string, { lat: number; lng: number }>();
+
 /**
- * Geocoding gratuito via OpenStreetMap Nominatim.
+ * Geocoding gratuito via OpenStreetMap Nominatim, com cache em memória.
  * Retorna lat/lng a partir de partes de endereço.
- * Sem token necessário — rate limit: 1 req/s.
+ * Rate limit Nominatim: 1 req/s — o cache garante que endereços repetidos
+ * dentro da sessão não disparam novas requisições.
  */
 export async function geocodeAddress(parts: {
   address?: string;
@@ -47,6 +52,9 @@ export async function geocodeAddress(parts: {
 
   if (!query.replace(/,\s*Brasil$/, "").trim()) return null;
 
+  const cached = _geocodeMemCache.get(query);
+  if (cached) return cached;
+
   try {
     const encoded = encodeURIComponent(query);
     const res = await fetch(
@@ -56,7 +64,9 @@ export async function geocodeAddress(parts: {
     if (!res.ok) return null;
     const data = await res.json();
     if (!data[0]) return null;
-    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    _geocodeMemCache.set(query, result);
+    return result;
   } catch {
     return null;
   }

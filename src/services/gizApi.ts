@@ -499,10 +499,10 @@ export async function getProducts(params?: ProductQuery): Promise<PagedProducts>
   if (params?.search) {
     const term = params.search.trim();
     if (term.length >= 3) {
-      // Full-text search com suporte a acentos e typos (search_vector + pg_trgm)
+      // Full-text search via coluna gerada search_vector (migration 20260705100000)
       query = query.textSearch("search_vector", term, {
         type: "websearch",
-        config: "portuguese_unaccent",
+        config: "portuguese",
       });
     } else {
       // Query curta: prefix ILIKE

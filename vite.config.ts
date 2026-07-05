@@ -87,10 +87,6 @@ export default defineConfig({
       output: {
         // Separa bibliotecas pesadas em chunks próprios para melhor cache
         manualChunks(id) {
-          // SignalR — só carrega em Orders e Chat (lazy pages)
-          if (id.includes("@microsoft/signalr")) {
-            return "signalr";
-          }
           // Supabase — necessário para auth no AppLayout (sync)
           if (id.includes("@supabase")) {
             return "supabase";
