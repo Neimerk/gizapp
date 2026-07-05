@@ -193,7 +193,7 @@ export default function CheckoutPage() {
   const [boletoExpired, setBoletoExpired] = useState(false);
 
   // Taxa de entrega dinâmica por distância
-  const { fee: deliveryFee, distanceKm, loading: loadingFee, source: feeSource } = useDeliveryFee(
+  const { fee: deliveryFee, distanceKm, loading: loadingFee, source: feeSource, outOfRange } = useDeliveryFee(
     store,
     {
       neighborhood: selectedAddress?.neighborhood,
@@ -1005,6 +1005,13 @@ export default function CheckoutPage() {
     </div>
 
     <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
+      {outOfRange && (
+        <div className="border-b border-red-100 bg-red-50 px-4 py-2 text-center text-xs font-bold text-red-600">
+          Endereço fora do raio de entrega desta loja
+          {store?.maxDeliveryRadiusKm != null && ` (máx. ${store.maxDeliveryRadiusKm} km)`}
+          {distanceKm != null && ` — distância: ${distanceKm.toFixed(1)} km`}
+        </div>
+      )}
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-[88px] pt-3 md:px-8 md:pb-4">
         <div>
           <p className="text-[11px] text-muted">Total</p>
@@ -1015,7 +1022,7 @@ export default function CheckoutPage() {
         </div>
         <button
           onClick={handleFinish}
-          disabled={saving || loadingFee}
+          disabled={saving || loadingFee || outOfRange}
           className="flex shrink-0 items-center gap-2 rounded-2xl bg-gradient-to-r from-[#16a34a] to-[#2563eb] px-6 py-3.5 text-sm font-black text-white shadow-lg shadow-[#16a34a]/30 disabled:opacity-60"
         >
           {saving
@@ -1092,6 +1099,13 @@ function PaymentResultScreen({
   trackingCode?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+
+  useEffect(() => {
+    if (result.method !== "pix") return;
+    const id = requestIdleCallback(() => setShowQr(true), { timeout: 500 });
+    return () => cancelIdleCallback(id);
+  }, [result.method]);
 
   async function copy(text: string) {
     await navigator.clipboard.writeText(text);
@@ -1184,11 +1198,15 @@ function PaymentResultScreen({
           </p>
 
           <div className="flex justify-center">
-            <img
-              src={`data:image/png;base64,${result.pixQrCodeImage}`}
-              alt="QR Code Pix"
-              className="h-52 w-52 rounded-2xl border border-line"
-            />
+            {showQr ? (
+              <img
+                src={`data:image/png;base64,${result.pixQrCodeImage}`}
+                alt="QR Code Pix"
+                className="h-52 w-52 rounded-2xl border border-line"
+              />
+            ) : (
+              <div className="h-52 w-52 rounded-2xl border border-line bg-subtle animate-pulse" />
+            )}
           </div>
 
           <div className="rounded-2xl border border-line bg-subtle p-3">
