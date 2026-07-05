@@ -1,14 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ArrowLeft, Clock3, LogIn, Package, ReceiptText, RefreshCw } from "lucide-react";
 
-const MapTrack = lazy(() => import("../components/ui/MapTrack"));
+const LiveTrackingMap = lazy(() => import("../components/ui/LiveTrackingMap"));
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getMyOrders, getProductImageUrl, queryKeys, upsertReview, type Order } from "../services/gizApi";
-import { logger } from "../utils/logger";
-import type { CourierPosition } from "../components/ui/MapTrack";
-import { ordersConnection, startOrdersConnection } from "../services/signalr";
 import { formatBRL } from "../utils/format";
 import { useAuthStore } from "../stores/authStore";
 import { supabase } from "../lib/supabase";
@@ -123,44 +120,29 @@ export default function OrdersPage() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `customer_id=eq.${auth.id}` },
-        () => { queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() }); }
+        (payload) => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() });
+          // Notificação e auto-review quando status muda para entregue (4)
+          const row = payload.new as { id: string; status: number; total: number };
+          if (row.status === 4) {
+            const mockOrder = { status: row.status, total: row.total, items: [] } as unknown as Order;
+            showOrderNotification(mockOrder);
+            const alreadyRated = localStorage.getItem(`brasux-rating-${row.id}`);
+            if (!alreadyRated) {
+              // Após invalidação, a query vai recarregar o pedido completo
+              setTimeout(() => {
+                const current = queryClient.getQueryData<Order[]>(queryKeys.myOrders());
+                const fullOrder = current?.find(o => o.id === row.id);
+                if (fullOrder) setAutoReviewOrder(fullOrder);
+              }, 800);
+            }
+          }
+        }
       )
       .subscribe();
 
-    async function setupSignalR() {
-      try {
-        await startOrdersConnection();
-        ordersConnection.off("OrderCreated");
-        ordersConnection.off("OrderStatusUpdated");
-
-        ordersConnection.on("OrderCreated", (order: Order) => {
-          queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
-            cur.some((o) => o.id === order.id) ? cur : [order, ...cur]
-          );
-        });
-
-        ordersConnection.on("OrderStatusUpdated", (updated: Order) => {
-          queryClient.setQueryData(queryKeys.myOrders(), (cur: Order[] = []) =>
-            cur.map((o) => (o.id === updated.id ? updated : o))
-          );
-          showOrderNotification(updated);
-          if (updated.status === 4 && updated.items.length > 0) {
-            const alreadyRated = localStorage.getItem(`brasux-rating-${updated.id}`);
-            if (!alreadyRated) {
-              setTimeout(() => setAutoReviewOrder(updated), 1500);
-            }
-          }
-        });
-      } catch (e) {
-        logger.error("SignalR:", e);
-      }
-    }
-    setupSignalR();
-
     return () => {
       supabase.removeChannel(channel);
-      ordersConnection.off("OrderCreated");
-      ordersConnection.off("OrderStatusUpdated");
     };
   }, [auth, queryClient]);
 
@@ -249,39 +231,66 @@ export default function OrdersPage() {
 
 /* ── STATUS TIMELINE ── */
 
-function StatusTimeline({ status }: { status: number }) {
+const DELIVERY_STEPS = [
+  { key: "waiting_courier",  label: "Despachando" },
+  { key: "courier_assigned", label: "Entregador a caminho" },
+  { key: "picked_up",        label: "Coletado" },
+  { key: "in_transit",       label: "Em rota" },
+  { key: "delivered",        label: "Entregue" },
+];
+
+const DELIVERY_STEP_INDEX: Record<string, number> = Object.fromEntries(
+  DELIVERY_STEPS.map((s, i) => [s.key, i])
+);
+
+function StatusTimeline({ status, deliveryLifecycle }: { status: number; deliveryLifecycle?: string | null }) {
+  // Se há lifecycle granular do delivery_order, usa os passos de delivery
+  if (deliveryLifecycle && deliveryLifecycle !== "cancelled" && deliveryLifecycle !== "failed") {
+    const currentIdx = DELIVERY_STEP_INDEX[deliveryLifecycle] ?? 0;
+    return (
+      <div className="flex items-start">
+        {DELIVERY_STEPS.map((step, idx) => {
+          const isCompleted = idx <= currentIdx;
+          const isCurrent   = idx === currentIdx;
+          const isLast      = idx === DELIVERY_STEPS.length - 1;
+          return (
+            <div key={step.key} className="flex flex-1 flex-col items-center">
+              <div className="flex w-full items-center">
+                <div className={`h-3 w-3 shrink-0 rounded-full border-2 transition-all ${
+                  isCompleted
+                    ? isCurrent ? "scale-125 border-[#16a34a] bg-[#16a34a]" : "border-[#16a34a] bg-[#16a34a]"
+                    : "border-line bg-surface"
+                }`} />
+                {!isLast && <div className={`h-0.5 flex-1 transition-colors ${idx < currentIdx ? "bg-[#16a34a]" : "bg-[#e2e8f0]"}`} />}
+              </div>
+              <p className={`mt-1.5 text-[9px] font-black uppercase tracking-wide ${isCompleted ? "text-[#16a34a]" : "text-[#cbd5e1]"}`}>
+                {step.label}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Fallback: timeline baseada em status numérico
   return (
     <div className="flex items-start">
       {STATUS_STEPS.map((step, idx) => {
         const isCompleted = status >= step.status;
         const isCurrent = status === step.status;
         const isLast = idx === STATUS_STEPS.length - 1;
-
         return (
           <div key={step.status} className="flex flex-1 flex-col items-center">
             <div className="flex w-full items-center">
-              <div
-                className={`h-3 w-3 shrink-0 rounded-full border-2 transition-all ${
-                  isCompleted
-                    ? isCurrent
-                      ? "scale-125 border-[#16a34a] bg-[#16a34a]"
-                      : "border-[#16a34a] bg-[#16a34a]"
-                    : "border-line bg-surface"
-                }`}
-              />
-              {!isLast && (
-                <div
-                  className={`h-0.5 flex-1 transition-colors ${
-                    status > step.status ? "bg-[#16a34a]" : "bg-[#e2e8f0]"
-                  }`}
-                />
-              )}
+              <div className={`h-3 w-3 shrink-0 rounded-full border-2 transition-all ${
+                isCompleted
+                  ? isCurrent ? "scale-125 border-[#16a34a] bg-[#16a34a]" : "border-[#16a34a] bg-[#16a34a]"
+                  : "border-line bg-surface"
+              }`} />
+              {!isLast && <div className={`h-0.5 flex-1 transition-colors ${status > step.status ? "bg-[#16a34a]" : "bg-[#e2e8f0]"}`} />}
             </div>
-            <p
-              className={`mt-1.5 text-[9px] font-black uppercase tracking-wide ${
-                isCompleted ? "text-[#16a34a]" : "text-[#cbd5e1]"
-              }`}
-            >
+            <p className={`mt-1.5 text-[9px] font-black uppercase tracking-wide ${isCompleted ? "text-[#16a34a]" : "text-[#cbd5e1]"}`}>
               {step.label}
             </p>
           </div>
@@ -463,20 +472,38 @@ function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void
 
 function OrderCard({ order }: { order: Order }) {
   const [open, setOpen] = useState(false);
-  const [courierPosition, setCourierPosition] = useState<CourierPosition | null>(null);
+  const [deliveryLifecycle, setDeliveryLifecycle] = useState<string | null>(null);
   const isCancelled = order.status === 5;
   const isDelivered = order.status === 4;
   const isInTransit = order.status === 3;
 
-  // Listen for courier location updates for this specific order
+  // Busca e mantém atualizado o lifecycle granular do delivery_order (F1.7)
   useEffect(() => {
-    if (!isInTransit) return;
-    const handler = (data: { orderId: string; lat: number; lng: number }) => {
-      if (data.orderId === order.id) setCourierPosition({ lat: data.lat, lng: data.lng });
-    };
-    ordersConnection.on("CourierLocationUpdated", handler);
-    return () => { ordersConnection.off("CourierLocationUpdated", handler); };
-  }, [order.id, isInTransit]);
+    if (order.status < 2) return; // ainda não chegou ao despacho
+
+    let cancelled = false;
+    supabase
+      .from("delivery_orders")
+      .select("id, lifecycle")
+      .eq("order_id", order.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setDeliveryLifecycle(data.lifecycle);
+      });
+
+    const ch = supabase
+      .channel(`order-lifecycle:${order.id}`)
+      .on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "delivery_orders",
+        filter: `order_id=eq.${order.id}`,
+      }, (p) => {
+        const row = p.new as { lifecycle: string };
+        setDeliveryLifecycle(row.lifecycle);
+      })
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [order.id, order.status]);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm">
@@ -510,7 +537,7 @@ function OrderCard({ order }: { order: Order }) {
       {/* STATUS TIMELINE */}
       {!isCancelled && (
         <div className="px-4 pt-4 pb-1">
-          <StatusTimeline status={order.status} />
+          <StatusTimeline status={order.status} deliveryLifecycle={deliveryLifecycle} />
         </div>
       )}
 
@@ -552,14 +579,14 @@ function OrderCard({ order }: { order: Order }) {
               ))}
             </div>
 
-            {/* MAPA (status >= Saindo) */}
+            {/* MAPA AO VIVO (status >= em despacho) */}
             {(isInTransit || isDelivered) && (
-              <Suspense fallback={<div className="h-48 animate-pulse rounded-2xl bg-subtle-2" />}>
-                <MapTrack
+              <Suspense fallback={<div className="h-52 animate-pulse rounded-2xl bg-subtle-2" />}>
+                <LiveTrackingMap
+                  orderId={order.id}
                   deliveryAddress={order.deliveryAddress}
                   deliveryNumber={order.deliveryNumber}
                   deliveryNeighborhood={order.deliveryNeighborhood}
-                  courierPosition={courierPosition}
                 />
               </Suspense>
             )}

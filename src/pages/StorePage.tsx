@@ -329,7 +329,7 @@ function StorePageContent() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {pageItems.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} storeName={store?.name} />
             ))}
           </div>
         )}
@@ -416,7 +416,7 @@ function StoreFavoriteButton({ store }: { store: StoreType }) {
   );
 }
 
-function ProductCard({ product }: { product: StoreProduct }) {
+function ProductCard({ product, storeName }: { product: StoreProduct; storeName?: string }) {
   const items = useCartStore((s) => s.items);
   const addItem = useCartStore((s) => s.addItem);
   const increaseItem = useCartStore((s) => s.increaseItem);
@@ -433,6 +433,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
       storeProductId: product.id,
       productId: product.productId,
       storeId: product.storeId,
+      storeName,
       name: product.name,
       description: product.description ?? "",
       price: finalPrice,

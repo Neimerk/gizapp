@@ -67,6 +67,7 @@ export default function ProductPage() {
       storeProductId: product.id,
       productId: product.productId,
       storeId: product.storeId,
+      storeName: store?.name,
       name: product.name,
       description: product.description ?? "",
       price: Number(product.price),

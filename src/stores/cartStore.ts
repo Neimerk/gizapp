@@ -18,6 +18,8 @@ export type CartItem = {
 
   storeId: string;
 
+  storeName?: string;
+
   name: string;
 
   description?: string;

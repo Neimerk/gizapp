@@ -355,16 +355,49 @@ export default function CourierPage() {
     if (activeDelivery && activeTab === "available") setActiveTab("active");
   }, [activeDelivery]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── GPS tracking quando há entrega ativa ──────────────────
+  // ── GPS adaptativo quando há entrega ativa (3s em movimento, 10s parado) ────
   useEffect(() => {
     if (!activeDelivery || !user) return;
     if (!navigator.geolocation) return;
-    const id = navigator.geolocation.watchPosition(
-      (pos) => updateCourierLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.heading ?? undefined).catch(() => null),
+
+    let lastLat = 0, lastLng = 0, lastSent = 0;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    function haversineM(a: [number, number], b: [number, number]) {
+      const R = 6_371_000, dLat = (b[0] - a[0]) * Math.PI / 180, dLng = (b[1] - a[1]) * Math.PI / 180;
+      const s = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * Math.PI / 180) * Math.cos(b[0] * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+    }
+
+    function send(pos: GeolocationPosition) {
+      const { latitude: lat, longitude: lng, heading, speed, accuracy } = pos.coords;
+      const moved = haversineM([lastLat, lastLng], [lat, lng]);
+      const moving = moved >= 15 || (speed ?? 0) > 0.5;
+      const interval = moving ? 3_000 : 10_000;
+      const now = Date.now();
+
+      if (now - lastSent >= interval) {
+        lastLat = lat; lastLng = lng; lastSent = now;
+        updateCourierLocation(lat, lng, heading ?? undefined, speed ? speed * 3.6 : undefined, accuracy).catch(() => null);
+      }
+
+      // Agenda próxima verificação
+      timerId = setTimeout(() => {
+        navigator.geolocation.getCurrentPosition(send, null, { enableHighAccuracy: true, timeout: 8_000 });
+      }, moving ? 3_000 : 10_000);
+    }
+
+    // Inicia com uma leitura imediata
+    const watchId = navigator.geolocation.watchPosition(
+      send,
       null,
-      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 8_000 },
+      { enableHighAccuracy: true, maximumAge: 5_000, timeout: 10_000 },
     );
-    return () => navigator.geolocation.clearWatch(id);
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      if (timerId) clearTimeout(timerId);
+    };
   }, [activeDelivery?.id, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Real-time: novos pedidos disponíveis ──────────────────

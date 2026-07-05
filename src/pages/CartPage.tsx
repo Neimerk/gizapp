@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Minus, Plus, ShoppingCart, Store, Trash2 } from "lucide-react";
 
 import { useCartStore } from "../stores/cartStore";
+import { getStoreById, queryKeys } from "../services/gizApi";
 import { formatBRL } from "../utils/format";
 
 export default function CartPage() {
@@ -15,6 +17,18 @@ export default function CartPage() {
   const totalPrice = useCartStore((s) => s.totalPrice());
 
   const [confirmClear, setConfirmClear] = useState(false);
+
+  const storeId = items[0]?.storeId;
+  const storedName = items[0]?.storeName;
+
+  const { data: storeData } = useQuery({
+    queryKey: queryKeys.store(storeId ?? ""),
+    queryFn: () => getStoreById(storeId!),
+    enabled: !!storeId && !storedName,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const storeName = storedName ?? storeData?.name;
 
   return (
     <>
@@ -71,6 +85,27 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="space-y-3">
+            {/* Banner da loja */}
+            {storeId && (
+              <div className="flex items-center justify-between rounded-2xl border border-line-subtle bg-surface px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#16a34a]/10">
+                    <Store size={16} className="text-[#16a34a]" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted">Loja</p>
+                    <p className="text-sm font-black text-content">{storeName ?? "Loja"}</p>
+                  </div>
+                </div>
+                <Link
+                  to={`/lojas/${storeId}`}
+                  className="rounded-xl bg-[#16a34a]/10 px-3 py-1.5 text-xs font-black text-[#16a34a]"
+                >
+                  Continuar comprando
+                </Link>
+              </div>
+            )}
+
             {/* ITEMS — swipe left para remover */}
             {items.map((item) => (
               <SwipeItem key={item.id} onDelete={() => removeItem(item.id)}>
