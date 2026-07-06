@@ -6,8 +6,12 @@ import { requireAsaasBase } from "../_shared/asaas.ts";
 
 // ── Config ────────────────────────────────────────────────────
 const ASAAS_BASE_RAW = requireAsaasBase("asaas-create-charge");
-const ASAAS_BASE     = ASAAS_BASE_RAW ?? "";
+const ASAAS_BASE     = (ASAAS_BASE_RAW ?? "").replace(/\/+$/, ""); // remove trailing slash
 const ASAAS_KEY      = Deno.env.get("ASAAS_API_KEY") ?? "";
+
+if (!ASAAS_KEY) {
+  console.error("[asaas-create-charge] ASAAS_API_KEY não configurada");
+}
 
 // Remove campos de cartão de respostas antes de persistir no banco.
 // Asaas raramente os inclui, mas o strip garante que dados brutos nunca
@@ -28,9 +32,24 @@ async function asaas(path: string, method = "GET", body?: unknown) {
     },
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data = await res.json();
+
+  // Lê como texto primeiro para evitar SyntaxError em respostas com corpo vazio.
+  const text = await res.text();
+  let data: Record<string, unknown> = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // corpo não é JSON — usa texto cru como mensagem de erro
+      if (!res.ok) throw new Error(`Asaas HTTP ${res.status}: ${text.slice(0, 200)}`);
+    }
+  }
+
   if (!res.ok) {
-    const msg = data?.errors?.[0]?.description ?? data?.message ?? "Erro na API Asaas";
+    const msg = (data?.errors as Array<{ description: string }> | undefined)?.[0]?.description
+      ?? (data?.message as string | undefined)
+      ?? `Erro na API Asaas (HTTP ${res.status})`;
+    console.error(`[asaas ${method} ${path}] HTTP ${res.status}:`, JSON.stringify(data));
     throw new Error(msg);
   }
   return data;
@@ -137,7 +156,8 @@ async function resolveIdentity(
 // ── Serve ─────────────────────────────────────────────────────
 serve(async (req) => {
   if (req.method === "OPTIONS") return optionsResponse(req);
-  if (!ASAAS_BASE_RAW) return new Response("Service Unavailable", { status: 503 });
+  if (!ASAAS_BASE_RAW) return new Response("Service Unavailable: ASAAS_API_URL ausente", { status: 503 });
+  if (!ASAAS_KEY)      return json({ error: "Configuração de pagamento indisponível. Contate o suporte." }, 503, req);
 
   const supabaseUrl    = Deno.env.get("SUPABASE_URL")!;
   const anonKey        = Deno.env.get("SUPABASE_ANON_KEY")!;
