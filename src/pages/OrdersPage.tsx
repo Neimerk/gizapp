@@ -38,8 +38,7 @@ const PROJECTS: Project[] = [
     category: "plataforma",
   },
   {
-    id: "comprai-loja",
-    name: "ComprAÍ Loja",
+    id: "comprai-loja",    name: "ComprAÍ Loja",
     tagline: "Painel do lojista — gestão de produtos, pedidos e financeiro",
     type: "Plataforma Lojistas",
     icon: "🏪",
@@ -110,6 +109,8 @@ const PROJECTS: Project[] = [
     color: "#d97706",
     status: "entregue",
     tech: ["React", "Next.js", "Supabase", "Stripe"],
+    href: "https://cervejabarata.com",
+    domain: "cervejabarata.com",
     category: "ecommerce",
   },
   // ── Educação ─────────────────────────────────────────────────────────────
@@ -148,6 +149,8 @@ const PROJECTS: Project[] = [
     color: "#059669",
     status: "entregue",
     tech: ["React", "Next.js", "PostgreSQL", "OpenAI"],
+    href: "https://simulamedi.com",
+    domain: "simulamedi.com",
     category: "educacao",
   },
   {
