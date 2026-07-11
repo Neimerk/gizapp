@@ -74,13 +74,13 @@ export default function CartPage() {
               Seu carrinho está vazio
             </h2>
             <p className="mt-2 text-sm text-muted">
-              Adicione produtos de uma loja para continuar.
+              Adicione soluções de uma loja tech para continuar.
             </p>
             <Link
               to="/"
               className="mt-6 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
             >
-              Explorar lojas
+              Explorar soluções
             </Link>
           </div>
         ) : (
@@ -172,11 +172,11 @@ export default function CartPage() {
 
               <div className="mt-3 space-y-2">
                 <div className="flex justify-between text-sm text-faint">
-                  <span>{totalItems} {totalItems === 1 ? "item" : "itens"}</span>
+                  <span>{totalItems} {totalItems === 1 ? "solução" : "soluções"}</span>
                   <strong className="text-white">{formatBRL(totalPrice)}</strong>
                 </div>
                 <div className="flex justify-between text-sm text-faint">
-                  <span>Taxa de entrega</span>
+                  <span>Licenças e contratos</span>
                   <strong className="text-white">no checkout</strong>
                 </div>
               </div>

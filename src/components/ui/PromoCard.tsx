@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 interface PromoCardProps {
   href?: string;
   to?: string;
+  /** Quando true: ocupa min-h-screen, sem bordas arredondadas (hero fullscreen) */
+  fullScreen?: boolean;
   background: string;
   blobAColor: string;
   blobAOpacity?: number;
@@ -33,6 +35,8 @@ interface PromoCardProps {
   illustration?: ReactNode;
   /** Imagem real que preenche metade do card (right side, object-cover) */
   imageUrl?: string;
+  /** Centraliza todo o conteúdo (sem split esquerda/direita) */
+  centered?: boolean;
 }
 
 const GRID_OVERLAY = {
@@ -44,6 +48,7 @@ const GRID_OVERLAY = {
 export default function PromoCard({
   href,
   to,
+  fullScreen = false,
   background,
   blobAColor,
   blobAOpacity = 0.25,
@@ -70,18 +75,28 @@ export default function PromoCard({
   iconExtra,
   illustration,
   imageUrl,
+  centered = false,
 }: PromoCardProps) {
   const hasImage = !!imageUrl;
+
 
   const inner = (
     <>
       {/* Blobs de fundo */}
       <div
-        className="pointer-events-none absolute -left-10 -top-10 h-48 w-48 rounded-full blur-3xl"
+        className={`pointer-events-none absolute rounded-full blur-3xl ${
+          fullScreen
+            ? "-left-20 -top-20 h-[36rem] w-[36rem]"
+            : "-left-10 -top-10 h-48 w-48"
+        }`}
         style={{ background: blobAColor, opacity: blobAOpacity }}
       />
       <div
-        className="pointer-events-none absolute -bottom-10 right-20 h-40 w-40 rounded-full blur-3xl"
+        className={`pointer-events-none absolute rounded-full blur-3xl ${
+          fullScreen
+            ? "-bottom-20 right-10 h-[28rem] w-[28rem]"
+            : "-bottom-10 right-20 h-40 w-40"
+        }`}
         style={{ background: blobBColor, opacity: blobBOpacity }}
       />
       <div
@@ -91,18 +106,18 @@ export default function PromoCard({
 
       {/* ── Conteúdo de texto (lado esquerdo) ── */}
       <div
-        className={`relative z-20 flex flex-1 flex-col gap-4 p-8 md:p-10 ${
-          hasImage ? "md:max-w-[58%]" : ""
-        }`}
+        className={`relative z-20 flex flex-1 flex-col ${
+          fullScreen ? "gap-6 p-10 md:p-16 lg:p-24" : "gap-4 p-8 md:p-10"
+        } ${hasImage ? "md:max-w-[50%]" : ""} items-center text-center ${centered ? "justify-center" : ""}`}
       >
         <div className="flex flex-wrap items-center gap-3">
           <div
             className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5"
             style={{ border: `1px solid ${badgeBorderColor}`, background: badgeBgColor }}
           >
-            <span className="text-sm">{badgeEmoji}</span>
+            <span className={fullScreen ? "text-base" : "text-sm"}>{badgeEmoji}</span>
             <span
-              className="text-[11px] font-black uppercase tracking-widest"
+              className={`font-black uppercase tracking-widest ${fullScreen ? "text-sm" : "text-[11px]"}`}
               style={{ color: badgeTextColor }}
             >
               {badgeLabel}
@@ -112,7 +127,13 @@ export default function PromoCard({
         </div>
 
         <div>
-          <h2 className="text-3xl font-black text-white md:text-4xl">
+          <h2
+            className={`font-black text-white leading-[1.05] tracking-tight ${
+              fullScreen
+                ? "text-5xl md:text-6xl lg:text-7xl"
+                : "text-3xl md:text-4xl"
+            }`}
+          >
             {titleBefore}{" "}
             <span
               className="bg-clip-text text-transparent"
@@ -121,20 +142,43 @@ export default function PromoCard({
               {titleHighlight}
             </span>
           </h2>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-faint">
+          <p
+            className={`mt-3 leading-relaxed text-white/70 ${
+              fullScreen ? "text-base md:text-lg max-w-xl" : "text-sm max-w-md text-faint"
+            }`}
+          >
             {description}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <span
-            className="inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black transition-all group-hover:scale-[1.03]"
-            style={{ background: ctaBackground, boxShadow: ctaShadow, color: ctaTextColor }}
-          >
-            {ctaLabel} <ArrowRight size={15} />
-          </span>
+        <div className="flex flex-wrap items-center gap-4">
+          {to ? (
+            <Link
+              to={to}
+              className={`inline-flex items-center gap-2 font-black transition-all hover:scale-[1.03] ${
+                fullScreen ? "rounded-2xl px-8 py-4 text-base" : "rounded-2xl px-6 py-3 text-sm"
+              }`}
+              style={{ background: ctaBackground, boxShadow: ctaShadow, color: ctaTextColor }}
+            >
+              {ctaLabel} <ArrowRight size={fullScreen ? 18 : 15} />
+            </Link>
+          ) : (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-2 font-black transition-all hover:scale-[1.03] ${
+                fullScreen ? "rounded-2xl px-8 py-4 text-base" : "rounded-2xl px-6 py-3 text-sm"
+              }`}
+              style={{ background: ctaBackground, boxShadow: ctaShadow, color: ctaTextColor }}
+            >
+              {ctaLabel} <ArrowRight size={fullScreen ? 18 : 15} />
+            </a>
+          )}
           {domainLabel && (
-            <span className="text-xs text-muted">{domainLabel}</span>
+            <span className={`text-white/40 ${fullScreen ? "text-sm" : "text-xs"}`}>
+              {domainLabel}
+            </span>
           )}
         </div>
       </div>
@@ -162,7 +206,7 @@ export default function PromoCard({
           </div>
 
           {/* Desktop: imagem preenche metade direita em absolute */}
-          <div className="absolute right-0 top-0 hidden h-full w-[45%] overflow-hidden md:block">
+          <div className="absolute right-0 top-0 hidden h-full w-1/2 overflow-hidden md:block">
             <img
               src={imageUrl}
               alt=""
@@ -208,22 +252,20 @@ export default function PromoCard({
     </>
   );
 
-  /* Card wrapper: quando tem imagem usa min-h para garantir altura no desktop */
-  const cls = `group relative flex flex-col overflow-hidden rounded-3xl md:flex-row md:items-center ${
-    hasImage ? "md:min-h-[280px]" : ""
-  }`;
-
-  if (to) {
-    return (
-      <Link to={to} className={cls} style={{ background }}>
-        {inner}
-      </Link>
-    );
-  }
+  /* Card wrapper — não clicável; apenas o botão CTA é link */
+  const cls = [
+    "relative flex overflow-hidden",
+    centered
+      ? "flex-col items-center justify-center"
+      : "flex-col md:flex-row md:items-center",
+    fullScreen
+      ? "min-h-screen"
+      : `rounded-3xl${hasImage ? " md:min-h-[280px]" : ""}`,
+  ].join(" ");
 
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={cls} style={{ background }}>
+    <div className={cls} style={{ background }}>
       {inner}
-    </a>
+    </div>
   );
 }

@@ -84,14 +84,14 @@ const CONTACTS = [
 ];
 
 const FAQS_QUICK = [
-  { q: "Como me torno lojista?", link: "https://brasux.store", label: "Cadastrar loja" },
-  { q: "Quero ser entregador parceiro", link: "https://entregas.brasux.com.br", label: "Cadastrar como entregador" },
-  { q: "Dúvidas sobre pedidos e entregas", link: "/ajuda", label: "Central de ajuda" },
+  { q: "Como me torno lojista?", link: "https://brasux.com.br/lojista", label: "Cadastrar loja" },
+  { q: "Quero ser parceiro dev/designer", link: "https://brasux.com.br/parceiro", label: "Ser parceiro" },
+  { q: "Dúvidas sobre projetos", link: "/ajuda", label: "Central de ajuda" },
 ];
 
 export default function ContatoPage() {
   usePageMeta({
-    title: "Fale Conosco — BrasUX Shopping",
+    title: "Fale Conosco — BrasUX Soluções Tecnológicas",
     description: "Entre em contato com a equipe BrasUX pelo WhatsApp, e-mail ou redes sociais. Atendimento rápido e humanizado.",
     canonical: canonicalUrl("/contato"),
   });

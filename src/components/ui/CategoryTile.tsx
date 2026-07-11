@@ -58,26 +58,27 @@ export default function CategoryTile({
     );
   }
 
-  // variant === "image"
+  // variant === "image" — foto real com overlay de legibilidade
   return (
     <Link to={to} aria-label={category.name} className={`group flex flex-col items-center gap-2.5 ${className}`}>
       <div
         className="relative w-full overflow-hidden rounded-3xl shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
         style={{ aspectRatio: "1 / 1" }}
       >
+        {/* Foto real da categoria */}
         <img
           src={`/categorias/${category.slug}.webp`}
           alt={category.name}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.06]"
           loading="lazy"
           decoding="async"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        {/* faixa de acento no rodapé do tile — vincula visualmente ao departamento */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-1"
-          style={{ background: color }}
-        />
-        <div className="absolute inset-0 rounded-3xl bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
+        {/* Overlay escuro + acento no rodapé */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/0" />
+        {/* Faixa de acento no rodapé */}
+        <div className="absolute inset-x-0 bottom-0 h-0.5" style={{ background: color }} />
+        {/* Hover brightening */}
+        <div className="absolute inset-0 rounded-3xl bg-white/0 transition-colors duration-300 group-hover:bg-white/8" />
       </div>
       <h3 className="text-center text-xs font-black uppercase leading-tight tracking-wide text-content line-clamp-2">
         {category.name}

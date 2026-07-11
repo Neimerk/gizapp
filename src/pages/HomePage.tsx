@@ -1,45 +1,117 @@
-import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { useJsonLd } from "../hooks/useJsonLd";
-import { buildOrganizationSchema, buildWebSiteSchema, buildFaqSchema, HOME_FAQS, canonicalUrl } from "../lib/seo";
-import { useGeolocation } from "../hooks/useGeolocation";
-import { haversineKm } from "../utils/geo";
-import BannerCarousel from "../components/ui/BannerCarousel";
-import { Link } from "react-router-dom";
-import { ChevronDown, MapPin } from "lucide-react";
-import AddressPickerModal from "../components/home/AddressPickerModal";
-import { useDeliveryAddressStore } from "../stores/deliveryAddressStore";
-
 import {
-  getStores,
-  getFeaturedProducts,
-  getFeaturedByStore,
-  getActiveBanners,
-  getProducts,
-  getMyOrders,
-  queryKeys,
-} from "../services/gizApi";
-import FeaturedCarousel from "../components/ui/FeaturedCarousel";
+  buildOrganizationSchema,
+  buildWebSiteSchema,
+  buildFaqSchema,
+  HOME_FAQS,
+  canonicalUrl,
+} from "../lib/seo";
+
 import { useAuthStore } from "../stores/authStore";
 import { departments } from "../data/taxonomy";
 import DepartmentCard from "../components/ui/DepartmentCard";
-import { formatBRL } from "../utils/format";
 import SectionHeader from "../components/home/SectionHeader";
-import HeroCarousel from "../components/home/HeroCarousel";
-import FlashSaleSection from "../components/home/FlashSale";
-import JoinCtaSection from "../components/home/JoinCtaSection";
-import StoreCard from "../components/store/StoreCard";
+import BrasuxSolutionsSection from "../components/home/BrasuxSolutionsSection";
+import { Link } from "react-router-dom";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Shield,
+  Star,
+  Zap,
+} from "lucide-react";
+
+// ── Dados estáticos de vitrine ────────────────────────────────────────────────
+
+const TECH_STACK = [
+  { label: "React",      icon: "⚛️" },
+  { label: "Next.js",    icon: "▲"  },
+  { label: "TypeScript", icon: "🔷" },
+  { label: "Node.js",    icon: "🟩" },
+  { label: "Python",     icon: "🐍" },
+  { label: "Supabase",   icon: "⚡" },
+  { label: "PostgreSQL", icon: "🐘" },
+  { label: "AWS",        icon: "☁️" },
+  { label: "Docker",     icon: "🐳" },
+  { label: "Tailwind",   icon: "🎨" },
+  { label: "Flutter",    icon: "💙" },
+  { label: "OpenAI",     icon: "🤖" },
+];
+
+const CASES = [
+  {
+    emoji: "🚀",
+    client: "Fábrica de Landing Pages",
+    result: "Mais de 200 páginas entregues",
+    detail: "Alta conversão · 5 dias úteis · WhatsApp incluso",
+    accent: "#16a34a",
+  },
+  {
+    emoji: "📱",
+    client: "App de Delivery",
+    result: "Lançado em 45 dias",
+    detail: "React Native · Pagamentos integrados · Rastreio em tempo real",
+    accent: "#2563eb",
+  },
+  {
+    emoji: "🤖",
+    client: "Chatbot para Clínica",
+    result: "40% menos chamados de suporte",
+    detail: "Agendamentos automáticos · WhatsApp Business · IA conversacional",
+    accent: "#0d9488",
+  },
+  {
+    emoji: "🏛️",
+    client: "Data Warehouse",
+    result: "Pipeline de dados em 30 dias",
+    detail: "ETL · BigQuery · Dashboards em Power BI",
+    accent: "#9333ea",
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Mariana Costa",
+    role: "CEO · Clínica VitaPlus",
+    avatar: "M",
+    color: "#16a34a",
+    text: "A landing page ficou incrível e aumentou nossas conversões em 3x. Entrega rápida, comunicação excelente.",
+  },
+  {
+    name: "Rafael Menezes",
+    role: "Fundador · DelivEx",
+    avatar: "R",
+    color: "#2563eb",
+    text: "O app de delivery ficou melhor do que eu esperava. A equipe entende de produto e de negócio.",
+  },
+  {
+    name: "Patrícia Alves",
+    role: "Diretora de TI · GrupoAlpha",
+    avatar: "P",
+    color: "#9333ea",
+    text: "Transformação digital real. Os dashboards de BI mudaram como a diretoria toma decisões.",
+  },
+];
+
+const WHY_BRASUX = [
+  { icon: Zap,           title: "Entrega Rápida",      text: "Landing pages em 5 dias, apps em 30–90 dias. Sem enrolação." },
+  { icon: Shield,        title: "Qualidade Garantida", text: "Código limpo, testes, documentação. Sem gambiarra." },
+  { icon: CheckCircle2,  title: "Preço Transparente",  text: "Saiba o valor antes de contratar. Sem surpresas." },
+  { icon: Clock,         title: "Suporte Contínuo",    text: "Acompanhamento do projeto até a entrega final." },
+  { icon: Star,          title: "Profissionais Reais", text: "Só parceiros verificados com portfólio e avaliações." },
+  { icon: ArrowRight,    title: "Escalável",           text: "Do MVP ao sistema enterprise — crescemos com você." },
+];
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [addressPickerOpen, setAddressPickerOpen] = useState(false);
-  const deliveryAddress = useDeliveryAddressStore((s) => s.address);
-  const clearDeliveryAddress = useDeliveryAddressStore((s) => s.clearAddress);
-
   usePageMeta({
     title: "Shopping Brasileiro de Soluções Tecnológicas",
     description:
-      "BrasUX Shopping — restaurantes, mercado, farmácia, eletrônicos, serviços e muito mais com entrega rápida em todo o Brasil.",
+      "BrasUX — Landing pages, aplicativos, white label, inteligência artificial, engenharia de software, dados e consultorias. O shopping tech do Brasil.",
     canonical: canonicalUrl("/"),
   });
 
@@ -49,360 +121,199 @@ export default function HomePage() {
   );
   useJsonLd(homeSchemas);
 
-  const { position } = useGeolocation();
-
-  const { data: banners = [] } = useQuery({
-    queryKey: queryKeys.banners(),
-    queryFn:  getActiveBanners,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: stores = [], isLoading: loadingStores } = useQuery({
-    queryKey: queryKeys.stores(),
-    queryFn: getStores,
-    select: (data) => data.filter((s) => s.active),
-  });
-
-  const { data: featuredProducts = [] } = useQuery({
-    queryKey: queryKeys.featuredProducts(),
-    queryFn:  getFeaturedProducts,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: featuredStores = [], isLoading: loadingFeaturedStores } = useQuery({
-    queryKey: queryKeys.featuredByStore(),
-    queryFn:  getFeaturedByStore,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: newestProducts = [] } = useQuery({
-    queryKey: ["products", "newest"],
-    queryFn: () => getProducts({ sort: "newest", pageSize: 6, available: true }),
-    select: (d) => d.items,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Delivery address takes priority over raw GPS
-  const effectivePosition = deliveryAddress ?? position;
-
-  const storesSorted = useMemo(() => {
-    const withDist = stores.map((s) => ({
-      ...s,
-      distanceKm:
-        effectivePosition && s.lat != null && s.lng != null
-          ? haversineKm(effectivePosition.lat, effectivePosition.lng, s.lat, s.lng)
-          : undefined as number | undefined,
-    }));
-    return effectivePosition
-      ? [...withDist].sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999))
-      : withDist;
-  }, [stores, effectivePosition]);
-
   const authUser = useAuthStore((s) => s.user);
 
-  const { data: recentOrders = [] } = useQuery({
-    queryKey: ["orders", "my", "home"],
-    queryFn: getMyOrders,
-    enabled: !!authUser,
-    staleTime: 2 * 60 * 1000,
-    select: (orders) => orders.filter((o) => o.status === 4).slice(0, 5),
-  });
-
-  const recentProducts = useMemo(() => {
-    const seen = new Set<string>();
-    const products: Array<{
-      storeProductId: string;
-      productName: string;
-      imageUrl?: string;
-      unitPrice: number;
-      storeId: string;
-      storeName?: string;
-    }> = [];
-    for (const order of recentOrders) {
-      for (const item of order.items) {
-        if (!seen.has(item.storeProductId)) {
-          seen.add(item.storeProductId);
-          products.push({
-            storeProductId: item.storeProductId,
-            productName: item.productName,
-            imageUrl: item.imageUrl,
-            unitPrice: item.unitPrice,
-            storeId: order.storeId,
-            storeName: order.storeName,
-          });
-        }
-      }
-    }
-    return products.slice(0, 8);
-  }, [recentOrders]);
-
-  const flashSaleProducts = useMemo(
-    () => featuredProducts.filter((p) => p.promotionalPrice !== null && p.promotionalPrice !== undefined),
-    [featuredProducts],
-  );
-
   return (
-    <div className="space-y-10">
+    <div className="space-y-12">
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-3xl text-content">
-          Shopping <strong className="text-blue-950 dark:text-white">Bras</strong>
-          <strong className="text-green-600">UX</strong>
-        </h1>
-
-        {/* Address activator */}
-        <button
-          onClick={() => setAddressPickerOpen(true)}
-          className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-4 py-2.5 text-left transition-all hover:border-[#16a34a]/40 sm:max-w-xs"
-        >
-          <MapPin size={15} className="shrink-0 text-[#16a34a]" />
-          <span className="flex-1 truncate text-sm font-bold text-content">
-            {deliveryAddress?.label ?? "Onde você quer receber?"}
-          </span>
-          <ChevronDown size={13} className="shrink-0 text-faint" />
-        </button>
+      {/* ── PROMO CARDS — carrossel fullscreen, sangra o container ── */}
+      <div className="relative left-1/2 w-screen -translate-x-1/2 -mt-6">
+        <BrasuxSolutionsSection />
       </div>
 
-      {deliveryAddress && (
-        <p className="mt-1 text-xs text-muted">
-          Lojas ordenadas por proximidade a{" "}
-          <button
-            onClick={() => setAddressPickerOpen(true)}
-            className="font-bold text-[#16a34a] underline-offset-2 hover:underline"
-          >
-            {deliveryAddress.label}
-          </button>
-          {" ·"}{" "}
-          <button
-            onClick={clearDeliveryAddress}
-            className="text-muted hover:text-content"
-          >
-            Remover
-          </button>
-        </p>
-      )}
-
-      {/* ── BANNER CAROUSEL ── */}
-      {banners.length > 0 && <BannerCarousel banners={banners} />}
-
-      {/* ── COMPRE DE NOVO ── */}
-      {authUser && recentProducts.length > 0 && (
-        <section>
-          <SectionHeader
-            label="seu histórico"
-            title="Compre de novo"
-            linkTo="/pedidos"
-            linkLabel="Ver pedidos"
-            color="#6366f1"
-          />
-          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
-            <div className="flex gap-4 pb-2">
-              {recentProducts.map((p) => (
-                <Link
-                  key={p.storeProductId}
-                  to={`/lojas/${p.storeId}/produto/${p.storeProductId}`}
-                  className="group flex w-36 shrink-0 flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex h-28 items-center justify-center overflow-hidden rounded-t-3xl bg-subtle p-3">
-                    {p.imageUrl ? (
-                      <img
-                        src={p.imageUrl}
-                        alt={p.productName}
-                        className="h-20 w-full object-contain transition-transform group-hover:scale-105"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="text-3xl">🛍️</div>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-0.5 p-2.5">
-                    <p className="line-clamp-2 text-[11px] font-black leading-tight text-content">
-                      {p.productName}
-                    </p>
-                    {p.storeName && (
-                      <p className="text-[9px] text-faint">{p.storeName}</p>
-                    )}
-                    <p className="mt-1 text-xs font-black text-[#16a34a]">
-                      {formatBRL(p.unitPrice)}
-                    </p>
-                    <div className="mt-1.5 flex items-center justify-center gap-1 rounded-xl bg-[#6366f1]/10 py-1.5 text-[10px] font-black text-[#6366f1] transition-colors group-hover:bg-[#6366f1] group-hover:text-white">
-                      🔁 Pedir novamente
-                    </div>
-                  </div>
-                </Link>
-              ))}
+      {/* ── POR QUE A BRASUX ── */}
+      <section>
+        <SectionHeader
+          label="por que a BrasUX"
+          title="A plataforma certa para soluções tech"
+          color="#16a34a"
+        />
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {WHY_BRASUX.map(({ icon: Icon, title, text }) => (
+            <div
+              key={title}
+              className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4 shadow-sm"
+            >
+              <Icon size={20} className="text-[#16a34a]" />
+              <p className="text-sm font-black text-content">{title}</p>
+              <p className="text-xs leading-relaxed text-muted">{text}</p>
             </div>
-          </div>
-        </section>
-      )}
+          ))}
+        </div>
+      </section>
 
-      {/* ── HERO: carrossel de soluções do ecossistema ── */}
-      <HeroCarousel />
-
-      {/* ── CATEGORIAS (por departamento) ── */}
+      {/* ── ÁREAS DE SOLUÇÃO (10 departamentos) ── */}
       <section>
         <SectionHeader
           label="explorar"
-          title="Categorias"
+          title="Explore por área"
           linkTo="/categorias"
           linkLabel="Ver todas"
         />
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
           {departments.map((dep) => (
             <DepartmentCard key={dep.key} department={dep} />
           ))}
         </div>
       </section>
 
-      <FlashSaleSection products={flashSaleProducts} />
-
-
-      {/* ── LOJAS EM DESTAQUE ── */}
-      {(featuredStores.length > 0 || loadingFeaturedStores) && (
-        <section>
-          <SectionHeader
-            label="ofertas"
-            title="Lojas em destaque"
-            linkTo="/lojas/destaque"
-            linkLabel="Ver mais"
-            color="#16a34a"
-          />
-          <div className="mt-5">
-            {loadingFeaturedStores ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-72 animate-pulse rounded-3xl bg-surface shadow-sm" />
-                ))}
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {featuredStores.slice(0, 3).map((store) => (
-                    <FeaturedCarousel key={store.storeId} store={store} />
-                  ))}
-                </div>
-                {featuredStores.length > 3 && (
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {featuredStores.slice(3, 6).map((store) => (
-                      <FeaturedCarousel key={store.storeId} store={store} />
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* ── MAIS POPULARES ── */}
-      {featuredProducts.length > 0 && (
-        <section>
-          <SectionHeader label="trending" title="Mais populares" linkTo="/buscar" linkLabel="Ver todos" color="#dc2626" />
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {featuredProducts.slice(0, 4).map((p) => (
-              <Link
-                key={p.id}
-                to={`/lojas/${p.storeId}/produto/${p.id}`}
-                className="group flex flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className="flex h-32 items-center justify-center bg-subtle p-3">
-                  {p.imageUrl ? (
-                    <img
-                      src={p.imageUrl}
-                      alt={p.name}
-                      className="h-24 w-full object-contain transition-transform group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="text-4xl">🛍️</div>
-                  )}
-                </div>
-                <div className="p-3">
-                  <p className="line-clamp-2 text-xs font-black leading-tight text-content">{p.name}</p>
-                  {p.storeName && <p className="mt-0.5 text-[10px] text-faint">{p.storeName}</p>}
-                  <div className="mt-2">
-                    {p.promotionalPrice ? (
-                      <p className="text-sm font-black text-[#16a34a]">{formatBRL(p.promotionalPrice)}</p>
-                    ) : p.price ? (
-                      <p className="text-sm font-black text-[#16a34a]">{formatBRL(p.price)}</p>
-                    ) : null}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── LOJAS ── */}
+      {/* ── CASES DE SUCESSO ── */}
       <section>
         <SectionHeader
-          label={effectivePosition ? "perto de você" : "lojas"}
-          title={effectivePosition ? "Lojas próximas" : "Lojas abertas agora"}
-          linkTo="/lojas"
-          linkLabel="Ver todas"
-          color="#0f766e"
+          label="resultados reais"
+          title="Cases de sucesso"
+          color="#2563eb"
         />
-        {loadingStores ? (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse rounded-3xl bg-surface p-5 shadow-sm">
-                <div className="h-28 rounded-2xl bg-subtle-2" />
-                <div className="mt-4 h-4 w-1/2 rounded bg-subtle-2" />
-                <div className="mt-2 h-3 w-1/3 rounded bg-subtle-2" />
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {CASES.map((c) => (
+            <div
+              key={c.client}
+              className="rounded-2xl border border-line bg-surface p-5 shadow-sm"
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-xl"
+                  style={{ background: `${c.accent}15` }}
+                >
+                  {c.emoji}
+                </div>
+                <p className="text-[11px] font-black uppercase tracking-wide text-muted">{c.client}</p>
               </div>
-            ))}
-          </div>
-        ) : storesSorted.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">Nenhuma loja disponível.</p>
-        ) : (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {storesSorted.slice(0, 6).map((store, i) => (
-              <StoreCard key={store.id} store={store} distanceKm={store.distanceKm} index={i} />
-            ))}
-          </div>
-        )}
+              <p className="text-base font-black" style={{ color: c.accent }}>{c.result}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted">{c.detail}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* ── NOVIDADES ── */}
-      {newestProducts.length > 0 && (
-        <section>
-          <SectionHeader label="novo" title="Novidades" linkTo="/buscar" linkLabel="Ver todas" color="#7c3aed" />
-          <div className="-mx-4 mt-5 overflow-x-auto px-4 scrollbar-hide">
-            <div className="flex gap-4 pb-2">
-              {newestProducts.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/lojas/${p.storeId}/produto/${p.id}`}
-                  className="flex w-36 shrink-0 flex-col overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="relative flex h-28 items-center justify-center bg-subtle p-2">
-                    <span className="absolute left-2 top-2 rounded-lg bg-[#7c3aed] px-1.5 py-0.5 text-[9px] font-black text-white">
-                      NOVO
-                    </span>
-                    {p.imageUrl ? (
-                      <img src={p.imageUrl} alt={p.name} className="h-20 w-full object-contain" loading="lazy" />
-                    ) : (
-                      <div className="text-3xl">✨</div>
-                    )}
-                  </div>
-                  <div className="p-2.5">
-                    <p className="line-clamp-2 text-[11px] font-black leading-tight text-content">{p.name}</p>
-                    {p.price && <p className="mt-1 text-xs font-black text-[#16a34a]">{formatBRL(p.price)}</p>}
-                  </div>
-                </Link>
-              ))}
+      {/* ── STACK DE TECNOLOGIAS ── */}
+      <section>
+        <SectionHeader
+          label="stack"
+          title="Tecnologias que dominamos"
+          color="#ea580c"
+        />
+        <div className="mt-5 flex flex-wrap gap-3">
+          {TECH_STACK.map((t) => (
+            <div
+              key={t.label}
+              className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm font-bold text-content shadow-sm"
+            >
+              <span>{t.icon}</span>
+              {t.label}
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── DEPOIMENTOS ── */}
+      <section>
+        <SectionHeader
+          label="depoimentos"
+          title="O que nossos clientes dizem"
+          color="#9333ea"
+        />
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          {TESTIMONIALS.map((t) => (
+            <div
+              key={t.name}
+              className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-black text-white"
+                  style={{ background: t.color }}
+                >
+                  {t.avatar}
+                </div>
+                <div>
+                  <p className="text-sm font-black text-content">{t.name}</p>
+                  <p className="text-[11px] text-muted">{t.role}</p>
+                </div>
+              </div>
+              <p className="text-sm leading-relaxed text-muted">"{t.text}"</p>
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} size={12} className="fill-[#f59e0b] text-[#f59e0b]" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section>
+        <SectionHeader
+          label="dúvidas frequentes"
+          title="FAQ"
+          color="#0369a1"
+        />
+        <div className="mt-5 space-y-3">
+          {HOME_FAQS.map((faq) => (
+            <details
+              key={faq.question}
+              className="group rounded-2xl border border-line bg-surface px-5 py-4 shadow-sm open:pb-5"
+            >
+              <summary className="cursor-pointer list-none text-sm font-black text-content">
+                {faq.question}
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-muted">{faq.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CTA FINAL ── */}
+      <section
+        className="relative overflow-hidden rounded-3xl p-8 md:p-12"
+        style={{ background: "linear-gradient(135deg, #001640 0%, #002776 60%, #003d1a 100%)" }}
+      >
+        <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[#16a34a] opacity-20 blur-3xl" />
+        <div className="relative z-10 flex flex-col items-center gap-5 text-center">
+          <p className="text-xs font-black uppercase tracking-widest text-[#4ade80]">Comece agora</p>
+          <h2 className="text-3xl font-black text-white md:text-4xl">
+            Sua próxima solução tech está aqui
+          </h2>
+          <p className="max-w-md text-sm leading-relaxed text-white/70">
+            Explore 10 áreas especializadas, compare soluções e contrate com segurança. Do briefing à entrega.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link
+              to="/categorias"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white transition-opacity hover:opacity-90"
+            >
+              Explorar soluções <ArrowRight size={15} />
+            </Link>
+            <Link
+              to="/contato"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/20 px-6 py-3 text-sm font-black text-white/80 transition-colors hover:border-white/40 hover:text-white"
+            >
+              Falar conosco
+            </Link>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      <JoinCtaSection />
-
-      {/* Address picker modal */}
-      {addressPickerOpen && (
-        <AddressPickerModal onClose={() => setAddressPickerOpen(false)} />
+      {authUser && (
+        <div className="rounded-2xl border border-line bg-surface p-4">
+          <p className="text-sm text-muted">
+            Olá, <span className="font-black text-content">{authUser.name || authUser.email}</span> —{" "}
+            <Link to="/pedidos" className="font-bold text-[#16a34a] hover:underline">
+              ver meus projetos
+            </Link>
+          </p>
+        </div>
       )}
 
     </div>

@@ -17,8 +17,8 @@ export default function CategoriesPage() {
   const { hash } = useLocation();
 
   usePageMeta({
-    title: "Categorias — BrasUX Shopping",
-    description: `Explore as ${categories.length} categorias do BrasUX Shopping em ${departments.length} departamentos. Comida, mercado, farmácia, eletrônicos, serviços e muito mais com entrega em todo o Brasil.`,
+    title: "Soluções — BrasUX Soluções Tecnológicas",
+    description: `Explore as ${categories.length} soluções do BrasUX em ${departments.length} lojas especializadas. Landing pages, apps, white label, IA, dados, engenharia e consultorias.`,
     canonical: canonicalUrl("/categorias"),
   });
 

@@ -1,28 +1,27 @@
-// Central SEO configuration and schema builders for BrasUX Shopping
-// All structured data follows schema.org specifications
+// SEO configuration and schema builders for BrasUX Soluções Tecnológicas
 
 export const SEO = {
   site: {
-    name: "BrasUX Shopping",
+    name: "BrasUX Soluções Tecnológicas",
     shortName: "BrasUX",
-    domain: "https://shopping.brasux.com.br",
+    domain: "https://brasux.com.br",
     description:
-      "O Shopping Brasileiro de Soluções Tecnológicas. Restaurantes, mercado, farmácia, eletrônicos e muito mais com entrega rápida.",
-    logo: "https://shopping.brasux.com.br/logo-brasux.webp",
-    ogImage: "https://shopping.brasux.com.br/og-image.png",
+      "O Shopping Brasileiro de Soluções Tecnológicas. Landing pages, aplicativos, white label, inteligência artificial, engenharia de software, UX/UI, dados e consultorias.",
+    logo: "https://brasux.com.br/logo-brasux.webp",
+    ogImage: "https://brasux.com.br/og-image.png",
     twitterHandle: "@brasux",
     locale: "pt_BR",
     language: "pt-BR",
   },
 
   organization: {
-    name: "BrasUX",
+    name: "BrasUX Solutec",
     legalName: "BrasUX Tecnologia Ltda.",
     url: "https://brasux.com.br",
-    logo: "https://shopping.brasux.com.br/logo-brasux.webp",
+    logo: "https://brasux.com.br/logo-brasux.webp",
     sameAs: [
       "https://instagram.com/brasux",
-      "https://linkedin.com/company/brasux",
+      "https://linkedin.com/company/brasux-solutec",
       "https://facebook.com/brasux",
     ],
     contactPoint: {
@@ -111,9 +110,7 @@ export function buildWebPageSchema(opts: {
   };
 }
 
-export function buildBreadcrumbSchema(
-  crumbs: { name: string; path: string }[]
-) {
+export function buildBreadcrumbSchema(crumbs: { name: string; path: string }[]) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -156,40 +153,17 @@ export function buildProductSchema(product: {
     name: product.name,
     url,
     ...(product.description ? { description: product.description } : {}),
-    ...(product.brand
-      ? { brand: { "@type": "Brand", name: product.brand } }
-      : {}),
+    ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
     ...(product.category ? { category: product.category } : {}),
-    ...(product.imageUrl
-      ? {
-          image: {
-            "@type": "ImageObject",
-            url: product.imageUrl,
-          },
-        }
-      : {}),
+    ...(product.imageUrl ? { image: { "@type": "ImageObject", url: product.imageUrl } } : {}),
     offers: {
       "@type": "Offer",
       url,
       price: price.toFixed(2),
       priceCurrency: "BRL",
-      priceValidUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
+      priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       availability,
-      seller: {
-        "@type": "Organization",
-        name: product.storeName,
-      },
-      shippingDetails: {
-        "@type": "OfferShippingDetails",
-        shippingRate: { "@type": "MonetaryAmount", currency: "BRL" },
-        deliveryTime: {
-          "@type": "ShippingDeliveryTime",
-          handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
-          transitTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
-        },
-      },
+      seller: { "@type": "Organization", name: product.storeName },
     },
   };
 
@@ -221,14 +195,12 @@ export function buildLocalBusinessSchema(store: {
   const url = canonicalUrl(`/lojas/${store.id}`);
   return {
     "@context": "https://schema.org",
-    "@type": ["LocalBusiness", "Store"],
+    "@type": ["LocalBusiness", "ProfessionalService"],
     "@id": `${url}#localbusiness`,
     name: store.name,
     url,
     ...(store.description ? { description: store.description } : {}),
-    ...(store.logoUrl
-      ? { image: { "@type": "ImageObject", url: store.logoUrl } }
-      : {}),
+    ...(store.logoUrl ? { image: { "@type": "ImageObject", url: store.logoUrl } } : {}),
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: store.rating.toFixed(1),
@@ -236,21 +208,11 @@ export function buildLocalBusinessSchema(store: {
       worstRating: "1",
       ratingCount: "1",
     },
-    priceRange: store.deliveryFee === 0 ? "R$" : "R$-R$$",
+    priceRange: "R$-R$$$",
     currenciesAccepted: "BRL",
-    openingHoursSpecification: store.isOpen
-      ? {
-          "@type": "OpeningHoursSpecification",
-          dayOfWeek: [
-            "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday",
-          ],
-          opens: "08:00",
-          closes: "23:00",
-        }
-      : undefined,
     hasOfferCatalog: {
       "@type": "OfferCatalog",
-      name: `Catálogo de ${store.name}`,
+      name: `Soluções de ${store.name}`,
       url,
     },
   };
@@ -274,26 +236,19 @@ export function buildItemListSchema(opts: {
       position: i + 1,
       name: item.name,
       url: item.url,
-      ...(item.imageUrl
-        ? { image: { "@type": "ImageObject", url: item.imageUrl } }
-        : {}),
+      ...(item.imageUrl ? { image: { "@type": "ImageObject", url: item.imageUrl } } : {}),
     })),
   };
 }
 
-export function buildFaqSchema(
-  faqs: { question: string; answer: string }[]
-) {
+export function buildFaqSchema(faqs: { question: string; answer: string }[]) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: faqs.map((f) => ({
       "@type": "Question",
       name: f.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: f.answer,
-      },
+      acceptedAnswer: { "@type": "Answer", text: f.answer },
     })),
   };
 }
@@ -322,36 +277,37 @@ export function buildSoftwareAppSchema(app: {
   };
 }
 
-// HOME FAQ content for GEO/AEO
+// ── FAQ CONTENT para GEO/AEO ────────────────────────────────────────────────
+
 export const HOME_FAQS = [
   {
-    question: "O que é o BrasUX Shopping?",
+    question: "O que é o BrasUX Soluções Tecnológicas?",
     answer:
-      "O BrasUX Shopping é um shopping brasileiro de soluções tecnológicas que reúne restaurantes, mercados, farmácias, eletrônicos, serviços digitais e muito mais em uma única plataforma com entrega rápida.",
+      "O BrasUX é o Shopping Brasileiro de Soluções Tecnológicas — uma plataforma que reúne diversas lojas especializadas em landing pages, aplicativos, white label, inteligência artificial, engenharia de software, UX/UI design, dados e consultorias em um único lugar.",
   },
   {
-    question: "Como funciona a entrega no BrasUX?",
+    question: "Como funciona a compra de soluções no BrasUX?",
     answer:
-      "Após realizar seu pedido, o BrasUX Entregas conecta você ao entregador mais próximo. O tempo médio de entrega varia de 20 a 60 minutos dependendo da loja e região.",
+      "Você escolhe a solução desejada, seleciona o plano ou especificações, preenche um briefing e realiza o pagamento. Após a confirmação, a equipe responsável inicia o desenvolvimento e você acompanha tudo pelo painel de projetos.",
   },
   {
-    question: "Como vender pelo BrasUX?",
+    question: "Quanto tempo leva para receber minha solução?",
     answer:
-      "Você pode cadastrar sua loja acessando lojas.brasux.com.br. O processo leva menos de 5 minutos e permite começar a vender imediatamente. O BrasUX cobra uma pequena comissão por pedido.",
+      "O prazo varia conforme o tipo: landing pages ficam prontas em 5 dias úteis, aplicativos levam de 30 a 90 dias, produtos digitais (templates, kits) são liberados imediatamente após o pagamento. Cada solução informa seu prazo exato.",
   },
   {
-    question: "O BrasUX atende minha cidade?",
+    question: "Como posso vender minhas soluções no BrasUX?",
     answer:
-      "O BrasUX Shopping está em expansão por todo o Brasil. Consulte as lojas disponíveis na sua região acessando a plataforma e permitindo sua localização.",
+      "Você pode cadastrar sua empresa acessando a área de lojistas. O processo é simples: informe seus serviços, defina preços e planos, e comece a receber pedidos imediatamente. O BrasUX opera com comissão competitiva.",
+  },
+  {
+    question: "O BrasUX oferece soluções white label?",
+    answer:
+      "Sim! Temos uma loja dedicada exclusivamente a soluções white label: marketplace, delivery, e-commerce, PDV, ERP, sistemas para clínicas, escolas, academias e muito mais — todos prontos para você personalizar com sua marca.",
   },
   {
     question: "Quais formas de pagamento o BrasUX aceita?",
     answer:
-      "O BrasUX aceita Pix, cartão de crédito, cartão de débito e dinheiro na entrega (dependendo da loja). Todos os pagamentos online são processados com segurança.",
-  },
-  {
-    question: "O que é o BrasUX Loja?",
-    answer:
-      "O BrasUX Loja é a plataforma white-label do BrasUX que permite a qualquer negócio ter sua própria loja online com gerenciamento de pedidos, estoque e entregas.",
+      "Aceitamos Pix, cartão de crédito (parcelado em até 12x) e boleto bancário. Para projetos de grande porte, também trabalhamos com contratos personalizados.",
   },
 ] as const;

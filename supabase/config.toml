@@ -9,3 +9,20 @@ verify_jwt = false
 
 [functions.asaas-webhook]
 verify_jwt = false
+
+# Funções de guest checkout: aceitam X-Guest-Token sem JWT Supabase.
+# O código da função faz sua própria validação de identidade.
+[functions.create-order]
+verify_jwt = false
+
+[functions.asaas-create-charge]
+verify_jwt = false
+
+[functions.send-order-emails]
+verify_jwt = false
+
+[functions.get-pix-qrcode]
+verify_jwt = false
+
+[functions.save-guest-address]
+verify_jwt = false

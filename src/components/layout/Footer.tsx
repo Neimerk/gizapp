@@ -2,32 +2,34 @@ import { Link } from "react-router-dom";
 import { ExternalLink, ArrowRight } from "lucide-react";
 import BrasUXLogo from "../ui/BrasUXLogo";
 
-const CATEGORIES = [
-  { name: "Restaurantes",   slug: "restaurantes" },
-  { name: "Mercado",        slug: "mercearia" },
-  { name: "Farmácia",       slug: "farmacia" },
-  { name: "Pizzarias",      slug: "pizzarias" },
-  { name: "Bebidas",        slug: "cervejas" },
-  { name: "Eletrônicos",    slug: "eletronicos" },
-  { name: "Hortifruti",     slug: "hortifruti" },
-  { name: "Pet Shop",       slug: "petshop" },
+const SOLUTIONS = [
+  { name: "Landing Pages",          slug: "landing-pages" },
+  { name: "Aplicativos",            slug: "aplicativos" },
+  { name: "White Label",            slug: "white-label" },
+  { name: "Inteligência Artificial", slug: "inteligencia-artificial" },
+  { name: "Engenharia de Software", slug: "engenharia-software" },
+  { name: "UX/UI Design",           slug: "ux-ui-design" },
+  { name: "Análise de Dados",       slug: "analise-dados" },
+  { name: "Consultoria",            slug: "consultoria" },
 ];
 
 const ECOSYSTEM = [
-  { name: "BrasUX Loja",          href: "https://brasux.store",             badge: "Lojistas" },
-  { name: "BrasUX Entregas",      href: "https://entregas.brasux.store",           badge: "Entregadores" },
-  { name: "SimulENEM",            href: "https://simulenem.com",                    badge: "Edu" },
-  { name: "SimulaiOAB",           href: "https://simulaioab.com",                   badge: "Edu" },
-  { name: "Curso NotaOn",         href: "https://cursonotaon.com.br",               badge: "Edu" },
-  { name: "BrasUX Caixa",         href: "https://caixa.brasux.store",              badge: "PDV" },
-  { name: "Landing Pages",        href: "https://produtos.brasux.com.br",           badge: "Dev" },
+  { name: "BrasUX Caixa",     href: "https://caixa.brasux.store",          badge: "PDV" },
+  { name: "SimulENEM",         href: "https://simulenem.com",               badge: "Edu" },
+  { name: "SimulaiOAB",        href: "https://simulaioab.com",              badge: "Edu" },
+  { name: "Curso NotaOn",      href: "https://cursonotaon.com.br",          badge: "Edu" },
+  { name: "BrasUX Dev",        href: "https://servicos.brasux.com.br",      badge: "Dev" },
+  { name: "Landing Pages",     href: "https://produtos.brasux.com.br",      badge: "Dev" },
+  { name: "BrasUX Shopping",   href: "https://shopping.brasux.com.br",      badge: "Shop" },
 ];
 
 const COMPANY = [
-  { name: "Sobre o BrasUX",        to: "/sobre" },
-  { name: "Ecossistema",           to: "/ecossistema" },
-  { name: "Todas as categorias",   to: "/categorias" },
-  { name: "Todas as lojas",        to: "/lojas" },
+  { name: "Sobre o BrasUX",      to: "/sobre" },
+  { name: "Ecossistema BrasUX",   to: "/ecossistema" },
+  { name: "Todas as soluções",    to: "/categorias" },
+  { name: "Todas as lojas",       to: "/lojas" },
+  { name: "Blog",                 to: "/blog" },
+  { name: "Portfólio",            to: "/portfolio" },
 ];
 
 const SUPPORT = [
@@ -76,50 +78,12 @@ export default function Footer() {
   return (
     <footer
       className="mt-16 w-full"
-      aria-label="Rodapé BrasUX Shopping"
+      aria-label="Rodapé BrasUX Soluções Tecnológicas"
       style={{
         background: "linear-gradient(180deg, #071020 0%, #060d1a 100%)",
         borderTop: "1px solid rgba(255,255,255,0.06)",
       }}
     >
-      {/* ── CTA BAND ── */}
-      <div
-        className="border-b border-white/5 px-4 py-8 md:px-8"
-        style={{
-          background:
-            "radial-gradient(ellipse at 60% 50%, rgba(22,163,74,0.12) 0%, transparent 65%)",
-        }}
-      >
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-          <div>
-            <p className="text-xs font-black uppercase tracking-widest text-[#4ade80]">
-              Quer vender pelo BrasUX?
-            </p>
-            <p className="mt-1 text-xl font-black text-white">
-              Abra sua loja em menos de 5 minutos
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="https://brasux.store"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-5 py-3 text-sm font-black text-white transition-opacity hover:opacity-90"
-            >
-              Quero ser lojista <ArrowRight size={15} />
-            </a>
-            <a
-              href="https://entregas.brasux.store"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-5 py-3 text-sm font-black text-white/80 transition-colors hover:border-white/30 hover:text-white"
-            >
-              Ser entregador
-            </a>
-          </div>
-        </div>
-      </div>
-
       {/* ── MAIN GRID ── */}
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-8">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
@@ -136,11 +100,10 @@ export default function Footer() {
               </span>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              O Shopping Brasileiro de Soluções Tecnológicas. Restaurantes, mercado,
-              farmácia, eletrônicos e muito mais com entrega rápida.
+              O Shopping Brasileiro de Soluções Tecnológicas. Landing pages, apps,
+              white label, IA, engenharia de dados e consultorias — tudo em um só lugar.
             </p>
 
-            {/* Social */}
             <div className="mt-6 flex items-center gap-3">
               {SOCIAL.map(({ label, href, svg }) => (
                 <a
@@ -156,30 +119,28 @@ export default function Footer() {
               ))}
             </div>
 
-            {/* PWA hint */}
             <div className="mt-6 flex items-center gap-2 rounded-xl border border-white/8 bg-white/4 px-3 py-2.5">
               <span className="text-lg">📱</span>
               <div>
-                <h2>EM breve...</h2>
-                <p className="text-[11px] font-black text-white/70">Instale o app</p>
-                <p className="text-[10px] text-muted">Disponível no Android e iPhone</p>
+                <p className="text-[11px] font-black text-white/70">App em breve</p>
+                <p className="text-[10px] text-muted">Android e iPhone</p>
               </div>
             </div>
           </div>
 
-          {/* ── COL 2: CATEGORIAS ── */}
+          {/* ── COL 2: SOLUÇÕES ── */}
           <div>
             <h3 className="mb-4 text-[11px] font-black uppercase tracking-widest text-[#4ade80]">
-              Categorias
+              Nossas Soluções
             </h3>
             <ul className="space-y-2.5">
-              {CATEGORIES.map((cat) => (
-                <li key={cat.slug}>
+              {SOLUTIONS.map((sol) => (
+                <li key={sol.slug}>
                   <Link
-                    to={`/categorias/${cat.slug}`}
+                    to={`/categorias/${sol.slug}`}
                     className="text-sm text-muted transition-colors hover:text-white"
                   >
-                    {cat.name}
+                    {sol.name}
                   </Link>
                 </li>
               ))}
@@ -260,7 +221,6 @@ export default function Footer() {
       </div>
 
       {/* ── BOTTOM BAR ── */}
-      {/* pb-20 mobile: espaço para a bottom nav fixa (64px) + margem */}
       <div className="border-t border-white/5 px-4 pt-5 pb-20 md:px-8 md:pb-6">
         <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-3 md:flex-row md:items-center">
           <p className="text-xs text-[#334155]">
@@ -272,7 +232,7 @@ export default function Footer() {
                 className="inline-block h-2 w-2 rounded-full bg-[#16a34a]"
                 style={{ boxShadow: "0 0 6px rgba(22,163,74,0.6)" }}
               />
-              Todos os sistemas operacionais
+              Todos os sistemas operando
             </span>
             <span className="text-xs text-[#334155]">🇧🇷 Feito no Brasil</span>
           </div>

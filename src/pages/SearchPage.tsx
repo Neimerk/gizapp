@@ -292,7 +292,7 @@ export default function SearchPage() {
       {/* Quick filter chips */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
         {[
-          { key: "free-shipping", label: "🚚 Frete grátis", active: freeShippingOnly, toggle: () => setFreeShippingOnly(v => !v) },
+          { key: "free-shipping", label: "⭐ Serviço grátis", active: freeShippingOnly, toggle: () => setFreeShippingOnly(v => !v) },
           { key: "promo", label: "🏷️ Menor preço", active: sort === "price-asc", toggle: () => setSort(s => s === "price-asc" ? "default" : "price-asc") },
           { key: "newest", label: "✨ Novidades", active: sort === "newest", toggle: () => setSort(s => s === "newest" ? "default" : "newest") },
           { key: "price-desc", label: "💎 Maior preço", active: sort === "price-desc", toggle: () => setSort(s => s === "price-desc" ? "default" : "price-desc") },
@@ -434,8 +434,8 @@ export default function SearchPage() {
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-sm font-black text-content">{s.name}</h3>
                   <p className="text-xs text-muted">
-                    {s.category.split(",")[0]} · {s.deliveryTimeMin}–{s.deliveryTimeMax}min
-                    {s.deliveryFee === 0 && <span className="ml-1 text-[#16a34a] font-bold">· Frete grátis</span>}
+                    {s.category.split(",")[0]}
+                    {s.deliveryFee === 0 && <span className="ml-1 text-[#16a34a] font-bold">· Grátis</span>}
                   </p>
                   {s.rating > 0 && (
                     <span className="text-[10px] font-bold text-[#f59e0b]">⭐ {s.rating.toFixed(1)}</span>

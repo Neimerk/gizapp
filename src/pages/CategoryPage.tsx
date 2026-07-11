@@ -57,7 +57,7 @@ export default function CategoryPage() {
 
   usePageMeta({
     title: `${label} — Lojas e Produtos`,
-    description: `Encontre as melhores lojas de ${label} no BrasUX Shopping. ${filtered.length} loja${filtered.length !== 1 ? "s" : ""} disponível${filtered.length !== 1 ? "s" : ""}${solutions.length > 0 ? ` e ${solutions.length} solução${solutions.length !== 1 ? "s" : ""} BrasUX` : ""} com entrega rápida.`,
+    description: `Encontre as melhores soluções de ${label} no BrasUX. ${filtered.length} loja${filtered.length !== 1 ? "s" : ""} disponível${filtered.length !== 1 ? "s" : ""}${solutions.length > 0 ? ` e ${solutions.length} destaque${solutions.length !== 1 ? "s" : ""}` : ""}.`,
     canonical: canonicalUrl(`/categorias/${categorySlug}`),
   });
 
@@ -69,8 +69,8 @@ export default function CategoryPage() {
     }));
     return [
       buildItemListSchema({
-        name: `${label} — Lojas no BrasUX`,
-        description: `Lojas de ${label} disponíveis no BrasUX Shopping`,
+        name: `${label} — Soluções no BrasUX`,
+        description: `Soluções de ${label} disponíveis no BrasUX`,
         path: `/categorias/${categorySlug}`,
         items: storeItems,
       }),
@@ -82,16 +82,16 @@ export default function CategoryPage() {
       ]),
       buildFaqSchema([
         {
-          question: `Como encontrar lojas de ${label} perto de mim?`,
-          answer: `No BrasUX Shopping, permita sua localização e veja automaticamente as lojas de ${label} mais próximas de você com tempo de entrega estimado.`,
+          question: `Como contratar uma solução de ${label}?`,
+          answer: `No BrasUX, escolha a solução de ${label} desejada, selecione o plano, preencha o briefing e finalize o pagamento. A loja entrará em contato para iniciar o projeto.`,
         },
         {
-          question: `Qual o tempo de entrega para ${label}?`,
-          answer: `O tempo de entrega para ${label} no BrasUX varia de acordo com a loja e sua localização. A maioria das lojas entrega entre 20 e 60 minutos.`,
+          question: `Qual o prazo de entrega para ${label}?`,
+          answer: `O prazo varia por solução: produtos digitais são imediatos, landing pages ficam prontas em até 5 dias úteis, e soluções de desenvolvimento levam de 30 a 90 dias.`,
         },
         {
-          question: `Tem frete grátis em ${label}?`,
-          answer: `Várias lojas de ${label} no BrasUX oferecem frete grátis. Consulte a taxa de entrega de cada loja ao fazer seu pedido.`,
+          question: `As soluções de ${label} têm garantia?`,
+          answer: `Sim! Todas as soluções do BrasUX passam por revisão antes da entrega final. Você pode solicitar ajustes dentro do prazo de revisão incluso em cada plano.`,
         },
       ]),
     ];
@@ -305,8 +305,8 @@ function StoreCard({ store, categorySlug }: { store: Store; categorySlug: string
         {/* Stats */}
         <div className="mt-4 grid grid-cols-3 gap-2">
           {[
-            { icon: <Clock3 size={12} />, label: "Entrega", value: `${store.deliveryTimeMin}-${store.deliveryTimeMax}min` },
-            { icon: <Bike size={12} />, label: "Taxa", value: deliveryFeeText },
+            { icon: <Clock3 size={12} />, label: "Prazo", value: `${store.deliveryTimeMin}–${store.deliveryTimeMax} dias` },
+            { icon: <Bike size={12} />, label: "Serviço", value: deliveryFeeText },
             { icon: <Star size={12} />, label: "Nota", value: Number(store.rating).toFixed(1) },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-line-subtle bg-subtle p-2">

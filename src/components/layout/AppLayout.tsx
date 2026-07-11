@@ -1,13 +1,9 @@
 import { Suspense } from "react";
 import { Outlet, Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
-  Heart,
   Mic,
   MicOff,
-  Moon,
   Search,
-  ShoppingCart,
-  Sun,
 } from "lucide-react";
 import { useCallback, useEffect } from "react";
 import BottomNavigation from "./BottomNavigation";
@@ -17,15 +13,11 @@ import ErrorBoundary from "./ErrorBoundary";
 import CompareBar from "../ui/CompareBar";
 import Onboarding from "../ui/Onboarding";
 import Toast from "../ui/Toast";
-import { useCartStore } from "../../stores/cartStore";
-import { useThemeStore } from "../../stores/themeStore";
 import { useFavoritesStore } from "../../stores/favoritesStore";
 import { usePointsStore } from "../../stores/pointsStore";
 import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { useVoiceSearch } from "../../hooks/useVoiceSearch";
 import { useAuthStore, initAuth } from "../../stores/authStore";
-import { formatBRL } from "../../utils/format";
-import { prefetchCart, prefetchCheckout, prefetchOrders } from "../../utils/prefetch";
 import { useErrorMonitor } from "../../hooks/useErrorMonitor";
 import { getPrimaryNav } from "../../data/navigation";
 import CookieBanner from "../ui/CookieBanner";
@@ -36,8 +28,6 @@ export default function AppLayout() {
   const authUser = useAuthStore((s) => s.user);
   const navLinks = getPrimaryNav(authUser?.role);
 
-  const totalItems = useCartStore((s) => s.totalItems());
-  const totalPrice = useCartStore((s) => s.totalPrice());
   const navigate = useNavigate();
 
   // Inicializa auth lazy — carrega Supabase apenas após primeiro render
@@ -60,9 +50,6 @@ export default function AppLayout() {
     window.scrollTo(0, 0);
   }, [pathname]);
 
-  const { theme, toggle: toggleTheme } = useThemeStore();
-  const isDark = theme === "dark";
-
   const handleVoiceResult = useCallback(
     (text: string) => {
       navigate(`/buscar?q=${encodeURIComponent(text)}`);
@@ -81,12 +68,10 @@ export default function AppLayout() {
       <header
         className="sticky top-0 z-50"
         style={{
-          background: isDark ? "rgba(15,23,42,0.96)" : "rgba(255,255,255,0.92)",
+          background: "rgba(255,255,255,0.92)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
-          borderBottom: isDark
-            ? "1px solid rgba(255,255,255,0.06)"
-            : "1px solid rgba(0,39,118,0.10)",
+          borderBottom: "1px solid rgba(0,39,118,0.10)",
           boxShadow: "0 1px 8px rgba(0,39,118,0.06)",
         }}
       >
@@ -148,11 +133,6 @@ export default function AppLayout() {
                 key={item.path}
                 to={item.path}
                 end={item.end ?? false}
-                onMouseEnter={() => {
-                  if (item.path === "/carrinho") prefetchCart();
-                  if (item.path === "/pedidos")  prefetchOrders();
-                  if (item.path === "/checkout") prefetchCheckout();
-                }}
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold transition-colors ${
                     isActive
@@ -167,40 +147,6 @@ export default function AppLayout() {
             ))}
           </nav>
 
-          {/* Dark mode toggle */}
-          <button
-            onClick={toggleTheme}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors hover:border-[#16a34a]/40 hover:text-[#16a34a]"
-            aria-label={isDark ? "Modo claro" : "Modo escuro"}
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-
-          {/* Favoritos */}
-          <Link
-            to="/favoritos"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-colors hover:border-[#16a34a]/40 hover:text-[#e11d48]"
-            aria-label="Favoritos"
-          >
-            <Heart size={18} />
-          </Link>
-
-          {/* Cart button */}
-          <Link
-            to="/carrinho"
-            onMouseEnter={prefetchCart}
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted transition-all hover:border-[#16a34a]/40 hover:text-[#16a34a]"
-          >
-            <ShoppingCart size={18} />
-            {totalItems > 0 && (
-              <span
-                className="absolute right-0 top-0 flex h-5 w-5 -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full text-[10px] font-black text-white"
-                style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
-              >
-                {totalItems > 9 ? "9+" : totalItems}
-              </span>
-            )}
-          </Link>
         </div>
       </header>
 
@@ -223,69 +169,9 @@ export default function AppLayout() {
 
       <Footer />
 
-      {/* ── FLOATING CART BAR (mobile) ── */}
-      {totalItems > 0 && !pathname.startsWith("/carrinho") && !pathname.startsWith("/checkout") && (
-        <Link
-          to="/carrinho"
-          onMouseEnter={prefetchCheckout}
-          className="fixed left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 items-center justify-between rounded-2xl px-5 py-3.5 md:hidden"
-          style={{
-            bottom: "96px",
-            background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-            boxShadow: "0 8px 32px rgba(22,163,74,0.5), 0 2px 8px rgba(0,0,0,0.15)",
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
-              <ShoppingCart size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white/80">
-                {totalItems} {totalItems === 1 ? "item" : "itens"} no carrinho
-              </p>
-              <p className="text-sm font-black text-white">
-                {formatBRL(totalPrice)}
-              </p>
-            </div>
-          </div>
-          <span className="rounded-xl bg-surface px-3 py-1.5 text-xs font-black text-[#16a34a]">
-            Ver
-          </span>
-        </Link>
-      )}
-
       <CompareBar />
       <CookieBanner />
       <BottomNavigation />
-
-      {/* ── DESKTOP CART BAR ── */}
-      {totalItems > 0 && !pathname.startsWith("/carrinho") && !pathname.startsWith("/checkout") && (
-        <div className="fixed bottom-6 right-6 z-40 hidden md:block">
-          <Link
-            to="/carrinho"
-            className="flex items-center gap-3 rounded-2xl px-5 py-3.5"
-            style={{
-              background: "linear-gradient(135deg, #16a34a 0%, #15803d 100%)",
-              boxShadow: "0 8px 32px rgba(22,163,74,0.5)",
-            }}
-          >
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
-              <ShoppingCart size={16} className="text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white/80">
-                {totalItems} {totalItems === 1 ? "item" : "itens"}
-              </p>
-              <p className="text-sm font-black text-white">
-                {formatBRL(totalPrice)}
-              </p>
-            </div>
-            <span className="rounded-xl bg-surface px-3 py-1.5 text-xs font-black text-[#16a34a]">
-              Ver carrinho
-            </span>
-          </Link>
-        </div>
-      )}
     </div>
   );
 }

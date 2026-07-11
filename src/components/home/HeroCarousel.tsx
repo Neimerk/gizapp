@@ -258,7 +258,7 @@ function Slide({ item, active }: { item: BrasUXSolution; active: boolean }) {
             </p>
           ) : null}
 
-          {item.id === "brasux-shopping" ? (
+          {item.id === "ComprAI-shopping" ? (
             <p
               className="mt-5 text-xl font-black leading-tight sm:text-2xl"
               style={{

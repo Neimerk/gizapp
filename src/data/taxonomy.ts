@@ -1,90 +1,111 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// taxonomy.ts — FONTE ÚNICA DE VERDADE da navegação do BrasUX Shopping.
+// taxonomy.ts — FONTE ÚNICA DE VERDADE da taxonomia do BrasUX Soluções.
 //
-// As 33 categorias planas de `categories.ts` continuam sendo os átomos
-// (id/name/slug/icon). Aqui agrupamos esses átomos em 6 DEPARTAMENTOS por
-// intenção de uso (modelo iFood/Rappi: "modo de uso" no topo, categoria dentro).
+// As categorias de `categories.ts` são os átomos (id/name/slug/icon).
+// Aqui agrupamos esses átomos nas 10 LOJAS/DEPARTAMENTOS do shopping digital.
 //
-// Toda a UI — Home, /categorias, CategoryPage, Footer e o cadastro de loja —
-// deve consumir ESTE arquivo. Nunca redefinir agrupamentos espalhados pela view.
+// Home, /categorias, CategoryPage, Footer e cadastro de loja
+// devem consumir ESTE arquivo.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { categories, type Category } from "./categories";
 import { categoryIcons } from "./categoryIcons";
 
 export interface Department {
-  /** identificador estável usado em rotas/âncoras (?dep=comida, #comida) */
   key: string;
-  /** rótulo exibido ao usuário */
   label: string;
-  /** descrição curta de apoio */
   description: string;
-  /** emoji de apoio (iconografia definitiva entra no P2 do design system) */
   emoji: string;
-  /** cor de acento — ÚNICA fonte de cor por departamento (mata o CAT_THEMES aleatório) */
   accent: string;
-  /** slugs de categoria que pertencem a este departamento */
   slugs: string[];
 }
 
-// ── Os 6 departamentos ───────────────────────────────────────────────────────
-// Ordem = ordem de exibição. Acento = cor estável (sem aleatoriedade por índice).
+// ── As 10 Lojas do BrasUX ───────────────────────────────────────────────────
 
 export const departments: Department[] = [
   {
-    key: "comida",
-    label: "Comida",
-    description: "Restaurantes e delivery pronto para comer agora",
-    emoji: "🍽️",
-    accent: "#dc2626",
-    slugs: ["restaurantes", "lanches", "pizzarias", "acai-sorvetes", "cafeterias", "doces"],
-  },
-  {
-    key: "mercado",
-    label: "Mercado",
-    description: "Compra do dia a dia: mercearia, hortifruti, açougue e bebidas",
-    emoji: "🛒",
+    key: "landing-pages",
+    label: "Landing Pages",
+    description: "Sites e páginas de alta conversão entregues em 5 dias úteis",
+    emoji: "🚀",
     accent: "#16a34a",
-    slugs: [
-      "mercearia", "hortifruti", "carnes", "padaria", "conveniencia",
-      "cervejas", "destilados-e-vinhos", "nao-alcoolicos",
-    ],
+    slugs: ["landing-page", "one-page", "pagina-captura", "pagina-vendas", "pagina-institucional", "pagina-clinica", "pagina-profissional"],
   },
   {
-    key: "saude-beleza",
-    label: "Saúde & Beleza",
-    description: "Farmácia, cuidados pessoais, fitness, pet e bebês",
-    emoji: "💊",
-    accent: "#0d9488",
-    slugs: ["farmacia", "beleza", "fitness", "petshop", "bebes"],
+    key: "aplicativos",
+    label: "Aplicativos",
+    description: "Apps mobile e web sob medida para qualquer segmento",
+    emoji: "📱",
+    accent: "#2563eb",
+    slugs: ["app-delivery", "app-marketplace", "app-restaurante", "app-barbearia", "app-clinica", "app-academia", "app-erp", "app-crm", "app-ead", "app-agendamento"],
   },
   {
-    key: "casa-construcao",
-    label: "Casa & Construção",
-    description: "Para sua casa, reforma, ferramentas e automotivo",
-    emoji: "🏠",
-    accent: "#ea580c",
-    slugs: ["casa-cozinha", "utilidades", "ferramentas", "construcao", "automotivo"],
-  },
-  {
-    key: "variedades",
-    label: "Variedades",
-    description: "Eletrônicos, moda, papelaria, brinquedos e presentes",
-    emoji: "📦",
-    accent: "#1d4ed8",
-    slugs: ["eletronicos", "moda", "papelaria", "brinquedos", "presentes"],
-  },
-  {
-    key: "servicos-cursos",
-    label: "Serviços & Cursos",
-    description: "Serviços, assistência técnica, cursos on-line e mais",
-    emoji: "🛠️",
+    key: "white-label",
+    label: "White Label",
+    description: "Sistemas prontos, com sua marca, para vender como seu",
+    emoji: "🏷️",
     accent: "#7c3aed",
-    slugs: ["servicos", "assistencia-tecnica", "cursos-online", "outros"],
+    slugs: ["wl-marketplace", "wl-delivery", "wl-ecommerce", "wl-pdv", "wl-erp", "wl-escola", "wl-clinica", "wl-juridico", "wl-imobiliario", "wl-financeiro"],
+  },
+  {
+    key: "inteligencia-artificial",
+    label: "Inteligência Artificial",
+    description: "Chatbots, automações e soluções de IA para o seu negócio",
+    emoji: "🤖",
+    accent: "#0d9488",
+    slugs: ["chatbots", "assistentes-ia", "automacao-ia", "ia-atendimento", "ia-marketing", "ia-rh", "ia-vendas", "ia-saude"],
+  },
+  {
+    key: "engenharia-software",
+    label: "Engenharia de Software",
+    description: "Arquitetura, modernização, auditoria e performance de sistemas",
+    emoji: "⚙️",
+    accent: "#ea580c",
+    slugs: ["arquitetura", "modernizacao", "migracao-sistemas", "auditoria-software", "refatoracao", "performance-dev", "consultoria-tecnica"],
+  },
+  {
+    key: "ux-ui-design",
+    label: "UX/UI Design",
+    description: "Design system, protótipos e interfaces de nível Stripe/Linear",
+    emoji: "🎨",
+    accent: "#e11d48",
+    slugs: ["design-system", "prototipos", "ui-interfaces", "ux-research", "design-apps", "design-dashboard"],
+  },
+  {
+    key: "engenharia-dados",
+    label: "Engenharia de Dados",
+    description: "Pipelines, Data Warehouse, ETL e integração de dados em escala",
+    emoji: "🏛️",
+    accent: "#0369a1",
+    slugs: ["data-warehouse", "etl-pipelines", "data-lake", "big-data", "integracao-dados"],
+  },
+  {
+    key: "analise-dados",
+    label: "Análise de Dados",
+    description: "BI, dashboards, ML, análise preditiva e insights estratégicos",
+    emoji: "📊",
+    accent: "#9333ea",
+    slugs: ["business-intelligence", "dashboards-bi", "machine-learning", "analise-preditiva", "kpis-indicadores", "segmentacao-clientes"],
+  },
+  {
+    key: "consultoria",
+    label: "Consultoria",
+    description: "Transformação digital, cloud, DevOps, segurança e estratégia",
+    emoji: "💡",
+    accent: "#b45309",
+    slugs: ["consultoria-tecnologica", "transformacao-digital", "cloud-consultoria", "devops-consultoria", "seguranca-digital", "ia-consultoria", "produto-digital"],
+  },
+  {
+    key: "produtos-digitais",
+    label: "Produtos Digitais",
+    description: "Templates, UI Kits, componentes, APIs e boilerplates prontos",
+    emoji: "🧩",
+    accent: "#0f766e",
+    slugs: ["templates-web", "ui-kits", "componentes-react", "boilerplates", "apis-sdks", "plugins", "temas"],
   },
 ];
 
-// ── Índices derivados (montados uma vez) ─────────────────────────────────────
+// ── Índices derivados ─────────────────────────────────────────────────────────
 
 const categoryBySlug = new Map<string, Category>(categories.map((c) => [c.slug, c]));
 
@@ -95,46 +116,35 @@ for (const dep of departments) {
 
 // ── API pública ──────────────────────────────────────────────────────────────
 
-/** Categoria (átomo) a partir do slug. */
 export function getCategory(slug: string): Category | undefined {
   return categoryBySlug.get(slug);
 }
 
-/** Departamento dono de uma categoria. */
 export function getDepartmentOf(slug: string): Department | undefined {
   return departmentBySlug.get(slug);
 }
 
-/** Cor de acento da categoria, herdada do departamento (fallback neutro). */
 export function getAccent(slug: string): string {
   return departmentBySlug.get(slug)?.accent ?? "#64748b";
 }
 
-/** Categorias (átomos) de um departamento, na ordem definida na taxonomia. */
 export function getCategoriesOf(dep: Department): Category[] {
   return dep.slugs
     .map((slug) => categoryBySlug.get(slug))
     .filter((c): c is Category => Boolean(c));
 }
 
-/** Departamento por key (ex.: "comida"). */
 export function getDepartment(key: string): Department | undefined {
   return departments.find((d) => d.key === key);
 }
 
-// ── Guarda de integridade (apenas em DEV) ────────────────────────────────────
-// Garante que toda categoria pertence a exatamente UM departamento. Se alguém
-// adicionar uma categoria nova em categories.ts e esquecer de mapear aqui, o
-// console avisa em desenvolvimento — sem quebrar produção.
+// ── Guarda de integridade (DEV only) ─────────────────────────────────────────
 
 if (import.meta.env.DEV) {
   const mapped = new Set(departments.flatMap((d) => d.slugs));
   const orphans = categories.filter((c) => !mapped.has(c.slug)).map((c) => c.slug);
   if (orphans.length) {
-    console.warn(
-      `[taxonomy] ${orphans.length} categoria(s) sem departamento:`,
-      orphans.join(", "),
-    );
+    console.warn(`[taxonomy] ${orphans.length} categoria(s) sem departamento:`, orphans.join(", "));
   }
   const counts = new Map<string, number>();
   for (const dep of departments) for (const s of dep.slugs) counts.set(s, (counts.get(s) ?? 0) + 1);
@@ -145,5 +155,4 @@ if (import.meta.env.DEV) {
   if (unknown.length) console.warn(`[taxonomy] slug(s) inexistente(s) em categories.ts:`, unknown.join(", "));
 }
 
-// Reexport utilitário para quem só precisa do emoji por slug.
 export { categoryIcons };

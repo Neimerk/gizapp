@@ -10,8 +10,8 @@ export default function SectionHeader({
 }: {
   label: string;
   title: string;
-  linkTo: string;
-  linkLabel: string;
+  linkTo?: string;
+  linkLabel?: string;
   color?: string;
 }) {
   return (
@@ -22,13 +22,15 @@ export default function SectionHeader({
         </p>
         <h2 className="mt-0.5 text-2xl font-black text-content">{title}</h2>
       </div>
-      <Link
-        to={linkTo}
-        className="flex items-center gap-1 text-sm font-black"
-        style={{ color }}
-      >
-        {linkLabel} <ChevronRight size={16} />
-      </Link>
+      {linkTo && linkLabel && (
+        <Link
+          to={linkTo}
+          className="flex items-center gap-1 text-sm font-black"
+          style={{ color }}
+        >
+          {linkLabel} <ChevronRight size={16} />
+        </Link>
+      )}
     </div>
   );
 }

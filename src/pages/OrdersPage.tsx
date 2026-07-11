@@ -14,17 +14,17 @@ import { useOrderTracking } from "../hooks/useOrderTracking";
 const STATUS_STEPS = [
   { status: 0, label: "Recebido" },
   { status: 1, label: "Aceito" },
-  { status: 2, label: "Preparando" },
-  { status: 3, label: "Saindo" },
-  { status: 4, label: "Entregue" },
+  { status: 2, label: "Em desenvolvimento" },
+  { status: 3, label: "Em revisão" },
+  { status: 4, label: "Concluído" },
 ];
 
 const STATUS_LABEL: Record<number, string> = {
   0: "Pedido recebido",
   1: "Pedido aceito",
-  2: "Preparando",
-  3: "Saiu para entrega",
-  4: "Entregue",
+  2: "Em desenvolvimento",
+  3: "Em revisão",
+  4: "Concluído",
   5: "Cancelado",
 };
 

@@ -30,19 +30,19 @@ const TOPICS = [
   {
     icon: Truck,
     color: "#0ea5e9",
-    title: "Entrega",
+    title: "Projetos e Entrega",
     faqs: [
       {
-        q: "Quanto tempo leva a entrega?",
-        a: "O prazo é estimado pelo lojista no momento do pedido. Em média 15–40 minutos para delivery local. Você acompanha o status em tempo real na tela do pedido.",
+        q: "Quanto tempo leva para receber minha solução?",
+        a: "Depende do tipo: landing pages ficam prontas em 5 dias úteis, aplicativos em 30–90 dias, produtos digitais (templates, kits) são liberados imediatamente após o pagamento.",
       },
       {
-        q: "Posso rastrear meu pedido?",
-        a: "Sim! Após a coleta pelo entregador, um mapa em tempo real aparece na tela do pedido para você acompanhar a localização.",
+        q: "Como acompanho o andamento do meu projeto?",
+        a: "Acesse 'Meus Projetos' para acompanhar o status em tempo real: Recebido → Em desenvolvimento → Em revisão → Concluído.",
       },
       {
-        q: "O entregador não chegou — o que faço?",
-        a: "Entre em contato com o suporte via WhatsApp informando o número do pedido. Nossa equipe acionará o entregador imediatamente.",
+        q: "Preciso aprovar o projeto antes da entrega final?",
+        a: "Sim! A maioria dos projetos passa por uma fase de revisão onde você pode solicitar ajustes antes da entrega final.",
       },
     ],
   },
@@ -98,8 +98,8 @@ const TOPICS = [
         a: "Acesse Minha Conta → Configurações → Excluir conta. Os dados são anonimizados conforme nossa Política de Privacidade (LGPD).",
       },
       {
-        q: "Posso ter mais de um endereço de entrega?",
-        a: "Sim! Em Minha Conta você pode cadastrar vários endereços e escolher o desejado no checkout.",
+        q: "Posso ter mais de um endereço ou projeto em andamento?",
+        a: "Sim! Em Minha Conta você pode cadastrar múltiplos endereços de contato e acompanhar todos os seus projetos simultaneamente.",
       },
     ],
   },
@@ -129,8 +129,8 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export default function AjudaPage() {
   usePageMeta({
-    title: "Central de Ajuda — BrasUX Shopping",
-    description: "Tire suas dúvidas sobre pedidos, entregas, pagamentos e conta no BrasUX Shopping. Atendimento via WhatsApp.",
+    title: "Central de Ajuda — BrasUX Soluções Tecnológicas",
+    description: "Tire suas dúvidas sobre projetos, pagamentos, licenças e conta no BrasUX. Atendimento via WhatsApp.",
     canonical: canonicalUrl("/ajuda"),
   });
 

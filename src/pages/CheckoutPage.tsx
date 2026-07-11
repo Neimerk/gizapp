@@ -193,7 +193,7 @@ export default function CheckoutPage() {
   const [boletoExpired, setBoletoExpired] = useState(false);
 
   // Taxa de entrega dinâmica por distância
-  const { fee: deliveryFee, distanceKm, loading: loadingFee, source: feeSource, outOfRange } = useDeliveryFee(
+  const { fee: deliveryFee, loading: loadingFee, source: feeSource, outOfRange } = useDeliveryFee(
     store,
     {
       neighborhood: selectedAddress?.neighborhood,
@@ -297,7 +297,7 @@ export default function CheckoutPage() {
       useToastStore.getState().show("Informe seu nome para continuar.");
       return;
     }
-    if (!selectedAddress) { useToastStore.getState().show("Selecione um endereço de entrega."); return; }
+    if (!selectedAddress) { useToastStore.getState().show("Preencha seus dados de contato."); return; }
     if (!cardValid)        { useToastStore.getState().show("Preencha todos os dados do cartão."); return; }
 
     try {
@@ -526,7 +526,7 @@ export default function CheckoutPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#16a34a]/10">
                 <MapPin size={15} className="text-[#16a34a]" />
               </div>
-              <h2 className="text-sm font-black text-content">Endereço de entrega</h2>
+              <h2 className="text-sm font-black text-content">Dados de contato</h2>
             </div>
             {!showAddressForm && (
               <button
@@ -609,7 +609,7 @@ export default function CheckoutPage() {
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-[88px] pt-3 md:px-8 md:pb-4">
           <div>
-            <p className="text-[11px] text-muted">{totalItems} {totalItems === 1 ? "item" : "itens"}</p>
+            <p className="text-[11px] text-muted">{totalItems} {totalItems === 1 ? "solução" : "soluções"}</p>
             <p className="text-lg font-black text-content">{formatBRL(subtotal)}</p>
           </div>
           <button
@@ -619,7 +619,7 @@ export default function CheckoutPage() {
                 return;
               }
               if (!hasFullAddress) {
-                useToastStore.getState().show("Selecione ou preencha um endereço de entrega.");
+                useToastStore.getState().show("Preencha seus dados de contato para continuar.");
                 return;
               }
               if (!auth && !guestToken) {
@@ -945,23 +945,18 @@ export default function CheckoutPage() {
 
         <div className="mt-4 space-y-2 border-t border-subtle-2 pt-4">
           <div className="flex justify-between text-xs text-muted">
-            <span>{totalItems} {totalItems === 1 ? "item" : "itens"}</span>
+            <span>{totalItems} {totalItems === 1 ? "solução" : "soluções"}</span>
             <strong>{formatBRL(subtotal)}</strong>
           </div>
-          <div className="flex justify-between text-xs text-muted">
-            <span className="flex items-center gap-1">
-              Entrega
-              {distanceKm != null && (
-                <span className="rounded-full bg-[#f0fdf4] px-1.5 py-0.5 text-[10px] font-bold text-[#16a34a]">
-                  {distanceKm.toFixed(1)}km
-                </span>
-              )}
-            </span>
-            {loadingFee
-              ? <span className="h-3 w-12 animate-pulse rounded bg-subtle-2" />
-              : <strong>{deliveryFee === 0 ? "Grátis" : formatBRL(deliveryFee)}</strong>
-            }
-          </div>
+          {deliveryFee > 0 && (
+            <div className="flex justify-between text-xs text-muted">
+              <span>Taxa de serviço</span>
+              {loadingFee
+                ? <span className="h-3 w-12 animate-pulse rounded bg-subtle-2" />
+                : <strong>{formatBRL(deliveryFee)}</strong>
+              }
+            </div>
+          )}
           {coupon && discountAmount > 0 && (
             <div className="flex justify-between text-xs text-[#16a34a]">
               <span className="flex items-center gap-1"><Tag size={11} /> {coupon.code}</span>
@@ -1007,9 +1002,7 @@ export default function CheckoutPage() {
     <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-line bg-surface/95 backdrop-blur-md shadow-[0_-4px_24px_rgba(0,0,0,0.08)]">
       {outOfRange && (
         <div className="border-b border-red-100 bg-red-50 px-4 py-2 text-center text-xs font-bold text-red-600">
-          Endereço fora do raio de entrega desta loja
-          {store?.maxDeliveryRadiusKm != null && ` (máx. ${store.maxDeliveryRadiusKm} km)`}
-          {distanceKm != null && ` — distância: ${distanceKm.toFixed(1)} km`}
+          Serviço não disponível para esta região no momento
         </div>
       )}
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pb-[88px] pt-3 md:px-8 md:pb-4">

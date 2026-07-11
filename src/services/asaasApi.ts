@@ -8,8 +8,10 @@ async function authHeaders(guestToken?: string | null): Promise<Record<string, s
     return { "Content-Type": "application/json", "X-Guest-Token": guestToken };
   }
   const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token ?? "";
-  return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+  if (!session?.access_token) {
+    throw new Error("Sessão expirada. Faça login novamente para continuar.");
+  }
+  return { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` };
 }
 
 async function callEdgeFunction<T>(

@@ -67,7 +67,7 @@ function StorePageContent() {
   usePageMeta({
     title: store?.name,
     description: store
-      ? `${store.name} no BrasUX Shopping. Entrega em ${store.deliveryTimeMin}–${store.deliveryTimeMax} min${Number(store.deliveryFee) === 0 ? ", frete grátis" : ""}. Avaliação ${Number(store.rating).toFixed(1)}/5.`
+      ? `${store.name} no BrasUX. Soluções digitais com entrega em ${store.deliveryTimeMin}–${store.deliveryTimeMax} dias. Avaliação ${Number(store.rating).toFixed(1)}/5.`
       : undefined,
     canonical: canonicalUrl(`/lojas/${currentStoreId}`),
   });
