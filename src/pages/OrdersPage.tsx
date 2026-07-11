@@ -1,544 +1,491 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import {
-  ArrowRight,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  FolderOpen,
-  LogIn,
-  MessageCircle,
-  Plus,
-  ReceiptText,
-  RefreshCw,
-  Rocket,
-} from "lucide-react";
-import { getMyOrders, queryKeys, type Order } from "../services/gizApi";
-import { formatBRL } from "../utils/format";
+import { ArrowRight, ArrowUpRight, CheckCircle2, Clock, FolderOpen, LogIn, Sparkles } from "lucide-react";
 import { useAuthStore } from "../stores/authStore";
-import { supabase } from "../lib/supabase";
 import { usePageMeta } from "../hooks/usePageMeta";
 
-// ─── Status mapping ───────────────────────────────────────────────────────────
+// ─── Projetos reais BrasUX ───────────────────────────────────────────────────
 
-const STATUS_LABEL: Record<number, string> = {
-  0: "Aguardando",
-  1: "Iniciando",
-  2: "Em desenvolvimento",
-  3: "Em revisão",
-  4: "Entregue",
-  5: "Cancelado",
-};
+type ProjectStatus = "entregue" | "andamento" | "revisao";
 
-const STATUS_COLOR: Record<number, { bg: string; text: string; border: string }> = {
-  0: { bg: "#fefce8", text: "#a16207", border: "#fde68a" },
-  1: { bg: "#f5f3ff", text: "#7c3aed", border: "#ddd6fe" },
-  2: { bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe" },
-  3: { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" },
-  4: { bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0" },
-  5: { bg: "#fef2f2", text: "#dc2626", border: "#fecaca" },
-};
+interface Project {
+  id: string;
+  name: string;
+  tagline: string;
+  type: string;
+  icon: string;
+  color: string;
+  status: ProjectStatus;
+  tech: string[];
+  href?: string;
+  domain?: string;
+  category: "plataforma" | "ecommerce" | "educacao" | "api" | "analytics" | "app";
+}
 
-const STATUS_ACCENT: Record<number, string> = {
-  0: "#eab308",
-  1: "#7c3aed",
-  2: "#2563eb",
-  3: "#ea580c",
-  4: "#16a34a",
-  5: "#ef4444",
-};
-
-const STATUS_PROGRESS: Record<number, number> = {
-  0: 5, 1: 20, 2: 60, 3: 85, 4: 100, 5: 0,
-};
-
-const STEPS = [
-  { status: 0, label: "Briefing" },
-  { status: 1, label: "Iniciando" },
-  { status: 2, label: "Dev" },
-  { status: 3, label: "Revisão" },
-  { status: 4, label: "Entregue" },
-];
-
-// ─── Portfolio showcase (empty state) ────────────────────────────────────────
-
-const SHOWCASE = [
+const PROJECTS: Project[] = [
+  // ── Plataforma ComprAÍ ───────────────────────────────────────────────────
   {
-    id: "s1",
-    type: "Landing Page",
-    icon: "🚀",
+    id: "comprai-shopping",
+    name: "ComprAÍ Shopping",
+    tagline: "Marketplace multi-lojista com delivery em tempo real",
+    type: "Marketplace",
+    icon: "🛍️",
     color: "#16a34a",
-    name: "LP Alta Conversão — Clínica VitaPlus",
-    status: 4,
-    value: 1200,
-    tech: ["React", "Tailwind", "Vite"],
-    date: "Jun 2026",
-    result: "Conversão +180% em 30 dias",
+    status: "entregue",
+    tech: ["React", "TypeScript", "Supabase", "SignalR"],
+    href: "https://comprai.store",
+    domain: "comprai.store",
+    category: "plataforma",
   },
   {
-    id: "s2",
-    type: "App Mobile",
-    icon: "📱",
-    color: "#2563eb",
-    name: "App Delivery — DelivEx",
-    status: 4,
-    value: 18000,
-    tech: ["React Native", "Supabase", "Stripe"],
-    date: "Mai 2026",
-    result: "Lançado em 45 dias úteis",
+    id: "comprai-loja",
+    name: "ComprAÍ Loja",
+    tagline: "Painel do lojista — gestão de produtos, pedidos e financeiro",
+    type: "Plataforma Lojistas",
+    icon: "🏪",
+    color: "#059669",
+    status: "entregue",
+    tech: ["React", "TypeScript", "Supabase", "Vite"],
+    href: "https://loja.comprai.store",
+    domain: "loja.comprai.store",
+    category: "plataforma",
   },
   {
-    id: "s3",
-    type: "Dashboard BI",
+    id: "comprai-entregas",
+    name: "ComprAÍ Entregas",
+    tagline: "App de entregadores parceiros com rastreio ao vivo",
+    type: "App Entregadores",
+    icon: "🏍️",
+    color: "#0284c7",
+    status: "entregue",
+    tech: ["React Native", "Mapbox", "Supabase", "SignalR"],
+    href: "https://entrega.comprai.store",
+    domain: "entrega.comprai.store",
+    category: "plataforma",
+  },
+  // ── APIs & Backend ───────────────────────────────────────────────────────
+  {
+    id: "brasux-ecommerce-api",
+    name: "BrasUX E-commerce API",
+    tagline: "API REST completa para operações de marketplace e checkout",
+    type: "API / Backend",
+    icon: "⚡",
+    color: "#7c3aed",
+    status: "entregue",
+    tech: [".NET", "PostgreSQL", "Supabase", "Asaas"],
+    category: "api",
+  },
+  {
+    id: "api-sku",
+    name: "API SKU",
+    tagline: "Serviço de catálogo e gestão de SKUs com sync em tempo real",
+    type: "API / Catálogo",
+    icon: "📦",
+    color: "#0891b2",
+    status: "entregue",
+    tech: [".NET", "PostgreSQL", "REST", "SignalR"],
+    category: "api",
+  },
+  // ── PDV ─────────────────────────────────────────────────────────────────
+  {
+    id: "brasux-caixa",
+    name: "BrasUX Caixa",
+    tagline: "PDV web completo — vendas, estoque, fiscal e relatórios",
+    type: "PDV / Sistema",
+    icon: "🖥️",
+    color: "#002776",
+    status: "entregue",
+    tech: ["React", "TypeScript", "Supabase", "Vite"],
+    href: "https://caixa.brasux.store",
+    domain: "caixa.brasux.store",
+    category: "plataforma",
+  },
+  // ── E-commerce ───────────────────────────────────────────────────────────
+  {
+    id: "cerveja-barata",
+    name: "Cerveja Barata",
+    tagline: "E-commerce especializado em cervejas artesanais e importadas",
+    type: "E-commerce",
+    icon: "🍺",
+    color: "#d97706",
+    status: "entregue",
+    tech: ["React", "Next.js", "Supabase", "Stripe"],
+    category: "ecommerce",
+  },
+  // ── Educação ─────────────────────────────────────────────────────────────
+  {
+    id: "simulaioab",
+    name: "SimulaiOAB",
+    tagline: "Simulado online com IA para a prova da OAB — 1ª e 2ª fase",
+    type: "Plataforma Educacional",
+    icon: "⚖️",
+    color: "#1d4ed8",
+    status: "entregue",
+    tech: ["React", "Next.js", "PostgreSQL", "OpenAI"],
+    href: "https://simulaioab.com",
+    domain: "simulaioab.com",
+    category: "educacao",
+  },
+  {
+    id: "simulenem",
+    name: "SimulENEM",
+    tagline: "Plataforma de simulados para o ENEM com correção por IA",
+    type: "Plataforma Educacional",
+    icon: "📚",
+    color: "#dc2626",
+    status: "entregue",
+    tech: ["React", "Next.js", "PostgreSQL", "OpenAI"],
+    href: "https://simulenem.com",
+    domain: "simulenem.com",
+    category: "educacao",
+  },
+  {
+    id: "simulamedi",
+    name: "SimulaMedi",
+    tagline: "Simulados para residência médica e REVALIDA com gabarito IA",
+    type: "Plataforma Educacional",
+    icon: "🩺",
+    color: "#059669",
+    status: "entregue",
+    tech: ["React", "Next.js", "PostgreSQL", "OpenAI"],
+    category: "educacao",
+  },
+  {
+    id: "curso-notaon",
+    name: "Curso NotaOn",
+    tagline: "Plataforma EAD de cursos e certificações para profissionais",
+    type: "EAD / Cursos",
+    icon: "🎓",
+    color: "#7c3aed",
+    status: "entregue",
+    tech: ["React", "Vite", "Supabase", "Stripe"],
+    href: "https://cursonotaon.com.br",
+    domain: "cursonotaon.com.br",
+    category: "educacao",
+  },
+  // ── Em andamento ─────────────────────────────────────────────────────────
+  {
+    id: "brasux-analytics",
+    name: "BrasUX Analytics",
+    tagline: "Plataforma própria de BI e analytics com dashboards em tempo real",
+    type: "Analytics / BI",
     icon: "📊",
     color: "#9333ea",
-    name: "Data Studio — GrupoAlpha",
-    status: 4,
-    value: 8500,
-    tech: ["Python", "BigQuery", "Power BI"],
-    date: "Abr 2026",
-    result: "Pipeline ETL + 12 dashboards",
+    status: "andamento",
+    tech: ["Python", "BigQuery", "React", "Power BI"],
+    category: "analytics",
+  },
+  {
+    id: "giza-vida-plena",
+    name: "Giza Vida Plena",
+    tagline: "App de bem-estar: Pilates, academia, psicologia e terapia — corpo e mente",
+    type: "App Mobile / Saúde",
+    icon: "🧘",
+    color: "#16a34a",
+    status: "andamento",
+    tech: ["React Native", "Supabase", "OpenAI", "Stripe"],
+    category: "app",
   },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type FilterKey = "todos" | "andamento" | "revisao" | "entregues" | "cancelados";
+const STATUS_META: Record<ProjectStatus, { label: string; bg: string; text: string; border: string; dot: string }> = {
+  entregue: { label: "Entregue",        bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0", dot: "#16a34a" },
+  andamento: { label: "Em andamento",   bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe", dot: "#2563eb" },
+  revisao:  { label: "Em revisão",      bg: "#fff7ed", text: "#c2410c", border: "#fed7aa", dot: "#ea580c" },
+};
+
+type FilterKey = "todos" | "entregues" | "andamento" | "plataforma" | "educacao" | "api" | "app";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "todos",      label: "Todos" },
   { key: "andamento",  label: "Em andamento" },
-  { key: "revisao",    label: "Em revisão" },
   { key: "entregues",  label: "Entregues" },
-  { key: "cancelados", label: "Cancelados" },
+  { key: "plataforma", label: "Plataformas" },
+  { key: "educacao",   label: "Educação" },
+  { key: "api",        label: "APIs" },
+  { key: "app",        label: "Apps" },
 ];
 
-function filterOrders(orders: Order[], key: FilterKey): Order[] {
-  if (key === "todos")      return orders;
-  if (key === "andamento")  return orders.filter((o) => o.status >= 1 && o.status <= 2);
-  if (key === "revisao")    return orders.filter((o) => o.status === 3);
-  if (key === "entregues")  return orders.filter((o) => o.status === 4);
-  if (key === "cancelados") return orders.filter((o) => o.status === 5);
-  return orders;
+function filterProjects(projects: Project[], key: FilterKey): Project[] {
+  if (key === "todos")      return projects;
+  if (key === "entregues")  return projects.filter((p) => p.status === "entregue");
+  if (key === "andamento")  return projects.filter((p) => p.status === "andamento" || p.status === "revisao");
+  return projects.filter((p) => p.category === key);
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function OrdersPage() {
-  usePageMeta({ title: "Meus Projetos — BrasUX" });
-
-  const auth       = useAuthStore((s) => s.user);
-  const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<FilterKey>("todos");
-
-  const { data: orders = [], isLoading, isFetching, refetch } = useQuery({
-    queryKey: queryKeys.myOrders(),
-    queryFn: getMyOrders,
-    enabled: !!auth,
-    staleTime: 0,
-    refetchOnMount: "always",
+  usePageMeta({
+    title: "Projetos — BrasUX Soluções Tecnológicas",
+    description: "Portfólio de projetos entregues e em andamento pelo BrasUX: plataformas, APIs, apps e sistemas educacionais.",
   });
 
-  useEffect(() => {
-    if (!auth) return;
-    const channel = supabase
-      .channel(`orders:customer:${auth.id}`)
-      .on("postgres_changes",
-        { event: "INSERT", schema: "public", table: "orders", filter: `customer_id=eq.${auth.id}` },
-        () => { queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() }); }
-      )
-      .on("postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `customer_id=eq.${auth.id}` },
-        () => { queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() }); }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [auth, queryClient]);
+  const auth = useAuthStore((s) => s.user);
+  const [filter, setFilter] = useState<FilterKey>("todos");
 
-  // ── Unauthenticated ───────────────────────────────────────────────────────
+  const visible  = filterProjects(PROJECTS, filter);
+  const entregues = PROJECTS.filter((p) => p.status === "entregue").length;
+  const emAndamento = PROJECTS.filter((p) => p.status !== "entregue").length;
 
-  if (!auth) {
-    return (
-      <div className="space-y-8">
-        <div className="flex flex-col items-center justify-center pt-10 pb-4 text-center">
-          <div
-            className="flex h-20 w-20 items-center justify-center rounded-3xl"
-            style={{ background: "linear-gradient(135deg, #16a34a22, #16a34a44)" }}
+  return (
+    <div className="space-y-8">
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
+          <h1 className="text-2xl font-black text-content">Projetos</h1>
+          <p className="mt-1 text-sm text-muted">Plataformas, APIs e sistemas que construímos</p>
+        </div>
+        <Link
+          to="/contato"
+          className="inline-flex w-fit items-center gap-2 rounded-2xl bg-[#16a34a] px-5 py-2.5 text-sm font-black text-white"
+          style={{ boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
+        >
+          Iniciar projeto <ArrowRight size={15} />
+        </Link>
+      </div>
+
+      {/* ── Stats ──────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-line bg-surface px-4 py-3 text-center shadow-sm">
+          <p className="text-2xl font-black text-[#16a34a]">{PROJECTS.length}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Projetos</p>
+        </div>
+        <div className="rounded-2xl border border-line bg-surface px-4 py-3 text-center shadow-sm">
+          <p className="text-2xl font-black text-[#16a34a]">{entregues}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Entregues</p>
+        </div>
+        <div className="rounded-2xl border border-line bg-surface px-4 py-3 text-center shadow-sm">
+          <p className="text-2xl font-black text-[#2563eb]">{emAndamento}</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Em andamento</p>
+        </div>
+      </div>
+
+      {/* ── Em andamento — destaque ─────────────────────────────────────── */}
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles size={14} className="text-[#2563eb]" />
+          <p className="text-[11px] font-black uppercase tracking-widest text-[#2563eb]">Em andamento agora</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {PROJECTS.filter((p) => p.status !== "entregue").map((p) => (
+            <ProjectCard key={p.id} project={p} featured />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Filtros ─────────────────────────────────────────────────────── */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {FILTERS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setFilter(key)}
+            className={`shrink-0 rounded-xl px-4 py-2 text-xs font-black transition-colors ${
+              filter === key
+                ? "bg-[#16a34a] text-white"
+                : "border border-line bg-surface text-muted hover:text-content"
+            }`}
           >
-            <FolderOpen size={36} className="text-[#16a34a]" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Grid de projetos ────────────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visible.map((p) => (
+          <ProjectCard key={p.id} project={p} />
+        ))}
+      </div>
+
+      {/* ── Cliente logado ──────────────────────────────────────────────── */}
+      {auth ? (
+        <section
+          className="rounded-3xl border border-line bg-surface p-6 shadow-sm"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#16a34a]/10">
+              <FolderOpen size={18} className="text-[#16a34a]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">Área do cliente</p>
+              <p className="font-black text-content">
+                Olá, {auth.name?.split(" ")[0] || "cliente"}
+              </p>
+            </div>
           </div>
-          <h1 className="mt-5 text-2xl font-black text-content">Meus Projetos</h1>
-          <p className="mt-2 text-sm text-muted max-w-sm">
-            Faça login para acompanhar o andamento dos seus projetos tech em tempo real.
+          <p className="text-sm text-muted">
+            Seus projetos contratados serão exibidos aqui com atualizações em tempo real. Entre em contato para acompanhar o andamento.
           </p>
+          <Link
+            to="/contato"
+            className="mt-4 inline-flex items-center gap-2 text-sm font-black text-[#16a34a] hover:underline"
+          >
+            Falar com a equipe <ArrowRight size={14} />
+          </Link>
+        </section>
+      ) : (
+        <section
+          className="rounded-3xl border border-line bg-surface p-6 text-center shadow-sm"
+        >
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#16a34a]/10">
+            <LogIn size={22} className="text-[#16a34a]" />
+          </div>
+          <h3 className="font-black text-content">Área do cliente</h3>
+          <p className="mt-1 text-sm text-muted">Faça login para acompanhar seus projetos contratados.</p>
           <Link
             to="/login"
             state={{ from: "/projetos" }}
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
-            style={{ boxShadow: "0 4px 16px rgba(22,163,74,0.35)" }}
+            className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-5 py-2.5 text-sm font-black text-white"
           >
-            <LogIn size={16} /> Entrar na conta
+            Entrar <ArrowRight size={14} />
           </Link>
-        </div>
+        </section>
+      )}
 
-        {/* Showcase blurred */}
-        <div>
-          <p className="mb-4 text-center text-[11px] font-black uppercase tracking-widest text-faint">
-            Exemplos do portfólio BrasUX
-          </p>
-          <div className="grid gap-4 sm:grid-cols-3 opacity-60 pointer-events-none select-none">
-            {SHOWCASE.map((p) => <ShowcaseCard key={p.id} project={p} />)}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Authenticated ─────────────────────────────────────────────────────────
-
-  const filtered   = filterOrders(orders, filter);
-  const inProgress = orders.filter((o) => o.status >= 1 && o.status <= 3).length;
-  const delivered  = orders.filter((o) => o.status === 4).length;
-
-  return (
-    <div className="space-y-6">
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-          <h1 className="text-2xl font-black text-content">Meus Projetos</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface"
-            aria-label="Atualizar"
-          >
-            <RefreshCw size={15} className={`text-muted ${isFetching ? "animate-spin" : ""}`} />
-          </button>
+      {/* ── CTA final ───────────────────────────────────────────────────── */}
+      <section
+        className="relative overflow-hidden rounded-3xl p-8 text-center"
+        style={{ background: "linear-gradient(135deg, #001640 0%, #002776 60%, #003d1a 100%)" }}
+      >
+        <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-[#16a34a] opacity-20 blur-3xl" />
+        <div className="relative z-10 space-y-4">
+          <p className="text-[11px] font-black uppercase tracking-widest text-[#4ade80]">Próximo projeto</p>
+          <h2 className="text-2xl font-black text-white md:text-3xl">Seu sistema pode ser o próximo</h2>
+          <p className="text-sm text-white/60">Landing pages, apps, plataformas, APIs, BI — do briefing à entrega.</p>
           <Link
             to="/contato"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-black text-white"
-            style={{ boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
+            style={{ boxShadow: "0 4px 20px rgba(22,163,74,0.45)" }}
           >
-            <Plus size={15} /> Novo projeto
+            Iniciar conversa <ArrowRight size={15} />
           </Link>
         </div>
-      </div>
-
-      {/* Stats */}
-      {orders.length > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Total",        value: orders.length,  color: "#16a34a" },
-            { label: "Em andamento", value: inProgress,     color: "#2563eb" },
-            { label: "Entregues",    value: delivered,      color: "#9333ea" },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="rounded-2xl border border-line bg-surface px-4 py-3 text-center shadow-sm">
-              <p className="text-2xl font-black" style={{ color }}>{value}</p>
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Filter tabs */}
-      {orders.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {FILTERS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setFilter(key)}
-              className={`shrink-0 rounded-xl px-4 py-2 text-xs font-black transition-colors ${
-                filter === key
-                  ? "bg-[#16a34a] text-white"
-                  : "bg-surface border border-line text-muted hover:text-content"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Content */}
-      {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="rounded-3xl border border-line bg-surface p-5 shadow-sm animate-pulse">
-              <div className="h-5 w-1/3 rounded-xl bg-subtle-2" />
-              <div className="mt-3 h-8 w-1/2 rounded-xl bg-subtle-2" />
-              <div className="mt-4 h-2 w-full rounded-full bg-subtle-2" />
-            </div>
-          ))}
-        </div>
-      ) : orders.length === 0 ? (
-        <EmptyState />
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <span className="text-5xl">🔍</span>
-          <p className="mt-4 text-sm font-black text-content">Nenhum projeto nessa categoria</p>
-          <button onClick={() => setFilter("todos")} className="mt-3 text-sm font-bold text-[#16a34a] hover:underline">
-            Ver todos
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filtered.map((order) => <ProjectCard key={order.id} order={order} />)}
-        </div>
-      )}
+      </section>
     </div>
   );
 }
 
 // ─── ProjectCard ──────────────────────────────────────────────────────────────
 
-function ProjectCard({ order }: { order: Order }) {
-  const [open, setOpen] = useState(false);
-  const s       = STATUS_COLOR[order.status] ?? STATUS_COLOR[0];
-  const accent  = STATUS_ACCENT[order.status] ?? "#16a34a";
-  const progress = STATUS_PROGRESS[order.status] ?? 0;
-  const isCancelled = order.status === 5;
-
-  const projectName = order.storeName
-    ? `Projeto — ${order.storeName}`
-    : order.items[0]?.productName ?? "Projeto BrasUX";
+function ProjectCard({ project: p, featured = false }: { project: Project; featured?: boolean }) {
+  const s = STATUS_META[p.status];
+  const isLive = p.status === "entregue" && !!p.href;
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-sm">
+    <div
+      className={`group relative flex flex-col overflow-hidden rounded-3xl border border-line bg-surface shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${
+        featured ? "border-2" : ""
+      }`}
+      style={featured ? { borderColor: `${p.color}40` } : {}}
+    >
+      {/* Top accent bar */}
+      <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${p.color}, ${p.color}66)` }} />
 
-      {/* Header gradient */}
-      <div
-        className="px-5 py-4"
-        style={{ background: `linear-gradient(135deg, ${accent}18, ${accent}08)`, borderBottom: `1px solid ${accent}20` }}
-      >
+      {/* Card content */}
+      <div className="flex flex-1 flex-col gap-4 p-5">
+
+        {/* Header row */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-lg"
-              style={{ background: `${accent}20` }}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl"
+              style={{ background: `${p.color}18` }}
             >
-              <Rocket size={18} style={{ color: accent }} />
+              {p.icon}
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: accent }}>
-                BrasUX · {new Date(order.createdAt).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.color }}>
+                {p.type}
               </p>
-              <h3 className="font-black text-content line-clamp-1">{projectName}</h3>
+              <h3 className="font-black text-content leading-tight">{p.name}</h3>
             </div>
           </div>
+
           <span
-            className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-black"
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black"
             style={{ background: s.bg, color: s.text, borderColor: s.border }}
           >
-            {STATUS_LABEL[order.status]}
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
+            {s.label}
           </span>
         </div>
 
-        {/* Progress bar */}
-        {!isCancelled && (
-          <div className="mt-4">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted">Progresso</span>
-              <span className="text-[10px] font-black" style={{ color: accent }}>{progress}%</span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle-2">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${progress}%`, background: accent }}
-              />
-            </div>
-          </div>
-        )}
+        {/* Tagline */}
+        <p className="text-sm leading-relaxed text-muted">{p.tagline}</p>
 
-        {/* Timeline steps */}
-        {!isCancelled && (
-          <div className="mt-4 flex items-start">
-            {STEPS.map((step, idx) => {
-              const done    = order.status >= step.status;
-              const current = order.status === step.status;
-              const isLast  = idx === STEPS.length - 1;
-              return (
-                <div key={step.status} className="flex flex-1 flex-col items-center">
-                  <div className="flex w-full items-center">
-                    <div
-                      className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 transition-all ${
-                        done ? (current ? "scale-125" : "") : ""
-                      }`}
-                      style={{
-                        borderColor: done ? accent : "#e2e8f0",
-                        background:  done ? accent : "var(--color-surface)",
-                      }}
-                    />
-                    {!isLast && (
-                      <div
-                        className="h-0.5 flex-1"
-                        style={{ background: order.status > step.status ? accent : "#e2e8f0" }}
-                      />
-                    )}
-                  </div>
-                  <p
-                    className="mt-1.5 text-[9px] font-black uppercase tracking-wide"
-                    style={{ color: done ? accent : "#cbd5e1" }}
-                  >
-                    {step.label}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="px-5 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-muted">
-            <Clock size={12} />
-            {new Date(order.createdAt).toLocaleDateString("pt-BR")}
-          </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="https://wa.me/5500000000000"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-bold text-[#16a34a] hover:underline"
-            >
-              <MessageCircle size={12} /> Falar com equipe
-            </a>
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className="flex items-center gap-1 text-xs font-black text-content"
-            >
-              {open ? <><ChevronUp size={14} /> Ocultar</> : <><ChevronDown size={14} /> Detalhes</>}
-            </button>
-          </div>
-        </div>
-
-        {open && (
-          <div className="mt-4 space-y-4 border-t border-subtle-2 pt-4">
-
-            {/* Deliverables */}
-            {order.items.length > 0 && (
-              <div>
-                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-faint">
-                  Entregas do projeto
-                </p>
-                <div className="space-y-2">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-line bg-subtle p-3">
-                      <div
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-base"
-                        style={{ background: `${accent}15` }}
-                      >
-                        <CheckCircle2 size={16} style={{ color: accent }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-content line-clamp-1">{item.productName}</p>
-                        <p className="text-xs text-muted">{item.quantity}× entrega</p>
-                      </div>
-                      <span className="text-sm font-black shrink-0" style={{ color: accent }}>
-                        {formatBRL(item.totalPrice)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Value summary */}
-            <div className="rounded-2xl border border-line bg-subtle px-4 py-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted">Valor do projeto</p>
-                <p className="text-lg font-black" style={{ color: accent }}>{formatBRL(order.total)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-function EmptyState() {
-  return (
-    <div className="space-y-8">
-      <div className="flex flex-col items-center justify-center py-10 text-center">
-        <div
-          className="flex h-24 w-24 items-center justify-center rounded-3xl"
-          style={{ background: "linear-gradient(135deg, #16a34a18, #16a34a30)" }}
-        >
-          <ReceiptText size={40} className="text-[#16a34a]" />
-        </div>
-        <h2 className="mt-6 text-xl font-black text-content">Nenhum projeto ainda</h2>
-        <p className="mt-2 max-w-xs text-sm text-muted">
-          Seus projetos contratados aparecerão aqui com atualizações em tempo real.
-        </p>
-        <Link
-          to="/contato"
-          className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
-          style={{ boxShadow: "0 4px 16px rgba(22,163,74,0.35)" }}
-        >
-          Iniciar um projeto <ArrowRight size={15} />
-        </Link>
-      </div>
-
-      <div>
-        <p className="mb-4 text-center text-[11px] font-black uppercase tracking-widest text-faint">
-          Cases do portfólio BrasUX
-        </p>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {SHOWCASE.map((p) => <ShowcaseCard key={p.id} project={p} />)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── ShowcaseCard ─────────────────────────────────────────────────────────────
-
-interface ShowcaseProject {
-  id: string; type: string; icon: string; color: string;
-  name: string; status: number; value: number;
-  tech: string[]; date: string; result: string;
-}
-
-function ShowcaseCard({ project: p }: { project: ShowcaseProject }) {
-  return (
-    <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-sm">
-      <div
-        className="px-4 py-4"
-        style={{ background: `linear-gradient(135deg, ${p.color}18, ${p.color}06)`, borderBottom: `1px solid ${p.color}20` }}
-      >
-        <div className="flex items-center gap-2.5 mb-3">
-          <span className="text-2xl">{p.icon}</span>
+        {/* Progress bar for in-progress */}
+        {p.status === "andamento" && (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.color }}>{p.type}</p>
-            <p className="text-xs font-black text-content line-clamp-1">{p.name}</p>
+            <div className="mb-1 flex justify-between text-[10px] font-bold text-muted">
+              <span>Em desenvolvimento</span>
+              <span style={{ color: p.color }}>60%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-subtle-2">
+              <div className="h-full w-[60%] rounded-full animate-pulse" style={{ background: p.color }} />
+            </div>
           </div>
-        </div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle-2">
-          <div className="h-full w-full rounded-full" style={{ background: p.color }} />
-        </div>
-      </div>
-      <div className="px-4 py-3 space-y-2">
+        )}
+        {p.status === "revisao" && (
+          <div>
+            <div className="mb-1 flex justify-between text-[10px] font-bold text-muted">
+              <span>Em revisão final</span>
+              <span style={{ color: p.color }}>85%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-subtle-2">
+              <div className="h-full w-[85%] rounded-full" style={{ background: p.color }} />
+            </div>
+          </div>
+        )}
+        {p.status === "entregue" && (
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#16a34a]">
+            <CheckCircle2 size={13} />
+            100% concluído
+          </div>
+        )}
+
+        {/* Tech stack */}
         <div className="flex flex-wrap gap-1.5">
           {p.tech.map((t) => (
-            <span key={t} className="rounded-lg border border-line bg-subtle px-2 py-0.5 text-[10px] font-bold text-muted">
+            <span
+              key={t}
+              className="rounded-lg border border-line bg-subtle px-2 py-0.5 text-[10px] font-bold text-muted"
+            >
               {t}
             </span>
           ))}
         </div>
-        <p className="text-xs font-black" style={{ color: p.color }}>{p.result}</p>
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-faint">{p.date}</span>
-          <span className="text-sm font-black text-content">{formatBRL(p.value)}</span>
-        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between px-5 py-3"
+        style={{ borderTop: `1px solid ${p.color}18`, background: `${p.color}06` }}
+      >
+        {p.domain ? (
+          <span className="text-[11px] text-faint">{p.domain}</span>
+        ) : (
+          <span className="text-[11px] text-faint flex items-center gap-1">
+            <Clock size={11} /> {p.status === "entregue" ? "Entregue" : "Em construção"}
+          </span>
+        )}
+
+        {isLive && (
+          <a
+            href={p.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-black text-white transition-opacity hover:opacity-90"
+            style={{ background: p.color }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            Ver ao vivo <ArrowUpRight size={12} />
+          </a>
+        )}
       </div>
     </div>
   );
