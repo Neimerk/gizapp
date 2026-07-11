@@ -1,103 +1,138 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { ArrowLeft, Clock3, LogIn, Package, ReceiptText, RefreshCw } from "lucide-react";
-
-const LiveTrackingMap = lazy(() => import("../components/ui/LiveTrackingMap"));
-import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { getMyOrders, getProductImageUrl, queryKeys, upsertReview, type Order } from "../services/gizApi";
+import { useEffect } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  FolderOpen,
+  LogIn,
+  MessageCircle,
+  Plus,
+  ReceiptText,
+  RefreshCw,
+  Rocket,
+} from "lucide-react";
+import { getMyOrders, queryKeys, type Order } from "../services/gizApi";
 import { formatBRL } from "../utils/format";
 import { useAuthStore } from "../stores/authStore";
 import { supabase } from "../lib/supabase";
-import { useOrderTracking } from "../hooks/useOrderTracking";
+import { usePageMeta } from "../hooks/usePageMeta";
 
-const STATUS_STEPS = [
-  { status: 0, label: "Recebido" },
-  { status: 1, label: "Aceito" },
-  { status: 2, label: "Em desenvolvimento" },
-  { status: 3, label: "Em revisão" },
-  { status: 4, label: "Concluído" },
-];
+// ─── Status mapping ───────────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<number, string> = {
-  0: "Pedido recebido",
-  1: "Pedido aceito",
+  0: "Aguardando",
+  1: "Iniciando",
   2: "Em desenvolvimento",
   3: "Em revisão",
-  4: "Concluído",
+  4: "Entregue",
   5: "Cancelado",
 };
 
-const STATUS_COLOR: Record<number, string> = {
-  0: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  1: "bg-purple-100 text-purple-700 border-purple-200",
-  2: "bg-blue-100 text-blue-700 border-blue-200",
-  3: "bg-orange-100 text-orange-700 border-orange-200",
-  4: "bg-green-100 text-green-700 border-green-200",
-  5: "bg-red-100 text-red-700 border-red-200",
+const STATUS_COLOR: Record<number, { bg: string; text: string; border: string }> = {
+  0: { bg: "#fefce8", text: "#a16207", border: "#fde68a" },
+  1: { bg: "#f5f3ff", text: "#7c3aed", border: "#ddd6fe" },
+  2: { bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe" },
+  3: { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" },
+  4: { bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0" },
+  5: { bg: "#fef2f2", text: "#dc2626", border: "#fecaca" },
 };
 
-const STATUS_DOT: Record<number, string> = {
-  0: "bg-yellow-400",
-  1: "bg-purple-500",
-  2: "bg-blue-500",
-  3: "bg-orange-400",
-  4: "bg-green-500",
-  5: "bg-red-500",
+const STATUS_ACCENT: Record<number, string> = {
+  0: "#eab308",
+  1: "#7c3aed",
+  2: "#2563eb",
+  3: "#ea580c",
+  4: "#16a34a",
+  5: "#ef4444",
 };
 
-const PAYMENT_LABEL: Record<string, string> = {
-  pix: "Pix",
-  card: "Cartão de crédito",
+const STATUS_PROGRESS: Record<number, number> = {
+  0: 5, 1: 20, 2: 60, 3: 85, 4: 100, 5: 0,
 };
 
-/* ── RATING HELPERS ── */
+const STEPS = [
+  { status: 0, label: "Briefing" },
+  { status: 1, label: "Iniciando" },
+  { status: 2, label: "Dev" },
+  { status: 3, label: "Revisão" },
+  { status: 4, label: "Entregue" },
+];
 
-type OrderRating = { stars: number; comment?: string };
+// ─── Portfolio showcase (empty state) ────────────────────────────────────────
 
-function getRating(orderId: string): OrderRating | null {
-  try {
-    return JSON.parse(localStorage.getItem(`brasux-rating-${orderId}`) ?? "null");
-  } catch {
-    return null;
-  }
+const SHOWCASE = [
+  {
+    id: "s1",
+    type: "Landing Page",
+    icon: "🚀",
+    color: "#16a34a",
+    name: "LP Alta Conversão — Clínica VitaPlus",
+    status: 4,
+    value: 1200,
+    tech: ["React", "Tailwind", "Vite"],
+    date: "Jun 2026",
+    result: "Conversão +180% em 30 dias",
+  },
+  {
+    id: "s2",
+    type: "App Mobile",
+    icon: "📱",
+    color: "#2563eb",
+    name: "App Delivery — DelivEx",
+    status: 4,
+    value: 18000,
+    tech: ["React Native", "Supabase", "Stripe"],
+    date: "Mai 2026",
+    result: "Lançado em 45 dias úteis",
+  },
+  {
+    id: "s3",
+    type: "Dashboard BI",
+    icon: "📊",
+    color: "#9333ea",
+    name: "Data Studio — GrupoAlpha",
+    status: 4,
+    value: 8500,
+    tech: ["Python", "BigQuery", "Power BI"],
+    date: "Abr 2026",
+    result: "Pipeline ETL + 12 dashboards",
+  },
+];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+type FilterKey = "todos" | "andamento" | "revisao" | "entregues" | "cancelados";
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "todos",      label: "Todos" },
+  { key: "andamento",  label: "Em andamento" },
+  { key: "revisao",    label: "Em revisão" },
+  { key: "entregues",  label: "Entregues" },
+  { key: "cancelados", label: "Cancelados" },
+];
+
+function filterOrders(orders: Order[], key: FilterKey): Order[] {
+  if (key === "todos")      return orders;
+  if (key === "andamento")  return orders.filter((o) => o.status >= 1 && o.status <= 2);
+  if (key === "revisao")    return orders.filter((o) => o.status === 3);
+  if (key === "entregues")  return orders.filter((o) => o.status === 4);
+  if (key === "cancelados") return orders.filter((o) => o.status === 5);
+  return orders;
 }
-
-function saveRating(orderId: string, rating: OrderRating) {
-  localStorage.setItem(`brasux-rating-${orderId}`, JSON.stringify(rating));
-}
-
-/* ── NOTIFICATION HELPER ── */
-
-async function requestNotificationPermission() {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "default") {
-    await Notification.requestPermission();
-  }
-}
-
-function showOrderNotification(order: Order) {
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  if (document.visibilityState === "visible") return;
-
-  const label = STATUS_LABEL[order.status] ?? "Status atualizado";
-  new Notification("BrasUX — Pedido atualizado", {
-    body: `${label} · ${formatBRL(Number(order.total))}`,
-    icon: "/logo-brasux.webp",
-    badge: "/favicon.svg",
-  });
-}
-
-/* ── PAGE ── */
 
 export default function OrdersPage() {
-  const navigate = useNavigate();
-  const auth = useAuthStore((s) => s.user);
-  const queryClient = useQueryClient();
-  const [autoReviewOrder, setAutoReviewOrder] = useState<Order | null>(null);
+  usePageMeta({ title: "Meus Projetos — BrasUX" });
 
-  const { data: orders = [], isLoading: loading, isFetching: refreshing, refetch } = useQuery({
+  const auth       = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<FilterKey>("todos");
+
+  const { data: orders = [], isLoading, isFetching, refetch } = useQuery({
     queryKey: queryKeys.myOrders(),
     queryFn: getMyOrders,
     enabled: !!auth,
@@ -107,510 +142,403 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!auth) return;
-
-    requestNotificationPermission();
-
-    // Supabase Realtime: escuta INSERT e UPDATE na tabela orders filtrado pelo usuário
     const channel = supabase
       .channel(`orders:customer:${auth.id}`)
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "orders", filter: `customer_id=eq.${auth.id}` },
         () => { queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() }); }
       )
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: `customer_id=eq.${auth.id}` },
-        (payload) => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() });
-          // Notificação e auto-review quando status muda para entregue (4)
-          const row = payload.new as { id: string; status: number; total: number };
-          if (row.status === 4) {
-            const mockOrder = { status: row.status, total: row.total, items: [] } as unknown as Order;
-            showOrderNotification(mockOrder);
-            const alreadyRated = localStorage.getItem(`brasux-rating-${row.id}`);
-            if (!alreadyRated) {
-              // Após invalidação, a query vai recarregar o pedido completo
-              setTimeout(() => {
-                const current = queryClient.getQueryData<Order[]>(queryKeys.myOrders());
-                const fullOrder = current?.find(o => o.id === row.id);
-                if (fullOrder) setAutoReviewOrder(fullOrder);
-              }, 800);
-            }
-          }
-        }
+        () => { queryClient.invalidateQueries({ queryKey: queryKeys.myOrders() }); }
       )
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [auth, queryClient]);
+
+  // ── Unauthenticated ───────────────────────────────────────────────────────
 
   if (!auth) {
     return (
-      <div className="flex flex-col items-center justify-center pt-24 px-4 text-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
-          <ReceiptText size={40} className="text-[#16a34a]" />
+      <div className="space-y-8">
+        <div className="flex flex-col items-center justify-center pt-10 pb-4 text-center">
+          <div
+            className="flex h-20 w-20 items-center justify-center rounded-3xl"
+            style={{ background: "linear-gradient(135deg, #16a34a22, #16a34a44)" }}
+          >
+            <FolderOpen size={36} className="text-[#16a34a]" />
+          </div>
+          <h1 className="mt-5 text-2xl font-black text-content">Meus Projetos</h1>
+          <p className="mt-2 text-sm text-muted max-w-sm">
+            Faça login para acompanhar o andamento dos seus projetos tech em tempo real.
+          </p>
+          <Link
+            to="/login"
+            state={{ from: "/pedidos" }}
+            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
+            style={{ boxShadow: "0 4px 16px rgba(22,163,74,0.35)" }}
+          >
+            <LogIn size={16} /> Entrar na conta
+          </Link>
         </div>
-        <h2 className="mt-6 text-xl font-black text-content">Entre para ver seus pedidos</h2>
-        <p className="mt-2 text-sm text-muted">
-          Faça login para acompanhar seus pedidos em tempo real.
-        </p>
-        <Link
-          to="/login"
-          state={{ from: "/pedidos" }}
-          className="mt-6 flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
-        >
-          <LogIn size={16} /> Entrar na conta
-        </Link>
+
+        {/* Showcase blurred */}
+        <div>
+          <p className="mb-4 text-center text-[11px] font-black uppercase tracking-widest text-faint">
+            Exemplos do portfólio BrasUX
+          </p>
+          <div className="grid gap-4 sm:grid-cols-3 opacity-60 pointer-events-none select-none">
+            {SHOWCASE.map((p) => <ShowcaseCard key={p.id} project={p} />)}
+          </div>
+        </div>
       </div>
     );
   }
 
+  // ── Authenticated ─────────────────────────────────────────────────────────
+
+  const filtered   = filterOrders(orders, filter);
+  const inProgress = orders.filter((o) => o.status >= 1 && o.status <= 3).length;
+  const delivered  = orders.filter((o) => o.status === 4).length;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0f172a]"
-          >
-            <ArrowLeft size={18} className="text-white" />
-          </button>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
-            <h1 className="text-xl font-black text-content">Meus pedidos</h1>
-          </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">BrasUX</p>
+          <h1 className="text-2xl font-black text-content">Meus Projetos</h1>
         </div>
-        <button
-          onClick={() => refetch()}
-          disabled={refreshing}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface"
-        >
-          <RefreshCw size={16} className={`text-muted ${refreshing ? "animate-spin" : ""}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-surface"
+            aria-label="Atualizar"
+          >
+            <RefreshCw size={15} className={`text-muted ${isFetching ? "animate-spin" : ""}`} />
+          </button>
+          <Link
+            to="/contato"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-4 py-2.5 text-sm font-black text-white"
+            style={{ boxShadow: "0 4px 14px rgba(22,163,74,0.35)" }}
+          >
+            <Plus size={15} /> Novo projeto
+          </Link>
+        </div>
       </div>
 
-      <div>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2].map((i) => (
-              <div key={i} className="rounded-3xl bg-surface p-5 shadow-sm">
-                <div className="h-5 w-1/3 rounded bg-subtle-2 animate-pulse" />
-                <div className="mt-3 h-8 w-1/2 rounded bg-subtle-2 animate-pulse" />
-                <div className="mt-4 h-10 rounded-xl bg-subtle-2 animate-pulse" />
-              </div>
-            ))}
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center pt-16 text-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-[#16a34a]/10">
-              <ReceiptText size={40} className="text-[#16a34a]" />
+      {/* Stats */}
+      {orders.length > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Total",        value: orders.length,  color: "#16a34a" },
+            { label: "Em andamento", value: inProgress,     color: "#2563eb" },
+            { label: "Entregues",    value: delivered,      color: "#9333ea" },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="rounded-2xl border border-line bg-surface px-4 py-3 text-center shadow-sm">
+              <p className="text-2xl font-black" style={{ color }}>{value}</p>
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
             </div>
-            <h2 className="mt-6 text-xl font-black text-content">Nenhum pedido ainda</h2>
-            <p className="mt-2 text-sm text-muted">Seus pedidos aparecerão aqui em tempo real.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {orders.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {autoReviewOrder && (
-        <AutoReviewModal
-          order={autoReviewOrder}
-          onClose={() => setAutoReviewOrder(null)}
-        />
+      {/* Filter tabs */}
+      {orders.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFilter(key)}
+              className={`shrink-0 rounded-xl px-4 py-2 text-xs font-black transition-colors ${
+                filter === key
+                  ? "bg-[#16a34a] text-white"
+                  : "bg-surface border border-line text-muted hover:text-content"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      {isLoading ? (
+        <div className="space-y-4">
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-3xl border border-line bg-surface p-5 shadow-sm animate-pulse">
+              <div className="h-5 w-1/3 rounded-xl bg-subtle-2" />
+              <div className="mt-3 h-8 w-1/2 rounded-xl bg-subtle-2" />
+              <div className="mt-4 h-2 w-full rounded-full bg-subtle-2" />
+            </div>
+          ))}
+        </div>
+      ) : orders.length === 0 ? (
+        <EmptyState />
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <span className="text-5xl">🔍</span>
+          <p className="mt-4 text-sm font-black text-content">Nenhum projeto nessa categoria</p>
+          <button onClick={() => setFilter("todos")} className="mt-3 text-sm font-bold text-[#16a34a] hover:underline">
+            Ver todos
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((order) => <ProjectCard key={order.id} order={order} />)}
+        </div>
       )}
     </div>
   );
 }
 
-/* ── STATUS TIMELINE ── */
+// ─── ProjectCard ──────────────────────────────────────────────────────────────
 
-const DELIVERY_STEPS = [
-  { key: "waiting_courier",  label: "Despacho" },
-  { key: "courier_assigned", label: "A caminho" },
-  { key: "courier_arriving", label: "Na loja" },
-  { key: "picked_up",        label: "Coletado" },
-  { key: "in_transit",       label: "Em rota" },
-  { key: "arrived",          label: "Chegou" },
-  { key: "delivered",        label: "Entregue" },
-];
-
-const DELIVERY_STEP_INDEX: Record<string, number> = Object.fromEntries(
-  DELIVERY_STEPS.map((s, i) => [s.key, i])
-);
-
-function StatusTimeline({ status, deliveryLifecycle }: { status: number; deliveryLifecycle?: string | null }) {
-  // Se há lifecycle granular do delivery_order, usa os passos de delivery
-  if (deliveryLifecycle && deliveryLifecycle !== "cancelled" && deliveryLifecycle !== "failed") {
-    const currentIdx = DELIVERY_STEP_INDEX[deliveryLifecycle] ?? 0;
-    return (
-      <div className="flex items-start">
-        {DELIVERY_STEPS.map((step, idx) => {
-          const isCompleted = idx <= currentIdx;
-          const isCurrent   = idx === currentIdx;
-          const isLast      = idx === DELIVERY_STEPS.length - 1;
-          return (
-            <div key={step.key} className="flex flex-1 flex-col items-center">
-              <div className="flex w-full items-center">
-                <div className={`h-3 w-3 shrink-0 rounded-full border-2 transition-all ${
-                  isCompleted
-                    ? isCurrent ? "scale-125 border-[#16a34a] bg-[#16a34a]" : "border-[#16a34a] bg-[#16a34a]"
-                    : "border-line bg-surface"
-                }`} />
-                {!isLast && <div className={`h-0.5 flex-1 transition-colors ${idx < currentIdx ? "bg-[#16a34a]" : "bg-[#e2e8f0]"}`} />}
-              </div>
-              <p className={`mt-1.5 text-[9px] font-black uppercase tracking-wide ${isCompleted ? "text-[#16a34a]" : "text-[#cbd5e1]"}`}>
-                {step.label}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // Fallback: timeline baseada em status numérico
-  return (
-    <div className="flex items-start">
-      {STATUS_STEPS.map((step, idx) => {
-        const isCompleted = status >= step.status;
-        const isCurrent = status === step.status;
-        const isLast = idx === STATUS_STEPS.length - 1;
-        return (
-          <div key={step.status} className="flex flex-1 flex-col items-center">
-            <div className="flex w-full items-center">
-              <div className={`h-3 w-3 shrink-0 rounded-full border-2 transition-all ${
-                isCompleted
-                  ? isCurrent ? "scale-125 border-[#16a34a] bg-[#16a34a]" : "border-[#16a34a] bg-[#16a34a]"
-                  : "border-line bg-surface"
-              }`} />
-              {!isLast && <div className={`h-0.5 flex-1 transition-colors ${status > step.status ? "bg-[#16a34a]" : "bg-[#e2e8f0]"}`} />}
-            </div>
-            <p className={`mt-1.5 text-[9px] font-black uppercase tracking-wide ${isCompleted ? "text-[#16a34a]" : "text-[#cbd5e1]"}`}>
-              {step.label}
-            </p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ── RATING SECTION ── */
-
-function RatingSection({ orderId, firstStoreProductId }: { orderId: string; firstStoreProductId?: string }) {
-  const [saved, setSaved] = useState(false);
-  const [existing] = useState(() => getRating(orderId));
-  const [hovered, setHovered] = useState(existing?.stars ?? 0);
-  const [selected, setSelected] = useState(existing?.stars ?? 0);
-  const [comment, setComment] = useState(existing?.comment ?? "");
-  const [submitted, setSubmitted] = useState(!!existing);
-
-  if (submitted && existing) {
-    return (
-      <div className="rounded-2xl border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3 text-center">
-        <p className="text-sm font-black text-[#16a34a]">
-          Sua avaliação: {"⭐".repeat(existing.stars)}
-        </p>
-        {existing.comment && (
-          <p className="mt-1 text-xs italic text-muted">"{existing.comment}"</p>
-        )}
-      </div>
-    );
-  }
-
-  async function handleSave() {
-    if (!selected) return;
-    const rating: OrderRating = { stars: selected, comment: comment.trim() || undefined };
-    saveRating(orderId, rating);
-    setSaved(true);
-    setSubmitted(true);
-    if (firstStoreProductId) {
-      try {
-        await upsertReview(firstStoreProductId, selected, comment.trim() || undefined);
-      } catch { /* silencioso — localStorage já salvou */ }
-    }
-  }
-
-  return (
-    <div className="rounded-2xl border border-line bg-subtle p-4">
-      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-faint">
-        Avalie sua experiência
-      </p>
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <button
-            key={star}
-            onMouseEnter={() => setHovered(star)}
-            onMouseLeave={() => setHovered(selected)}
-            onClick={() => setSelected(star)}
-            className="text-2xl transition-transform hover:scale-125 focus:outline-none"
-            aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
-          >
-            <span className={star <= (hovered || selected) ? "text-yellow-400" : "text-[#e2e8f0]"}>
-              ★
-            </span>
-          </button>
-        ))}
-      </div>
-      {selected > 0 && !saved && (
-        <>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Deixe um comentário (opcional)…"
-            rows={2}
-            className="mt-3 w-full resize-none rounded-xl border border-line bg-surface px-3 py-2 text-sm text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
-          />
-          <button
-            onClick={handleSave}
-            className="mt-2 w-full rounded-xl bg-[#16a34a] py-2.5 text-xs font-black text-white transition-opacity hover:opacity-90"
-          >
-            Enviar avaliação
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
-/* ── AUTO REVIEW MODAL ── */
-
-function AutoReviewModal({ order, onClose }: { order: Order; onClose: () => void }) {
-  const [selected, setSelected] = useState(0);
-  const [hovered, setHovered] = useState(0);
-  const [comment, setComment] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  function handleSubmit() {
-    if (!selected) return;
-    saveRating(order.id, { stars: selected, comment: comment.trim() || undefined });
-    setSubmitted(true);
-    setTimeout(onClose, 1500);
-  }
-
-  return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-      <div
-        className="relative z-10 w-full max-w-sm overflow-hidden rounded-t-3xl bg-surface p-6 sm:rounded-3xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {submitted ? (
-          <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <span className="text-5xl">🎉</span>
-            <p className="text-lg font-black text-content">Obrigado pela avaliação!</p>
-            <p className="text-sm text-muted">Seu feedback ajuda outros compradores.</p>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f0fdf4]">
-                <span className="text-xl">📦</span>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">Pedido entregue!</p>
-                <h3 className="font-black text-content">Como foi sua experiência?</h3>
-              </div>
-            </div>
-            {order.storeName && (
-              <p className="mb-4 text-sm text-muted">
-                Avalie sua compra em <strong className="text-content">{order.storeName}</strong>
-              </p>
-            )}
-            <div className="mb-4 flex justify-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onMouseEnter={() => setHovered(star)}
-                  onMouseLeave={() => setHovered(0)}
-                  onClick={() => setSelected(star)}
-                  className="text-4xl transition-transform hover:scale-110 focus:outline-none"
-                  aria-label={`${star} estrela${star > 1 ? "s" : ""}`}
-                >
-                  <span className={star <= (hovered || selected) ? "text-yellow-400" : "text-[#e2e8f0]"}>★</span>
-                </button>
-              ))}
-            </div>
-            {selected > 0 && (
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Deixe um comentário (opcional)…"
-                rows={2}
-                className="mb-4 w-full resize-none rounded-2xl border border-line bg-subtle px-4 py-3 text-sm text-content outline-none focus:ring-2 focus:ring-[#16a34a]/30 placeholder:text-[#cbd5e1]"
-              />
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={onClose}
-                className="flex-1 rounded-2xl border border-line py-3 text-sm font-black text-muted"
-              >
-                Agora não
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!selected}
-                className="flex-1 rounded-2xl py-3 text-sm font-black text-white disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
-              >
-                Avaliar
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ── ORDER CARD ── */
-
-function OrderCard({ order }: { order: Order }) {
+function ProjectCard({ order }: { order: Order }) {
   const [open, setOpen] = useState(false);
+  const s       = STATUS_COLOR[order.status] ?? STATUS_COLOR[0];
+  const accent  = STATUS_ACCENT[order.status] ?? "#16a34a";
+  const progress = STATUS_PROGRESS[order.status] ?? 0;
   const isCancelled = order.status === 5;
-  const isDelivered = order.status === 4;
-  const isInTransit = order.status === 3;
 
-  const tracking = useOrderTracking(order.status >= 2 ? order.id : null);
-  const deliveryLifecycle = tracking.lifecycle;
+  const projectName = order.storeName
+    ? `Projeto — ${order.storeName}`
+    : order.items[0]?.productName ?? "Projeto BrasUX";
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-line-subtle bg-surface shadow-sm">
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-[#16a34a] to-[#2563eb] p-4">
+    <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-sm">
+
+      {/* Header gradient */}
+      <div
+        className="px-5 py-4"
+        style={{ background: `linear-gradient(135deg, ${accent}18, ${accent}08)`, borderBottom: `1px solid ${accent}20` }}
+      >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
-              <Package size={18} className="text-white" />
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-lg"
+              style={{ background: `${accent}20` }}
+            >
+              <Rocket size={18} style={{ color: accent }} />
             </div>
             <div>
-              {order.storeName && (
-                <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">
-                  {order.storeName}
-                </p>
-              )}
-              <p className="text-xl font-black text-white">
-                {formatBRL(Number(order.total))}
+              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: accent }}>
+                BrasUX · {new Date(order.createdAt).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
               </p>
+              <h3 className="font-black text-content line-clamp-1">{projectName}</h3>
             </div>
           </div>
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-black ${STATUS_COLOR[order.status]}`}
+            className="shrink-0 rounded-full border px-3 py-1 text-[10px] font-black"
+            style={{ background: s.bg, color: s.text, borderColor: s.border }}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[order.status]}`} />
-            {STATUS_LABEL[order.status] ?? "Desconhecido"}
+            {STATUS_LABEL[order.status]}
           </span>
         </div>
+
+        {/* Progress bar */}
+        {!isCancelled && (
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted">Progresso</span>
+              <span className="text-[10px] font-black" style={{ color: accent }}>{progress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle-2">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${progress}%`, background: accent }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Timeline steps */}
+        {!isCancelled && (
+          <div className="mt-4 flex items-start">
+            {STEPS.map((step, idx) => {
+              const done    = order.status >= step.status;
+              const current = order.status === step.status;
+              const isLast  = idx === STEPS.length - 1;
+              return (
+                <div key={step.status} className="flex flex-1 flex-col items-center">
+                  <div className="flex w-full items-center">
+                    <div
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full border-2 transition-all ${
+                        done ? (current ? "scale-125" : "") : ""
+                      }`}
+                      style={{
+                        borderColor: done ? accent : "#e2e8f0",
+                        background:  done ? accent : "var(--color-surface)",
+                      }}
+                    />
+                    {!isLast && (
+                      <div
+                        className="h-0.5 flex-1"
+                        style={{ background: order.status > step.status ? accent : "#e2e8f0" }}
+                      />
+                    )}
+                  </div>
+                  <p
+                    className="mt-1.5 text-[9px] font-black uppercase tracking-wide"
+                    style={{ color: done ? accent : "#cbd5e1" }}
+                  >
+                    {step.label}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* STATUS TIMELINE */}
-      {!isCancelled && (
-        <div className="px-4 pt-4 pb-1">
-          <StatusTimeline status={order.status} deliveryLifecycle={deliveryLifecycle} />
-        </div>
-      )}
-
-      {/* META + EXPAND */}
-      <div className="px-4 py-3">
+      {/* Footer */}
+      <div className="px-5 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-muted">
-            <Clock3 size={13} />
-            {new Date(order.createdAt).toLocaleString("pt-BR")}
+            <Clock size={12} />
+            {new Date(order.createdAt).toLocaleDateString("pt-BR")}
           </div>
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="text-xs font-black text-[#16a34a]"
-          >
-            {open ? "Ocultar detalhes" : "Ver detalhes"}
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://wa.me/5500000000000"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-bold text-[#16a34a] hover:underline"
+            >
+              <MessageCircle size={12} /> Falar com equipe
+            </a>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="flex items-center gap-1 text-xs font-black text-content"
+            >
+              {open ? <><ChevronUp size={14} /> Ocultar</> : <><ChevronDown size={14} /> Detalhes</>}
+            </button>
+          </div>
         </div>
 
         {open && (
-          <div className="mt-3 space-y-4 border-t border-subtle-2 pt-3">
-            {/* ITEMS */}
-            <div className="space-y-2">
-              {order.items.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-subtle p-3">
-                  <img
-                    src={getProductImageUrl(item.imageUrl)}
-                    alt={item.productName}
-                    className="h-14 w-14 rounded-xl object-cover bg-surface shrink-0"
-                    onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-black text-content line-clamp-1">{item.productName}</h3>
-                    <p className="text-xs text-muted">{item.quantity}× {formatBRL(item.unitPrice)}</p>
-                  </div>
-                  <span className="text-sm font-black text-[#16a34a] shrink-0">
-                    {formatBRL(item.totalPrice)}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="mt-4 space-y-4 border-t border-subtle-2 pt-4">
 
-            {/* MAPA AO VIVO (status >= em despacho) */}
-            {(isInTransit || isDelivered) && (
-              <Suspense fallback={<div className="h-52 animate-pulse rounded-2xl bg-subtle-2" />}>
-                <LiveTrackingMap
-                  orderId={order.id}
-                  deliveryAddress={order.deliveryAddress}
-                  deliveryNumber={order.deliveryNumber}
-                  deliveryNeighborhood={order.deliveryNeighborhood}
-                />
-              </Suspense>
-            )}
-
-            {/* ENDEREÇO */}
-            {!isInTransit && !isDelivered && (
-              <div className="rounded-2xl border border-line bg-subtle px-4 py-3">
-                <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-faint">Entrega</p>
-                <p className="text-sm font-black text-content">
-                  {order.deliveryAddress}, {order.deliveryNumber}
-                  {order.deliveryComplement ? ` — ${order.deliveryComplement}` : ""}
+            {/* Deliverables */}
+            {order.items.length > 0 && (
+              <div>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-faint">
+                  Entregas do projeto
                 </p>
-                <p className="text-xs text-muted">{order.deliveryNeighborhood}</p>
+                <div className="space-y-2">
+                  {order.items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-line bg-subtle p-3">
+                      <div
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-base"
+                        style={{ background: `${accent}15` }}
+                      >
+                        <CheckCircle2 size={16} style={{ color: accent }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-content line-clamp-1">{item.productName}</p>
+                        <p className="text-xs text-muted">{item.quantity}× entrega</p>
+                      </div>
+                      <span className="text-sm font-black shrink-0" style={{ color: accent }}>
+                        {formatBRL(item.totalPrice)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* TOTAIS + PAGAMENTO */}
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs text-muted">
-                <span>Subtotal</span>
-                <strong>{formatBRL(order.subtotal)}</strong>
-              </div>
-              <div className="flex justify-between text-xs text-muted">
-                <span>Entrega</span>
-                <strong>
-                  {Number(order.deliveryFee) === 0 ? "Grátis" : formatBRL(order.deliveryFee)}
-                </strong>
-              </div>
-              <div className="flex justify-between text-xs text-muted">
-                <span>Pagamento</span>
-                <strong>{PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}</strong>
-              </div>
-              <div className="flex justify-between border-t border-subtle-2 pt-1.5">
-                <span className="text-sm font-black text-content">Total</span>
-                <span className="text-base font-black text-[#16a34a]">{formatBRL(order.total)}</span>
+            {/* Value summary */}
+            <div className="rounded-2xl border border-line bg-subtle px-4 py-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted">Valor do projeto</p>
+                <p className="text-lg font-black" style={{ color: accent }}>{formatBRL(order.total)}</p>
               </div>
             </div>
-
-            {/* AVALIAÇÃO (só após entrega) */}
-            {isDelivered && (
-              <RatingSection
-                orderId={order.id}
-                firstStoreProductId={order.items[0]?.storeProductId}
-              />
-            )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <div
+          className="flex h-24 w-24 items-center justify-center rounded-3xl"
+          style={{ background: "linear-gradient(135deg, #16a34a18, #16a34a30)" }}
+        >
+          <ReceiptText size={40} className="text-[#16a34a]" />
+        </div>
+        <h2 className="mt-6 text-xl font-black text-content">Nenhum projeto ainda</h2>
+        <p className="mt-2 max-w-xs text-sm text-muted">
+          Seus projetos contratados aparecerão aqui com atualizações em tempo real.
+        </p>
+        <Link
+          to="/contato"
+          className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
+          style={{ boxShadow: "0 4px 16px rgba(22,163,74,0.35)" }}
+        >
+          Iniciar um projeto <ArrowRight size={15} />
+        </Link>
+      </div>
+
+      <div>
+        <p className="mb-4 text-center text-[11px] font-black uppercase tracking-widest text-faint">
+          Cases do portfólio BrasUX
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {SHOWCASE.map((p) => <ShowcaseCard key={p.id} project={p} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ShowcaseCard ─────────────────────────────────────────────────────────────
+
+interface ShowcaseProject {
+  id: string; type: string; icon: string; color: string;
+  name: string; status: number; value: number;
+  tech: string[]; date: string; result: string;
+}
+
+function ShowcaseCard({ project: p }: { project: ShowcaseProject }) {
+  return (
+    <div className="overflow-hidden rounded-3xl border border-line bg-surface shadow-sm">
+      <div
+        className="px-4 py-4"
+        style={{ background: `linear-gradient(135deg, ${p.color}18, ${p.color}06)`, borderBottom: `1px solid ${p.color}20` }}
+      >
+        <div className="flex items-center gap-2.5 mb-3">
+          <span className="text-2xl">{p.icon}</span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: p.color }}>{p.type}</p>
+            <p className="text-xs font-black text-content line-clamp-1">{p.name}</p>
+          </div>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-subtle-2">
+          <div className="h-full w-full rounded-full" style={{ background: p.color }} />
+        </div>
+      </div>
+      <div className="px-4 py-3 space-y-2">
+        <div className="flex flex-wrap gap-1.5">
+          {p.tech.map((t) => (
+            <span key={t} className="rounded-lg border border-line bg-subtle px-2 py-0.5 text-[10px] font-bold text-muted">
+              {t}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs font-black" style={{ color: p.color }}>{p.result}</p>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-faint">{p.date}</span>
+          <span className="text-sm font-black text-content">{formatBRL(p.value)}</span>
+        </div>
       </div>
     </div>
   );
