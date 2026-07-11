@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, CheckCircle2, Clock, FolderOpen, LogIn, Sparkles } from "lucide-react";
-import { useAuthStore } from "../stores/authStore";
+import { ArrowRight, ArrowUpRight, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { usePageMeta } from "../hooks/usePageMeta";
 
 // ─── Projetos reais BrasUX ───────────────────────────────────────────────────
@@ -226,7 +225,6 @@ export default function OrdersPage() {
     description: "Portfólio de projetos entregues e em andamento pelo BrasUX: plataformas, APIs, apps e sistemas educacionais.",
   });
 
-  const auth = useAuthStore((s) => s.user);
   const [filter, setFilter] = useState<FilterKey>("todos");
 
   const visible  = filterProjects(PROJECTS, filter);
@@ -304,51 +302,6 @@ export default function OrdersPage() {
           <ProjectCard key={p.id} project={p} />
         ))}
       </div>
-
-      {/* ── Cliente logado ──────────────────────────────────────────────── */}
-      {auth ? (
-        <section
-          className="rounded-3xl border border-line bg-surface p-6 shadow-sm"
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#16a34a]/10">
-              <FolderOpen size={18} className="text-[#16a34a]" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#16a34a]">Área do cliente</p>
-              <p className="font-black text-content">
-                Olá, {auth.name?.split(" ")[0] || "cliente"}
-              </p>
-            </div>
-          </div>
-          <p className="text-sm text-muted">
-            Seus projetos contratados serão exibidos aqui com atualizações em tempo real. Entre em contato para acompanhar o andamento.
-          </p>
-          <Link
-            to="/contato"
-            className="mt-4 inline-flex items-center gap-2 text-sm font-black text-[#16a34a] hover:underline"
-          >
-            Falar com a equipe <ArrowRight size={14} />
-          </Link>
-        </section>
-      ) : (
-        <section
-          className="rounded-3xl border border-line bg-surface p-6 text-center shadow-sm"
-        >
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#16a34a]/10">
-            <LogIn size={22} className="text-[#16a34a]" />
-          </div>
-          <h3 className="font-black text-content">Área do cliente</h3>
-          <p className="mt-1 text-sm text-muted">Faça login para acompanhar seus projetos contratados.</p>
-          <Link
-            to="/login"
-            state={{ from: "/projetos" }}
-            className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-5 py-2.5 text-sm font-black text-white"
-          >
-            Entrar <ArrowRight size={14} />
-          </Link>
-        </section>
-      )}
 
       {/* ── CTA final ───────────────────────────────────────────────────── */}
       <section

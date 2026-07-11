@@ -1,8 +1,7 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate, useLocation } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
-import { useAuthStore } from "../stores/authStore";
 
 const HomePage = lazy(() => import("../pages/HomePage"));
 const StorePage = lazy(() => import("../pages/StorePage"));
@@ -40,38 +39,13 @@ function PageSpinner() {
   );
 }
 
-function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: string }) {
-  const { user, initialized } = useAuthStore();
-  const location = useLocation();
-
-  if (!initialized) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#16a34a] border-t-transparent" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
-  }
-
-  if (role && user.role !== role) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-}
-
 export const router = createBrowserRouter([
   {
     path: "/admin",
     element: (
-      <ProtectedRoute role="Admin">
-        <Suspense fallback={<PageSpinner />}>
-          <AdminPage />
-        </Suspense>
-      </ProtectedRoute>
+      <Suspense fallback={<PageSpinner />}>
+        <AdminPage />
+      </Suspense>
     ),
   },
   {
@@ -91,22 +65,8 @@ export const router = createBrowserRouter([
         path: "checkout",
         element: <CheckoutPage />,
       },
-      {
-        path: "projetos",
-        element: (
-          <ProtectedRoute>
-            <OrdersPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "conta",
-        element: (
-          <ProtectedRoute>
-            <AccountPage />
-          </ProtectedRoute>
-        ),
-      },
+      { path: "projetos", element: <OrdersPage /> },
+      { path: "conta",    element: <AccountPage /> },
       { path: "login", element: <LoginPage /> },
       { path: "favoritos", element: <FavoritesPage /> },
       { path: "comparar", element: <ComparePage /> },
@@ -119,22 +79,8 @@ export const router = createBrowserRouter([
       { path: "contato",       element: <ContatoPage /> },
       { path: "acompanhar",   element: <OrderTrackingPage /> },
       { path: "acompanhar/:code", element: <OrderTrackingPage /> },
-      {
-        path: "lojista",
-        element: (
-          <ProtectedRoute role="Seller">
-            <SellerPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "entregador",
-        element: (
-          <ProtectedRoute>
-            <CourierPage />
-          </ProtectedRoute>
-        ),
-      },
+      { path: "lojista",    element: <SellerPage /> },
+      { path: "entregador", element: <CourierPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

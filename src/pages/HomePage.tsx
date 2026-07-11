@@ -9,7 +9,6 @@ import {
   canonicalUrl,
 } from "../lib/seo";
 
-import { useAuthStore } from "../stores/authStore";
 import { departments } from "../data/taxonomy";
 import DepartmentCard from "../components/ui/DepartmentCard";
 import SectionHeader from "../components/home/SectionHeader";
@@ -120,8 +119,6 @@ export default function HomePage() {
     []
   );
   useJsonLd(homeSchemas);
-
-  const authUser = useAuthStore((s) => s.user);
 
   return (
     <div className="space-y-12">
@@ -304,17 +301,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {authUser && (
-        <div className="rounded-2xl border border-line bg-surface p-4">
-          <p className="text-sm text-muted">
-            Olá, <span className="font-black text-content">{authUser.name || authUser.email}</span> —{" "}
-            <Link to="/pedidos" className="font-bold text-[#16a34a] hover:underline">
-              ver meus projetos
-            </Link>
-          </p>
-        </div>
-      )}
 
     </div>
   );

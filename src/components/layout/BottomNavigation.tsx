@@ -1,13 +1,8 @@
 import { NavLink } from "react-router-dom";
-import { useAuthStore } from "../../stores/authStore";
 import { getPrimaryNav } from "../../data/navigation";
 
-// Bottom nav (mobile) — mesma fonte de navegação do desktop (data/navigation.ts).
-// Busca e Carrinho ficam no header; Favoritos no header. Aqui só os destinos
-// primários: Início · Categorias · Lojas · Pedidos · Conta.
 export default function BottomNavigation() {
-  const userRole = useAuthStore((s) => s.user?.role);
-  const navItems = getPrimaryNav(userRole);
+  const navItems = getPrimaryNav(undefined);
 
   return (
     <nav className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 md:hidden">

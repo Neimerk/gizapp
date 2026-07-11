@@ -13,11 +13,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import CompareBar from "../ui/CompareBar";
 import Onboarding from "../ui/Onboarding";
 import Toast from "../ui/Toast";
-import { useFavoritesStore } from "../../stores/favoritesStore";
-import { usePointsStore } from "../../stores/pointsStore";
-import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { useVoiceSearch } from "../../hooks/useVoiceSearch";
-import { useAuthStore, initAuth } from "../../stores/authStore";
 import { useErrorMonitor } from "../../hooks/useErrorMonitor";
 import { getPrimaryNav } from "../../data/navigation";
 import CookieBanner from "../ui/CookieBanner";
@@ -25,25 +21,10 @@ import CookieBanner from "../ui/CookieBanner";
 export default function AppLayout() {
   useErrorMonitor();
 
-  const authUser = useAuthStore((s) => s.user);
-  const navLinks = getPrimaryNav(authUser?.role);
+  const navLinks = getPrimaryNav(undefined);
 
   const navigate = useNavigate();
 
-  // Inicializa auth lazy — carrega Supabase apenas após primeiro render
-  useEffect(() => { initAuth(); }, []);
-
-  // Sync favorites, pontos e push subscription quando usuário loga/desloga
-  const loadFavorites = useFavoritesStore((s) => s.loadFromDB);
-  const loadPoints    = usePointsStore((s) => s.loadFromDB);
-  const { syncExisting: syncPush } = usePushNotifications();
-  useEffect(() => {
-    if (authUser) {
-      loadFavorites();
-      loadPoints();
-      syncPush(); // persiste subscription existente no banco após login
-    }
-  }, [authUser?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const { pathname } = useLocation();
 
   useEffect(() => {
