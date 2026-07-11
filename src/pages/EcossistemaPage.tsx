@@ -36,7 +36,7 @@ const CLUSTERS: Cluster[] = [
     id: "plataforma",
     emoji: "🛍️",
     label: "Plataforma",
-    title: "BrasUX Shopping",
+    title: "ComprAÍ Shopping",
     subtitle: "O marketplace brasileiro",
     color: "#16a34a",
     colorDim: "rgba(22,163,74,0.12)",
@@ -46,27 +46,28 @@ const CLUSTERS: Cluster[] = [
       "Marketplace multi-lojista com entregas rápidas em todo o Brasil. Compradores, lojistas e entregadores — todos em uma só plataforma.",
     products: [
       {
-        name: "BrasUX Shopping",
+        name: "ComprAÍ Shopping",
         desc: "Marketplace para compradores — lojas, categorias e produtos com entrega rápida.",
         icon: "🛍️",
         badge: "Compradores",
-        to: "/",
+        href: "https://comprai.store",
+        domain: "comprai.store",
       },
       {
-        name: "BrasUX Loja",
+        name: "ComprAÍ Loja",
         desc: "Plataforma para lojistas abrirem e gerenciarem suas lojas online em minutos.",
         icon: "🏪",
         badge: "Lojistas",
-        href: "https://brasux.store",
-        domain: "brasux.store",
+        href: "https://loja.comprai.store",
+        domain: "loja.comprai.store",
       },
       {
-        name: "BrasUX Entregas",
+        name: "ComprAÍ Entregas",
         desc: "App para entregadores parceiros — aceite pedidos e ganhe na sua região.",
         icon: "🏍️",
         badge: "Entregadores",
-        href: "https://entregas.brasux.com.br",
-        domain: "entregas.brasux.com.br",
+        href: "https://entregas.comprai.store",
+        domain: "entregas.comprai.store",
       },
     ],
   },
@@ -376,16 +377,18 @@ export default function EcossistemaPage() {
               </p>
             </div>
             <div className="flex flex-col items-center gap-3 sm:flex-row">
-              <Link
-                to="/"
+              <a
+                href="https://comprai.store"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-2xl px-8 py-3.5 text-sm font-black text-white transition-all hover:scale-[1.03]"
                 style={{
                   background: "linear-gradient(135deg, #16a34a, #15803d)",
                   boxShadow: "0 8px 28px rgba(22,163,74,0.45)",
                 }}
               >
-                Explorar o Shopping <ArrowRight size={15} />
-              </Link>
+                Explorar o ComprAÍ <ArrowRight size={15} />
+              </a>
               <a
                 href="mailto:contato@brasux.com.br"
                 className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-black text-white/70 backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white"

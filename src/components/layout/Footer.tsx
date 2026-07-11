@@ -20,7 +20,7 @@ const ECOSYSTEM = [
   { name: "Curso NotaOn",      href: "https://cursonotaon.com.br",          badge: "Edu" },
   { name: "BrasUX Dev",        href: "https://servicos.brasux.com.br",      badge: "Dev" },
   { name: "Landing Pages",     href: "https://produtos.brasux.com.br",      badge: "Dev" },
-  { name: "BrasUX Shopping",   href: "https://shopping.brasux.com.br",      badge: "Shop" },
+  { name: "ComprAÍ Shopping",  href: "https://comprai.store",               badge: "Shop" },
 ];
 
 const COMPANY = [
