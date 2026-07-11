@@ -174,7 +174,7 @@ export default function OrdersPage() {
           </p>
           <Link
             to="/login"
-            state={{ from: "/pedidos" }}
+            state={{ from: "/projetos" }}
             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#16a34a] px-6 py-3 text-sm font-black text-white"
             style={{ boxShadow: "0 4px 16px rgba(22,163,74,0.35)" }}
           >

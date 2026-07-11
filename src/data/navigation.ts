@@ -16,7 +16,7 @@ export const customerNav: NavItem[] = [
   { label: "Início",      path: "/",             icon: Home,        end: true },
   { label: "Soluções",    path: "/categorias",   icon: LayoutGrid },
   { label: "Ecossistema", path: "/ecossistema",  icon: Globe },
-  { label: "Projetos",    path: "/pedidos",      icon: ReceiptText },
+  { label: "Projetos",    path: "/projetos",      icon: ReceiptText },
 ];
 
 export function getPrimaryNav(_role?: string): NavItem[] {

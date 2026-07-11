@@ -92,7 +92,7 @@ export const router = createBrowserRouter([
         element: <CheckoutPage />,
       },
       {
-        path: "pedidos",
+        path: "projetos",
         element: (
           <ProtectedRoute>
             <OrdersPage />
